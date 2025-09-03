@@ -81,7 +81,8 @@ document.getElementById('fetchBtn').addEventListener('click', async () => {
         const minutes = Math.floor(durationMs / 60000);
         const seconds = Math.floor((durationMs % 60000) / 1000);
     const totalPages = Math.ceil(allItems.length / itemsPerPage);
-    timingInfo.textContent = `Start: ${startTime.toLocaleTimeString()} | End: ${endTime.toLocaleTimeString()} | Total: ${minutes}m ${seconds}s | Records: ${allItems.length} | Pages: ${totalPages}`;
+    // Show only the total counts here; filtered counts will be handled in renderTablePage
+    timingInfo.textContent = `Start: ${startTime.toLocaleTimeString()} | End: ${endTime.toLocaleTimeString()} | Total: ${minutes}m ${seconds}s | Records: ${originalItems.length} | Pages: ${Math.ceil(originalItems.length / itemsPerPage)}`;
     } catch (err) {
         document.getElementById('results').innerHTML = 'Error fetching data.';
         const endTime = new Date();
@@ -99,32 +100,123 @@ let currentPage = 1;
 const itemsPerPage = 100;
 
 function renderTablePage(page) {
+    // Show filtered/total counts in timingInfo (always show both)
+    const timingInfo = document.getElementById('timingInfo');
+    if (timingInfo && typeof originalItems !== 'undefined') {
+        const totalRecords = originalItems.length;
+        const totalPages = Math.ceil(totalRecords / itemsPerPage);
+        const filteredRecords = allItems.length;
+        const filteredPages = Math.ceil(filteredRecords / itemsPerPage);
+        // Try to preserve the start/end/time info if present
+        const base = timingInfo.textContent.split('| Records:')[0];
+        timingInfo.textContent = `${base}| Records: ${totalRecords} | Pages: ${totalPages} | Filtered: ${filteredRecords} | Filtered Pages: ${filteredPages}`;
+    }
     let html = '';
     const startIdx = (page - 1) * itemsPerPage;
     const endIdx = Math.min(startIdx + itemsPerPage, allItems.length);
     const totalPages = Math.ceil(allItems.length / itemsPerPage);
+        // Player count filter (top) as checkboxes
+        const playerOptions = Array.from({length: 12}, (_, i) => i + 1); // 1-12 players
+        html += `<div style="margin:1em 0; text-align:center;">
+            <span>Filter by player count:</span>
+            <span id="playerCountCheckboxes">
+                ${playerOptions.map(n => `<label style='margin:0 4px;'><input type='checkbox' value='${n}' class='playerCountBox'/>${n}</label>`).join('')}
+            </span>
+            <button id="applyPlayerFilterBtn">Apply</button>
+            <button id="clearPlayerFilterBtn">Clear</button>
+            <span id="selectedPlayerCounts" style="margin-left:1em;color:#0078d4;"></span>
+        </div>`;
         // Filter/sort buttons (top)
         html += `<div style="margin:1em 0; text-align:center;">
             <button id="quickGamesBtn">Quick Games sort by asc value</button>
             <button id="newestGamesBtn">Newest Released Games</button>
             <button id="mostPlayedBtn">Most Played Games</button>
+            <button id="ratingSortBtn">Sort by Bayes Avg (desc)</button>
         </div>`;
+    // Add event handler for Sort by Bayes Avg (desc, only owned)
+    setTimeout(() => {
+        const ratingBtn = document.getElementById('ratingSortBtn');
+        if (ratingBtn) {
+            ratingBtn.onclick = () => {
+                console.log('[Sort by Bayes Avg] Button clicked');
+                if (ratingBtn.textContent.includes('Show All')) {
+                    allItems = [...originalItems];
+                    ratingBtn.textContent = 'Sort by Bayes Avg (desc)';
+                    console.log('[Sort by Bayes Avg] Restored allItems:', allItems);
+                } else {
+                    allItems = originalItems.filter(item => Number(item.own) > 0)
+                        .sort((a, b) => Number(b.bayesaverage) - Number(a.bayesaverage));
+                    ratingBtn.textContent = 'Show All';
+                    console.log('[Sort by Bayes Avg] Filtered/Sorted allItems:', allItems.map(g => ({name: g.name, bayesaverage: g.bayesaverage, own: g.own})));
+                }
+                currentPage = 1;
+                renderTablePage(currentPage);
+            };
+        }
+    }, 0);
+    // Add event handler for player count filter (checkboxes)
+    setTimeout(() => {
+        const applyBtn = document.getElementById('applyPlayerFilterBtn');
+        const clearBtn = document.getElementById('clearPlayerFilterBtn');
+        const checkboxes = document.querySelectorAll('.playerCountBox');
+        const selectedDisplay = document.getElementById('selectedPlayerCounts');
+        function getSelected() {
+            return Array.from(checkboxes).filter(cb => cb.checked).map(cb => Number(cb.value));
+        }
+        if (applyBtn && checkboxes.length) {
+            applyBtn.onclick = () => {
+                const selected = getSelected();
+                if (selected.length === 0) {
+                    // Don't reset to all items, just remove player count filter
+                    if (selectedDisplay) selectedDisplay.textContent = '';
+                    renderTablePage(1);
+                    return;
+                }
+                // Apply player count filter on top of current allItems (not originalItems)
+                allItems = allItems.filter(item => {
+                    const minp = Number(item.minplayers) || 0;
+                    const maxp = Number(item.maxplayers) || 0;
+                    return selected.some(sel => sel >= minp && sel <= maxp);
+                });
+                // Show filtered player count numbers
+                if (selectedDisplay) selectedDisplay.textContent = `Selected: ${selected.join(', ')} | Filtered: ${allItems.length} | Pages: ${Math.ceil(allItems.length / itemsPerPage)}`;
+                currentPage = 1;
+                renderTablePage(currentPage);
+            };
+        }
+        if (clearBtn && checkboxes.length) {
+            clearBtn.onclick = () => {
+                checkboxes.forEach(cb => cb.checked = false);
+                // Remove only the player count filter, keep other filters/sorts
+                // Re-render with the last non-player-count filtered set
+                // To do this, refetch the base set from the last filter/sort (not originalItems)
+                // We'll just trigger a re-render, which will use the current allItems
+                if (selectedDisplay) selectedDisplay.textContent = '';
+                renderTablePage(1);
+            };
+        }
+    }, 0);
     // Add event handler for Most Played Games (owned, sort by numplays desc)
-    const mostPlayedBtn = document.getElementById('mostPlayedBtn');
-    if (mostPlayedBtn) {
-        mostPlayedBtn.onclick = () => {
-            if (mostPlayedBtn.textContent.includes('Show All')) {
-                allItems = [...originalItems];
-                mostPlayedBtn.textContent = 'Most Played Games';
-            } else {
-                allItems = originalItems.filter(item => Number(item.own) > 0)
-                    .sort((a, b) => Number(b.numplays) - Number(a.numplays));
-                mostPlayedBtn.textContent = 'Show All';
-            }
-            currentPage = 1;
-            renderTablePage(currentPage);
-        };
-    }
+    setTimeout(() => {
+        const mostPlayedBtn = document.getElementById('mostPlayedBtn');
+        if (mostPlayedBtn) {
+            mostPlayedBtn.onclick = () => {
+                console.log('[Most Played Games] Button clicked');
+                if (mostPlayedBtn.textContent.includes('Show All')) {
+                    allItems = [...originalItems];
+                    mostPlayedBtn.textContent = 'Most Played Games';
+                    console.log('[Most Played Games] Restored allItems:', allItems);
+                } else {
+                    allItems = originalItems.filter(item => Number(item.own) > 0)
+                        .sort((a, b) => Number(b.numplays) - Number(a.numplays));
+                    mostPlayedBtn.textContent = 'Show All';
+                    console.log('[Most Played Games] Filtered/Sorted allItems:', allItems.map(g => ({name: g.name, numplays: g.numplays, own: g.own})));
+                }
+                currentPage = 1;
+                renderTablePage(currentPage);
+            };
+        }
+    }, 0);
     // Pagination controls (top)
     if (allItems.length > 0) {
         html += `<div style="margin:1em 0; text-align:center;">
@@ -132,7 +224,20 @@ function renderTablePage(page) {
             Page ${page} of ${totalPages}
             <button id="nextPageTop" ${endIdx >= allItems.length ? 'disabled' : ''}>Next</button>
         </div>`;
-        html += `<div style="overflow-x:auto;"><table border="1" cellpadding="4" cellspacing="0" style="border-collapse:collapse; min-width:1800px;">
+        html += `<style>
+            .bgg-table thead th {
+                position: sticky;
+                top: 0;
+                background: #f8f8f8;
+                z-index: 2;
+            }
+            .bgg-table {
+                border-collapse: collapse;
+                min-width: 1800px;
+            }
+        </style>`;
+        html += `<div style="overflow-x:auto; max-height:600px;">
+        <table class="bgg-table" border="1" cellpadding="4" cellspacing="0">
             <thead><tr>
                 <th>#</th>
                 <th>Thumbnail</th>
@@ -214,13 +319,16 @@ function renderTablePage(page) {
     const quickBtn = document.getElementById('quickGamesBtn');
     if (quickBtn) {
         quickBtn.onclick = () => {
+            console.log('[Quick Games] Button clicked');
             if (quickBtn.textContent.includes('Show All')) {
                 allItems = [...originalItems];
                 quickBtn.textContent = 'Quick Games sort by asc value';
+                console.log('[Quick Games] Restored allItems:', allItems);
             } else {
                 allItems = originalItems.filter(item => Number(item.own) > 0)
                     .sort((a, b) => Number(a.playingtime) - Number(b.playingtime));
                 quickBtn.textContent = 'Show All';
+                console.log('[Quick Games] Filtered/Sorted allItems:', allItems.map(g => ({name: g.name, playingtime: g.playingtime, own: g.own})));
             }
             currentPage = 1;
             renderTablePage(currentPage);
@@ -230,13 +338,20 @@ function renderTablePage(page) {
     const newestBtn = document.getElementById('newestGamesBtn');
     if (newestBtn) {
         newestBtn.onclick = () => {
+            console.log('[Newest Released Games] Button clicked');
             if (newestBtn.textContent.includes('Show All')) {
                 allItems = [...originalItems];
                 newestBtn.textContent = 'Newest Released Games';
+                console.log('[Newest Released Games] Restored allItems:', allItems);
             } else {
                 allItems = originalItems.filter(item => Number(item.own) > 0)
-                    .sort((a, b) => b.year - a.year);
+                    .sort((a, b) => {
+                        const ya = Number(a.year) || 0;
+                        const yb = Number(b.year) || 0;
+                        return yb - ya;
+                    });
                 newestBtn.textContent = 'Show All';
+                console.log('[Newest Released Games] Filtered/Sorted allItems:', allItems.map(g => ({name: g.name, year: g.year, yearpublished: g.yearpublished, own: g.own})));
             }
             currentPage = 1;
             renderTablePage(currentPage);
