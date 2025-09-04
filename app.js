@@ -1,5 +1,352 @@
 // Store the unfiltered list for toggling
 let originalItems = [];
+
+// Pairwise ranking state
+let rankingState = {
+    isActive: false,
+    games: [],
+    currentPair: null,
+    comparisons: [],
+    currentIndex: 0,
+    gameStats: new Map(), // Track appearances and win-loss records
+    pairHistory: [] // For back functionality
+};
+
+// Sample games for testing (when API is not available)
+const sampleGames = [
+    {
+        objectid: "1",
+        name: "Azul",
+        image: "https://cf.geekdo-images.com/original/img/oKuPfBQ9PIZ9wfCfUIGIeL0SCb0=/0x0/pic3718275.jpg",
+        thumbnail: "https://cf.geekdo-images.com/thumb/img/oKuPfBQ9PIZ9wfCfUIGIeL0SCb0=/fit-in/200x150/pic3718275.jpg",
+        year: 2017,
+        own: "1",
+        bayesaverage: "7.8"
+    },
+    {
+        objectid: "2", 
+        name: "Wingspan",
+        image: "https://cf.geekdo-images.com/original/img/A-0yDJkve0avEicYQ4HoNO-HkK8=/0x0/pic4458123.jpg",
+        thumbnail: "https://cf.geekdo-images.com/thumb/img/A-0yDJkve0avEicYQ4HoNO-HkK8=/fit-in/200x150/pic4458123.jpg",
+        year: 2019,
+        own: "1",
+        bayesaverage: "8.1"
+    },
+    {
+        objectid: "3",
+        name: "Ticket to Ride",
+        image: "https://cf.geekdo-images.com/original/img/pNmQ9-pJYPQa6MXHOtPeyaLW_EU=/0x0/pic38668.jpg",
+        thumbnail: "https://cf.geekdo-images.com/thumb/img/pNmQ9-pJYPQa6MXHOtPeyaLW_EU=/fit-in/200x150/pic38668.jpg",
+        year: 2004,
+        own: "1", 
+        bayesaverage: "7.4"
+    },
+    {
+        objectid: "4",
+        name: "Splendor",
+        image: "https://cf.geekdo-images.com/original/img/rwWLtFkSJqM4CNwU5r-PbUiYTiA=/0x0/pic1904079.jpg",
+        thumbnail: "https://cf.geekdo-images.com/thumb/img/rwWLtFkSJqM4CNwU5r-PbUiYTiA=/fit-in/200x150/pic1904079.jpg",
+        year: 2014,
+        own: "1",
+        bayesaverage: "7.6"
+    },
+    {
+        objectid: "5",
+        name: "Catan",
+        image: "https://cf.geekdo-images.com/original/img/A-0yDJkve0avEicYQ4HoNO-HkK8=/0x0/pic2419375.jpg",
+        thumbnail: "https://cf.geekdo-images.com/thumb/img/A-0yDJkve0avEicYQ4HoNO-HkK8=/fit-in/200x150/pic2419375.jpg",
+        year: 1995,
+        own: "1",
+        bayesaverage: "7.2"
+    }
+];
+
+// Initialize game stats for ranking
+function initializeGameStats(games) {
+    rankingState.gameStats.clear();
+    games.forEach(game => {
+        rankingState.gameStats.set(game.objectid, {
+            appearances: 0,
+            wins: 0,
+            losses: 0
+        });
+    });
+}
+
+// Start pairwise ranking
+function startPairwiseRanking() {
+    const games = originalItems.length > 0 ? 
+        originalItems.filter(item => Number(item.own) > 0) : 
+        sampleGames;
+    
+    if (games.length < 2) {
+        alert('Need at least 2 games to rank!');
+        return;
+    }
+    
+    rankingState.isActive = true;
+    rankingState.games = [...games];
+    rankingState.comparisons = [];
+    rankingState.currentIndex = 0;
+    rankingState.pairHistory = [];
+    
+    initializeGameStats(games);
+    
+    // Hide main interface, show ranking interface
+    document.getElementById('results').style.display = 'none';
+    document.getElementById('rankingInterface').style.display = 'block';
+    
+    generateComparisonPairs();
+    showNextComparison();
+}
+
+// Generate all possible pairs for comparison
+function generateComparisonPairs() {
+    const pairs = [];
+    for (let i = 0; i < rankingState.games.length; i++) {
+        for (let j = i + 1; j < rankingState.games.length; j++) {
+            pairs.push([rankingState.games[i], rankingState.games[j]]);
+        }
+    }
+    rankingState.comparisons = shuffleArray(pairs);
+}
+
+// Shuffle array utility
+function shuffleArray(array) {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+}
+
+// Show next comparison
+function showNextComparison() {
+    if (rankingState.currentIndex >= rankingState.comparisons.length) {
+        showFinalRankings();
+        return;
+    }
+    
+    const pair = rankingState.comparisons[rankingState.currentIndex];
+    rankingState.currentPair = pair;
+    
+    // Update appearance stats
+    pair.forEach(game => {
+        const stats = rankingState.gameStats.get(game.objectid);
+        if (stats) stats.appearances++;
+    });
+    
+    renderComparisonInterface(pair);
+}
+
+// Render the comparison interface
+function renderComparisonInterface(pair) {
+    const [game1, game2] = pair;
+    const progress = ((rankingState.currentIndex + 1) / rankingState.comparisons.length) * 100;
+    
+    const html = `
+        <div class="ranking-container">
+            <div class="ranking-header">
+                <h2>Tier Ranking - Choose Your Preference</h2>
+                <div class="ranking-progress">
+                    <div class="progress-bar" style="width: ${progress}%"></div>
+                    <div style="text-align: center; margin-top: 5px;">
+                        Comparison ${rankingState.currentIndex + 1} of ${rankingState.comparisons.length}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="comparison-area">
+                <div class="game-card" onclick="selectGame('${game1.objectid}')">
+                    <img src="${game1.thumbnail || game1.image || 'https://via.placeholder.com/150'}" 
+                         alt="${game1.name}" class="game-image" onerror="this.src='https://via.placeholder.com/150'">
+                    <div class="game-name">${game1.name}</div>
+                    <div class="game-stats">
+                        Year: ${game1.year || 'N/A'}<br>
+                        Appearances: ${rankingState.gameStats.get(game1.objectid)?.appearances || 0}<br>
+                        Record: ${rankingState.gameStats.get(game1.objectid)?.wins || 0}W - ${rankingState.gameStats.get(game1.objectid)?.losses || 0}L
+                    </div>
+                </div>
+                
+                <div style="display: flex; align-items: center; font-size: 24px; font-weight: bold; color: #666;">
+                    VS
+                </div>
+                
+                <div class="game-card" onclick="selectGame('${game2.objectid}')">
+                    <img src="${game2.thumbnail || game2.image || 'https://via.placeholder.com/150'}" 
+                         alt="${game2.name}" class="game-image" onerror="this.src='https://via.placeholder.com/150'">
+                    <div class="game-name">${game2.name}</div>
+                    <div class="game-stats">
+                        Year: ${game2.year || 'N/A'}<br>
+                        Appearances: ${rankingState.gameStats.get(game2.objectid)?.appearances || 0}<br>
+                        Record: ${rankingState.gameStats.get(game2.objectid)?.wins || 0}W - ${rankingState.gameStats.get(game2.objectid)?.losses || 0}L
+                    </div>
+                </div>
+            </div>
+            
+            <div class="ranking-controls">
+                <button class="back-btn" onclick="goBackOneStep()" ${rankingState.pairHistory.length === 0 ? 'disabled' : ''}>
+                    ← Back
+                </button>
+                <button class="skip-btn" onclick="skipComparison()">
+                    Skip This Pair
+                </button>
+                <button class="exit-btn" onclick="exitRanking()">
+                    Exit Ranking
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('rankingInterface').innerHTML = html;
+}
+
+// Handle game selection
+function selectGame(winnerId) {
+    const [game1, game2] = rankingState.currentPair;
+    const loserId = winnerId === game1.objectid ? game2.objectid : game1.objectid;
+    
+    // Store this choice for back functionality
+    rankingState.pairHistory.push({
+        pair: [...rankingState.currentPair],
+        winner: winnerId,
+        loser: loserId,
+        index: rankingState.currentIndex
+    });
+    
+    // Update win-loss records
+    const winnerStats = rankingState.gameStats.get(winnerId);
+    const loserStats = rankingState.gameStats.get(loserId);
+    
+    if (winnerStats) winnerStats.wins++;
+    if (loserStats) loserStats.losses++;
+    
+    // Move to next comparison
+    rankingState.currentIndex++;
+    showNextComparison();
+}
+
+// Go back one step
+function goBackOneStep() {
+    if (rankingState.pairHistory.length === 0) return;
+    
+    const lastChoice = rankingState.pairHistory.pop();
+    
+    // Revert win-loss records
+    const winnerStats = rankingState.gameStats.get(lastChoice.winner);
+    const loserStats = rankingState.gameStats.get(lastChoice.loser);
+    
+    if (winnerStats) winnerStats.wins--;
+    if (loserStats) loserStats.losses--;
+    
+    // Revert appearance counts
+    lastChoice.pair.forEach(game => {
+        const stats = rankingState.gameStats.get(game.objectid);
+        if (stats) stats.appearances--;
+    });
+    
+    // Go back to previous comparison
+    rankingState.currentIndex = lastChoice.index;
+    rankingState.currentPair = lastChoice.pair;
+    
+    renderComparisonInterface(lastChoice.pair);
+}
+
+// Skip current comparison
+function skipComparison() {
+    rankingState.currentIndex++;
+    showNextComparison();
+}
+
+// Exit ranking mode
+function exitRanking() {
+    rankingState.isActive = false;
+    document.getElementById('rankingInterface').style.display = 'none';
+    document.getElementById('results').style.display = 'block';
+}
+
+// Calculate final rankings based on win-loss records
+function calculateFinalRankings() {
+    const rankings = rankingState.games.map(game => {
+        const stats = rankingState.gameStats.get(game.objectid);
+        return {
+            game,
+            stats,
+            winRate: stats.appearances > 0 ? (stats.wins / stats.appearances) : 0,
+            totalGames: stats.appearances
+        };
+    });
+    
+    // Sort by win rate, then by total games played
+    rankings.sort((a, b) => {
+        if (b.winRate !== a.winRate) {
+            return b.winRate - a.winRate;
+        }
+        return b.totalGames - a.totalGames;
+    });
+    
+    return rankings;
+}
+
+// Show final rankings
+function showFinalRankings() {
+    const rankings = calculateFinalRankings();
+    
+    let html = `
+        <div class="ranking-container">
+            <div class="ranking-header">
+                <h2>🏆 Final Tier Rankings</h2>
+                <p>Based on ${rankingState.pairHistory.length} comparisons</p>
+            </div>
+            
+            <div class="final-rankings">
+                <ol class="ranking-list">
+    `;
+    
+    rankings.forEach((item, index) => {
+        html += `
+            <li class="ranking-item">
+                <span class="ranking-position">#${index + 1}</span>
+                <div class="ranking-game-info">
+                    <div class="ranking-game-name">${item.game.name}</div>
+                    <div class="ranking-game-stats">
+                        Win Rate: ${(item.winRate * 100).toFixed(1)}% 
+                        (${item.stats.wins}W - ${item.stats.losses}L) 
+                        | Appearances: ${item.stats.appearances}
+                        | Year: ${item.game.year || 'N/A'}
+                    </div>
+                </div>
+            </li>
+        `;
+    });
+    
+    html += `
+                </ol>
+            </div>
+            
+            <div class="ranking-controls">
+                <button class="back-btn" onclick="startPairwiseRanking()">
+                    🔄 Start New Ranking
+                </button>
+                <button class="exit-btn" onclick="exitRanking()">
+                    📋 Back to Collection
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('rankingInterface').innerHTML = html;
+}
+
+// Add event listener for Tier Rank button
+document.addEventListener('DOMContentLoaded', () => {
+    const tierRankBtn = document.getElementById('tierRankBtn');
+    if (tierRankBtn) {
+        tierRankBtn.addEventListener('click', startPairwiseRanking);
+    }
+});
+
 document.getElementById('fetchBtn').addEventListener('click', async () => {
     const timingInfo = document.getElementById('timingInfo');
     const startTime = new Date();

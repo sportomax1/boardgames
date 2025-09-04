@@ -1,3 +1,156 @@
 body { font-family: Arial, sans-serif; margin: 2em; }
 #results { margin-top: 2em; }
 .game { border-bottom: 1px solid #ccc; padding: 1em 0; }
+
+/* Pairwise Ranking Styles */
+.ranking-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.ranking-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.ranking-progress {
+    background-color: #f0f0f0;
+    border-radius: 10px;
+    padding: 10px;
+    margin-bottom: 20px;
+}
+
+.progress-bar {
+    background-color: #007bff;
+    height: 20px;
+    border-radius: 10px;
+    transition: width 0.3s ease;
+}
+
+.comparison-area {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.game-card {
+    flex: 1;
+    border: 2px solid #ddd;
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background-color: #fff;
+}
+
+.game-card:hover {
+    border-color: #007bff;
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0,123,255,0.3);
+}
+
+.game-image {
+    width: 150px;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 8px;
+    margin-bottom: 15px;
+}
+
+.game-name {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.game-stats {
+    font-size: 14px;
+    color: #666;
+    line-height: 1.4;
+}
+
+.ranking-controls {
+    text-align: center;
+    margin-top: 30px;
+}
+
+.ranking-controls button {
+    margin: 0 10px;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.back-btn {
+    background-color: #6c757d;
+    color: white;
+}
+
+.back-btn:hover {
+    background-color: #5a6268;
+}
+
+.exit-btn {
+    background-color: #dc3545;
+    color: white;
+}
+
+.exit-btn:hover {
+    background-color: #c82333;
+}
+
+.skip-btn {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.skip-btn:hover {
+    background-color: #e0a800;
+}
+
+.final-rankings {
+    margin-top: 30px;
+}
+
+.ranking-list {
+    list-style: none;
+    padding: 0;
+}
+
+.ranking-item {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    margin-bottom: 10px;
+    background-color: #f8f9fa;
+    border-radius: 5px;
+    border-left: 4px solid #007bff;
+}
+
+.ranking-position {
+    font-weight: bold;
+    font-size: 18px;
+    margin-right: 15px;
+    color: #007bff;
+    min-width: 30px;
+}
+
+.ranking-game-info {
+    flex: 1;
+}
+
+.ranking-game-name {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.ranking-game-stats {
+    font-size: 12px;
+    color: #666;
+}
