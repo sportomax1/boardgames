@@ -481,18 +481,33 @@ function renderTablePage(page) {
             <span id="playerCountCheckboxes">
                 ${playerOptions.map(n => `<label style='margin:0 4px;'><input type='checkbox' value='${n}' class='playerCountBox'/>${n}</label>`).join('')}
             </span>
-            <button id="applyPlayerFilterBtn">Apply</button>
-            <button id="clearPlayerFilterBtn">Clear</button>
+            <button id="applyPlayerFilterBtn" class="modern-btn">Apply</button>
+            <button id="clearPlayerFilterBtn" class="modern-btn">Clear</button>
             <span id="selectedPlayerCounts" style="margin-left:1em;color:#0078d4;"></span>
         </div>`;
         // Filter/sort buttons (top)
         html += `<div style="margin:1em 0; text-align:center;">
-            <button id="quickGamesBtn">Quick Games sort by asc value</button>
-            <button id="newestGamesBtn">Newest Released Games</button>
-            <button id="mostPlayedBtn">Most Played Games</button>
-            <button id="ratingSortBtn">Sort by Bayes Avg (desc)</button>
-            <button id="wantToBuyBtn">Want to Buy Games</button>
+            <button id="quickGamesBtn" class="modern-btn">Quick Games</button>
+            <button id="newestGamesBtn" class="modern-btn">New Games</button>
+            <button id="mostPlayedBtn" class="modern-btn">Most Played Games</button>
+            <button id="ratingSortBtn" class="modern-btn">Best Rating</button>
+            <button id="wantToPlayBtn" class="modern-btn">Want to Play (by Rating)</button>
+            <button id="wantToBuyBtn" class="modern-btn">Want to Buy Games</button>
         </div>`;
+    // Add event handler for Want to Play (wanttoplay=1, order by bayesaverage desc)
+    setTimeout(() => {
+        const wantToPlayBtn = document.getElementById('wantToPlayBtn');
+        if (wantToPlayBtn) {
+            wantToPlayBtn.onclick = () => {
+                allItems = originalItems.filter(item => {
+                    // wanttoplay=1 in statusStr
+                    return /wanttoplay=1/.test(item.statusStr);
+                }).sort((a, b) => Number(b.bayesaverage) - Number(a.bayesaverage));
+                currentPage = 1;
+                renderTablePage(currentPage);
+            };
+        }
+    }, 0);
     // Add event handler for Sort by Bayes Avg (desc, only owned)
     setTimeout(() => {
         const ratingBtn = document.getElementById('ratingSortBtn');

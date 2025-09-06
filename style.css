@@ -1,3 +1,54 @@
+/* Modern button style for all main action/filter buttons */
+.modern-btn, button.modern-btn, input[type="button"].modern-btn {
+    background: linear-gradient(90deg, #007bff 0%, #0056b3 100%);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 20px;
+    font-size: 1rem;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    cursor: pointer;
+    transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
+    margin: 0.25em 0.5em;
+}
+.modern-btn:hover, button.modern-btn:hover, input[type="button"].modern-btn:hover {
+    background: linear-gradient(90deg, #0056b3 0%, #007bff 100%);
+    box-shadow: 0 4px 16px rgba(0,123,255,0.15);
+    transform: translateY(-2px) scale(1.03);
+}
+
+/* Responsive layout for mobile/desktop */
+@media (max-width: 700px) {
+    body {
+        margin: 0.5em;
+        font-size: 1.05em;
+    }
+    .ranking-container, #results, .bgg-table {
+        max-width: 100vw !important;
+        padding: 0.5em !important;
+        font-size: 0.98em;
+    }
+    .bgg-table thead th, .bgg-table td {
+        font-size: 0.95em;
+        padding: 4px 2px;
+    }
+    .game-card {
+        padding: 10px;
+    }
+    .game-image {
+        width: 90px;
+        height: 90px;
+    }
+    .ranking-controls button, .modern-btn {
+        font-size: 0.98em;
+        padding: 8px 10px;
+    }
+    .comparison-area {
+        flex-direction: column;
+        gap: 10px;
+    }
+}
 body { font-family: Arial, sans-serif; margin: 2em; }
 #results { margin-top: 2em; }
 .game { border-bottom: 1px solid #ccc; padding: 1em 0; }
