@@ -21,7 +21,8 @@ const sampleGames = [
         thumbnail: "https://cf.geekdo-images.com/thumb/img/oKuPfBQ9PIZ9wfCfUIGIeL0SCb0=/fit-in/200x150/pic3718275.jpg",
         year: 2017,
         own: "1",
-        bayesaverage: "7.8"
+        bayesaverage: "7.8",
+        statusStr: "own=1<br>prevowned=0<br>fortrade=0<br>want=0<br>wanttoplay=0<br>wanttobuy=0<br>wishlist=0<br>wishlistpriority=0<br>preordered=0"
     },
     {
         objectid: "2", 
@@ -29,8 +30,9 @@ const sampleGames = [
         image: "https://cf.geekdo-images.com/original/img/A-0yDJkve0avEicYQ4HoNO-HkK8=/0x0/pic4458123.jpg",
         thumbnail: "https://cf.geekdo-images.com/thumb/img/A-0yDJkve0avEicYQ4HoNO-HkK8=/fit-in/200x150/pic4458123.jpg",
         year: 2019,
-        own: "1",
-        bayesaverage: "8.1"
+        own: "0",
+        bayesaverage: "8.1",
+        statusStr: "own=0<br>prevowned=0<br>fortrade=0<br>want=1<br>wanttoplay=0<br>wanttobuy=1<br>wishlist=0<br>wishlistpriority=0<br>preordered=0"
     },
     {
         objectid: "3",
@@ -39,7 +41,8 @@ const sampleGames = [
         thumbnail: "https://cf.geekdo-images.com/thumb/img/pNmQ9-pJYPQa6MXHOtPeyaLW_EU=/fit-in/200x150/pic38668.jpg",
         year: 2004,
         own: "1", 
-        bayesaverage: "7.4"
+        bayesaverage: "7.4",
+        statusStr: "own=1<br>prevowned=0<br>fortrade=0<br>want=0<br>wanttoplay=0<br>wanttobuy=0<br>wishlist=0<br>wishlistpriority=0<br>preordered=0"
     },
     {
         objectid: "4",
@@ -47,8 +50,9 @@ const sampleGames = [
         image: "https://cf.geekdo-images.com/original/img/rwWLtFkSJqM4CNwU5r-PbUiYTiA=/0x0/pic1904079.jpg",
         thumbnail: "https://cf.geekdo-images.com/thumb/img/rwWLtFkSJqM4CNwU5r-PbUiYTiA=/fit-in/200x150/pic1904079.jpg",
         year: 2014,
-        own: "1",
-        bayesaverage: "7.6"
+        own: "0",
+        bayesaverage: "7.6",
+        statusStr: "own=0<br>prevowned=0<br>fortrade=0<br>want=1<br>wanttoplay=1<br>wanttobuy=0<br>wishlist=0<br>wishlistpriority=0<br>preordered=0"
     },
     {
         objectid: "5",
@@ -57,7 +61,8 @@ const sampleGames = [
         thumbnail: "https://cf.geekdo-images.com/thumb/img/A-0yDJkve0avEicYQ4HoNO-HkK8=/fit-in/200x150/pic2419375.jpg",
         year: 1995,
         own: "1",
-        bayesaverage: "7.2"
+        bayesaverage: "7.2",
+        statusStr: "own=1<br>prevowned=0<br>fortrade=0<br>want=0<br>wanttoplay=0<br>wanttobuy=0<br>wishlist=0<br>wishlistpriority=0<br>preordered=0"
     }
 ];
 
@@ -431,12 +436,19 @@ document.getElementById('fetchBtn').addEventListener('click', async () => {
     // Show only the total counts here; filtered counts will be handled in renderTablePage
     timingInfo.textContent = `Start: ${startTime.toLocaleTimeString()} | End: ${endTime.toLocaleTimeString()} | Total: ${minutes}m ${seconds}s | Records: ${originalItems.length} | Pages: ${Math.ceil(originalItems.length / itemsPerPage)}`;
     } catch (err) {
-        document.getElementById('results').innerHTML = 'Error fetching data.';
+        console.log('API fetch failed, using sample data:', err);
+        // Fallback to sample data when API fails
+        allItems = [...sampleGames];
+        originalItems = [...sampleGames];
+        currentPage = 1;
+        renderTablePage(currentPage);
+        
         const endTime = new Date();
         const durationMs = endTime - startTime;
         const minutes = Math.floor(durationMs / 60000);
         const seconds = Math.floor((durationMs % 60000) / 1000);
-        timingInfo.textContent = `Start: ${startTime.toLocaleTimeString()} | End: ${endTime.toLocaleTimeString()} | Total: ${minutes}m ${seconds}s`;
+        const timingInfo = document.getElementById('timingInfo');
+        timingInfo.textContent = `Start: ${startTime.toLocaleTimeString()} | End: ${endTime.toLocaleTimeString()} | Total: ${minutes}m ${seconds}s | Records: ${originalItems.length} (sample data) | Pages: ${Math.ceil(originalItems.length / itemsPerPage)}`;
     }
 });
 
@@ -479,6 +491,7 @@ function renderTablePage(page) {
             <button id="newestGamesBtn">Newest Released Games</button>
             <button id="mostPlayedBtn">Most Played Games</button>
             <button id="ratingSortBtn">Sort by Bayes Avg (desc)</button>
+            <button id="wantToBuyBtn">Want to Buy Games</button>
         </div>`;
     // Add event handler for Sort by Bayes Avg (desc, only owned)
     setTimeout(() => {
@@ -558,6 +571,32 @@ function renderTablePage(page) {
                         .sort((a, b) => Number(b.numplays) - Number(a.numplays));
                     mostPlayedBtn.textContent = 'Show All';
                     console.log('[Most Played Games] Filtered/Sorted allItems:', allItems.map(g => ({name: g.name, numplays: g.numplays, own: g.own})));
+                }
+                currentPage = 1;
+                renderTablePage(currentPage);
+            };
+        }
+    }, 0);
+    
+    // Add event handler for Want to Buy Games (sorted by bayesaverage desc)
+    setTimeout(() => {
+        const wantToBuyBtn = document.getElementById('wantToBuyBtn');
+        if (wantToBuyBtn) {
+            wantToBuyBtn.onclick = () => {
+                console.log('[Want to Buy Games] Button clicked');
+                if (wantToBuyBtn.textContent.includes('Show All')) {
+                    allItems = [...originalItems];
+                    wantToBuyBtn.textContent = 'Want to Buy Games';
+                    console.log('[Want to Buy Games] Restored allItems:', allItems);
+                } else {
+                    // Filter games that are marked as want to buy and sort by bayesaverage desc
+                    allItems = originalItems.filter(item => {
+                        // Check both want and wanttobuy status from statusStr
+                        const statusStr = item.statusStr || '';
+                        return statusStr.includes('want=1') || statusStr.includes('wanttobuy=1');
+                    }).sort((a, b) => Number(b.bayesaverage) - Number(a.bayesaverage));
+                    wantToBuyBtn.textContent = 'Show All';
+                    console.log('[Want to Buy Games] Filtered/Sorted allItems:', allItems.map(g => ({name: g.name, bayesaverage: g.bayesaverage, statusStr: g.statusStr})));
                 }
                 currentPage = 1;
                 renderTablePage(currentPage);
@@ -706,3 +745,51 @@ function renderTablePage(page) {
     }
 
 }
+
+// Real-time search functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    const clearSearchBtn = document.getElementById('clearSearchBtn');
+    let searchTimeout;
+    
+    // Real-time search as user types
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            // Debounce the search to avoid excessive filtering
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                performSearch(this.value.trim());
+            }, 300);
+        });
+    }
+    
+    // Clear search button
+    if (clearSearchBtn) {
+        clearSearchBtn.addEventListener('click', function() {
+            searchInput.value = '';
+            performSearch('');
+        });
+    }
+    
+    function performSearch(searchTerm) {
+        console.log('[Search] Searching for:', searchTerm);
+        
+        if (searchTerm === '') {
+            // If search is empty, restore original items
+            allItems = [...originalItems];
+        } else {
+            // Filter items by name (case-insensitive)
+            allItems = originalItems.filter(item => {
+                return item.name && item.name.toLowerCase().includes(searchTerm.toLowerCase());
+            });
+        }
+        
+        console.log('[Search] Filtered items count:', allItems.length);
+        currentPage = 1;
+        
+        // Re-render the current page if results exist
+        if (typeof renderTablePage === 'function') {
+            renderTablePage(currentPage);
+        }
+    }
+});
