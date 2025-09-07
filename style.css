@@ -1,3 +1,19 @@
+body.mobile-view {
+    font-size: 1.08em;
+}
+body.mobile-view .bgg-table, body.mobile-view .ranking-container, body.mobile-view #results {
+    max-width: 100vw !important;
+    padding: 0.5em !important;
+    font-size: 1em;
+}
+body.mobile-view .modern-btn {
+    font-size: 1em;
+    padding: 10px 12px;
+}
+body.mobile-view .game-image {
+    width: 90px;
+    height: 90px;
+}
 /* Modern button style for all main action/filter buttons */
 .modern-btn, button.modern-btn, input[type="button"].modern-btn {
     background: linear-gradient(90deg, #007bff 0%, #0056b3 100%);

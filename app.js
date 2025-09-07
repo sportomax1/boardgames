@@ -1,3 +1,27 @@
+let simpleView = false;
+
+// Toggle Simple View
+document.addEventListener('DOMContentLoaded', function() {
+    const simpleBtn = document.getElementById('simpleViewBtn');
+    if (simpleBtn) {
+        simpleBtn.onclick = function() {
+            simpleView = !simpleView;
+            simpleBtn.textContent = simpleView ? 'Full View' : 'Simple View';
+            renderTablePage(currentPage);
+        };
+    }
+});
+// Toggle between mobile and desktop view
+document.addEventListener('DOMContentLoaded', function() {
+    const toggleBtn = document.getElementById('toggleViewBtn');
+    if (toggleBtn) {
+        toggleBtn.onclick = function() {
+            const body = document.body;
+            const isMobile = body.classList.toggle('mobile-view');
+            toggleBtn.textContent = isMobile ? 'Switch to Desktop View' : 'Switch to Mobile View';
+        };
+    }
+});
 // Store the unfiltered list for toggling
 let originalItems = [];
 
@@ -499,10 +523,56 @@ function renderTablePage(page) {
         const wantToPlayBtn = document.getElementById('wantToPlayBtn');
         if (wantToPlayBtn) {
             wantToPlayBtn.onclick = () => {
-                allItems = originalItems.filter(item => {
-                    // wanttoplay=1 in statusStr
-                    return /wanttoplay=1/.test(item.statusStr);
-                }).sort((a, b) => Number(b.bayesaverage) - Number(a.bayesaverage));
+                allItems = originalItems.filter(item => /wanttoplay=1/.test(item.statusStr || ''))
+                    .map(item => {
+                        let customScore = 0;
+                        const status = item.statusStr || '';
+                        const wantToPlay = /wanttoplay=1/.test(status);
+                        const wishlist = /wishlist=1/.test(status);
+                        let wishlistPriority = 0;
+                        const match = status.match(/wishlistpriority=(\d+)/);
+                        if (match) wishlistPriority = parseInt(match[1], 10);
+                        if (wantToPlay) {
+                            if (wishlist) {
+                                let inverted = 6 - Math.max(1, Math.min(wishlistPriority, 5));
+                                customScore = 5 + inverted;
+                            } else {
+                                customScore = 5;
+                            }
+                        }
+                        return { ...item, _customScore: customScore };
+                    })
+                    .sort((a, b) => b._customScore - a._customScore);
+                currentPage = 1;
+                renderTablePage(currentPage);
+            };
+        }
+    }, 0);
+    // Add event handler for Want to Buy Games (wanttobuy=1, order by custom buy score desc)
+    setTimeout(() => {
+        const wantToBuyBtn = document.getElementById('wantToBuyBtn');
+        if (wantToBuyBtn) {
+            wantToBuyBtn.onclick = () => {
+                allItems = originalItems.filter(item => /wanttobuy=1/.test(item.statusStr || ''))
+                    .map(item => {
+                        let customBuyScore = 0;
+                        const status = item.statusStr || '';
+                        const wantToBuy = /wanttobuy=1/.test(status);
+                        const wishlist = /wishlist=1/.test(status);
+                        let wishlistPriority = 0;
+                        const match = status.match(/wishlistpriority=(\d+)/);
+                        if (match) wishlistPriority = parseInt(match[1], 10);
+                        if (wantToBuy) {
+                            if (wishlist) {
+                                let inverted = 6 - Math.max(1, Math.min(wishlistPriority, 5));
+                                customBuyScore = 5 + inverted;
+                            } else {
+                                customBuyScore = 5;
+                            }
+                        }
+                        return { ...item, _customBuyScore: customBuyScore };
+                    })
+                    .sort((a, b) => b._customBuyScore - a._customBuyScore);
                 currentPage = 1;
                 renderTablePage(currentPage);
             };
@@ -639,8 +709,11 @@ function renderTablePage(page) {
         </style>`;
         html += `<div style="overflow-x:auto; max-height:600px;">
         <table class="bgg-table" border="1" cellpadding="4" cellspacing="0">
-            <thead><tr>
-                <th>#</th>
+            <thead><tr>`;
+        if (simpleView) {
+            html += `<th>#</th><th>Image</th><th>Name</th>`;
+        } else {
+            html += `<th>#</th>
                 <th>Thumbnail</th>
                 <th>Name</th>
                 <th>Year</th>
@@ -664,37 +737,76 @@ function renderTablePage(page) {
                 <th>Std Dev</th>
                 <th>Median</th>
                 <th>Ranks</th>
-                <th>Link</th>
-            </tr></thead><tbody>`;
+                <th>Custom Score</th>
+                <th>Custom Buy Score</th>
+                <th>Link</th>`;
+        }
+        html += `</tr></thead><tbody>`;
         for (let i = startIdx; i < endIdx; i++) {
             const item = allItems[i];
-            html += `<tr>
-                <td>${i + 1}</td>
-                <td><img src="${item.thumbnail}" alt="thumbnail" style="max-width:60px;max-height:45px;"></td>
-                <td>${item.name}</td>
-                <td>${item.yearpublished}</td>
-                <td>${item.objecttype}</td>
-                <td>${item.subtype}</td>
-                <td>${item.collid}</td>
-                <td>${item.statusStr}</td>
-                <td>${item.lastmodified || ''}</td>
-                <td>${item.numplays}</td>
-                <td>${item.image ? `<img src="${item.image}" alt="image" style="max-width:120px;max-height:90px;">` : ''}</td>
-                <td>${item.minplayers}</td>
-                <td>${item.maxplayers}</td>
-                <td>${item.minplaytime}</td>
-                <td>${item.maxplaytime}</td>
-                <td>${item.playingtime}</td>
-                <td>${item.numowned}</td>
-                <td>${item.ratingValue}</td>
-                <td>${item.usersrated}</td>
-                <td>${item.average}</td>
-                <td>${item.bayesaverage}</td>
-                <td>${item.stddev}</td>
-                <td>${item.median}</td>
-                <td>${item.ranksStr}</td>
-                <td><a href="https://boardgamegeek.com/boardgame/${item.objectid}" target="_blank">View</a></td>
-            </tr>`;
+            if (simpleView) {
+                html += `<tr>
+                    <td>${i + 1}</td>
+                    <td><img src="${item.thumbnail}" alt="thumbnail" style="max-width:60px;max-height:45px;"></td>
+                    <td><a href="https://boardgamegeek.com/boardgame/${item.objectid}" target="_blank" rel="noopener" style="color:#007bff;text-decoration:underline;">${item.name}</a></td>
+                </tr>`;
+            } else {
+                // Custom Score calculation
+                let customScore = 0;
+                let customBuyScore = 0;
+                const status = item.statusStr || '';
+                const wantToPlay = /wanttoplay=1/.test(status);
+                const wantToBuy = /wanttobuy=1/.test(status);
+                const wishlist = /wishlist=1/.test(status);
+                let wishlistPriority = 0;
+                const match = status.match(/wishlistpriority=(\d+)/);
+                if (match) wishlistPriority = parseInt(match[1], 10);
+                if (wantToPlay) {
+                    if (wishlist) {
+                        let inverted = 6 - Math.max(1, Math.min(wishlistPriority, 5));
+                        customScore = 5 + inverted;
+                    } else {
+                        customScore = 5;
+                    }
+                }
+                if (wantToBuy) {
+                    if (wishlist) {
+                        let inverted = 6 - Math.max(1, Math.min(wishlistPriority, 5));
+                        customBuyScore = 5 + inverted;
+                    } else {
+                        customBuyScore = 5;
+                    }
+                }
+                html += `<tr>
+                    <td>${i + 1}</td>
+                    <td><img src="${item.thumbnail}" alt="thumbnail" style="max-width:60px;max-height:45px;"></td>
+                    <td><a href="https://boardgamegeek.com/boardgame/${item.objectid}" target="_blank" rel="noopener" style="color:#007bff;text-decoration:underline;">${item.name}</a></td>
+                    <td>${item.yearpublished}</td>
+                    <td>${item.objecttype}</td>
+                    <td>${item.subtype}</td>
+                    <td>${item.collid}</td>
+                    <td>${item.statusStr}</td>
+                    <td>${item.lastmodified || ''}</td>
+                    <td>${item.numplays}</td>
+                    <td>${item.image ? `<img src="${item.image}" alt="image" style="max-width:120px;max-height:90px;">` : ''}</td>
+                    <td>${item.minplayers}</td>
+                    <td>${item.maxplayers}</td>
+                    <td>${item.minplaytime}</td>
+                    <td>${item.maxplaytime}</td>
+                    <td>${item.playingtime}</td>
+                    <td>${item.numowned}</td>
+                    <td>${item.ratingValue}</td>
+                    <td>${item.usersrated}</td>
+                    <td>${item.average}</td>
+                    <td>${item.bayesaverage}</td>
+                    <td>${item.stddev}</td>
+                    <td>${item.median}</td>
+                    <td>${item.ranksStr}</td>
+                    <td>${customScore}</td>
+                    <td>${customBuyScore}</td>
+                    <td><a href="https://boardgamegeek.com/boardgame/${item.objectid}" target="_blank">View</a></td>
+                </tr>`;
+            }
         }
         html += '</tbody></table></div>';
         // Pagination controls (bottom)
