@@ -898,8 +898,12 @@ function renderTablePage(page) {
             if (isMostPlayedPreset) html += `<th style="color:#ff9800;">Number of Plays</th>`;
             const isWantToPlayPreset = presetDropdown && presetDropdown.value === 'wantToPlay';
             const isWantToBuyPreset = presetDropdown && presetDropdown.value === 'wantToBuy';
+            const isBestRatingPreset = presetDropdown && presetDropdown.value === 'bestRating';
+            const isPrevOwnedPreset = presetDropdown && presetDropdown.value === 'prevOwned';
             if (isWantToPlayPreset) html += `<th style="color:#6f42c1;">Custom Play Number</th>`;
             if (isWantToBuyPreset) html += `<th style="color:#c62828;">Custom Buy Number</th>`;
+            if (isBestRatingPreset) html += `<th style="color:#1976d2;">Bayes Avg</th>`;
+            if (isPrevOwnedPreset) html += `<th style="color:#1976d2;">Bayes Avg</th>`;
         } else {
             html += `<th>#</th>
                 <th>Thumbnail</th>
@@ -942,6 +946,8 @@ function renderTablePage(page) {
                 if (isMostPlayedPreset) html += `<td style="color:#ff9800; font-weight:bold;">${item.numplays}</td>`;
                 const isWantToPlayPreset = presetDropdown && presetDropdown.value === 'wantToPlay';
                 const isWantToBuyPreset = presetDropdown && presetDropdown.value === 'wantToBuy';
+                const isBestRatingPreset = presetDropdown && presetDropdown.value === 'bestRating';
+                const isPrevOwnedPreset = presetDropdown && presetDropdown.value === 'prevOwned';
                 if (isWantToPlayPreset) {
                     // Custom Play Number logic (same as main table)
                     let customScore = 0;
@@ -979,6 +985,12 @@ function renderTablePage(page) {
                         }
                     }
                     html += `<td style="color:#c62828; font-weight:bold;">${customBuyScore}</td>`;
+                }
+                if (isBestRatingPreset) {
+                    html += `<td style=\"color:#1976d2; font-weight:bold;\">${item.bayesaverage}</td>`;
+                }
+                if (isPrevOwnedPreset) {
+                    html += `<td style=\"color:#1976d2; font-weight:bold;\">${item.bayesaverage}</td>`;
                 }
                 html += `</tr>`;
             } else {
@@ -1207,5 +1219,39 @@ document.addEventListener('DOMContentLoaded', function() {
         if (typeof renderTablePage === 'function') {
             renderTablePage(currentPage);
         }
+    }
+    // Download dropdown logic
+    const comboBtn = document.getElementById('downloadComboBtn');
+    const dropdown = document.getElementById('downloadDropdown');
+    if (comboBtn && dropdown) {
+        comboBtn.onclick = function(e) {
+            e.stopPropagation();
+            dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+        };
+        // Hide dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!dropdown.contains(e.target) && e.target !== comboBtn) {
+                dropdown.style.display = 'none';
+            }
+        });
+    }
+    // Fullscreen toggle for data table
+    const fullscreenBtn = document.getElementById('fullscreenTableBtn');
+    const resultsContainer = document.getElementById('results-container');
+    if (fullscreenBtn && resultsContainer) {
+        let isFullscreen = false;
+        fullscreenBtn.onclick = function() {
+            if (!isFullscreen) {
+                resultsContainer.requestFullscreen ? resultsContainer.requestFullscreen() : resultsContainer.webkitRequestFullscreen();
+                fullscreenBtn.textContent = '🡼';
+            } else {
+                document.exitFullscreen ? document.exitFullscreen() : document.webkitExitFullscreen();
+                fullscreenBtn.textContent = '⛶';
+            }
+        };
+        document.addEventListener('fullscreenchange', function() {
+            isFullscreen = !!document.fullscreenElement;
+            fullscreenBtn.textContent = isFullscreen ? '🡼' : '⛶';
+        });
     }
 });

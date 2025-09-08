@@ -48,14 +48,32 @@
 }
 .bgg-table th, .bgg-table td {
     white-space: nowrap;
-    padding: 6px 10px;
+    padding: 4px 6px;
     text-align: left;
-}
+    max-width: 110px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+/* removed extra closing brace */
 /* For simple view, make sure columns auto-size to content */
 body.simple-view .bgg-table {
     width: auto !important;
     min-width: 0 !important;
     max-width: 100vw !important;
+}
+
+/* Allow wrapping for long text in mobile */
+@media (max-width: 700px) {
+    .bgg-table th, .bgg-table td {
+        font-size: 0.93em;
+        padding: 3px 1px;
+        max-width: 70px;
+        white-space: normal;
+        word-break: break-word;
+    }
+    .bgg-table {
+        font-size: 0.93em;
+    }
+}
 }
 body.mobile-view {
     font-size: 1.08em;
@@ -95,18 +113,35 @@ body.mobile-view .game-image {
 
 /* Responsive layout for mobile/desktop */
 @media (max-width: 700px) {
-    body {
-        margin: 0.5em;
+    html, body {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100vw !important;
+        max-width: 100vw !important;
+        overflow-x: hidden !important;
         font-size: 1.05em;
+        background: #fafdff;
     }
     .ranking-container, #results, .bgg-table {
         max-width: 100vw !important;
-        padding: 0.5em !important;
+        width: 100vw !important;
+        min-width: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
         font-size: 0.98em;
+        box-sizing: border-box;
     }
     .bgg-table thead th, .bgg-table td {
-        font-size: 0.95em;
-        padding: 4px 2px;
+        font-size: 0.93em;
+        padding: 3px 1px;
+        max-width: 70px;
+        white-space: normal;
+        word-break: break-word;
+    }
+    .bgg-table {
+        font-size: 0.93em;
+        border-spacing: 0;
+        border-collapse: collapse;
     }
     .game-card {
         padding: 10px;
@@ -122,6 +157,24 @@ body.mobile-view .game-image {
     .comparison-area {
         flex-direction: column;
         gap: 10px;
+    }
+}
+
+/* iOS/iPhone specific tweaks for full width */
+@media only screen and (max-device-width: 820px) and (orientation: portrait) {
+    html, body {
+        width: 100vw !important;
+        max-width: 100vw !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow-x: hidden !important;
+    }
+    .bgg-table, .ranking-container, #results {
+        width: 100vw !important;
+        max-width: 100vw !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        box-sizing: border-box;
     }
 }
 body { font-family: Arial, sans-serif; margin: 2em; }
