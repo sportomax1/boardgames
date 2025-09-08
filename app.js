@@ -18,17 +18,6 @@ document.addEventListener('DOMContentLoaded', function() {
         };
     }
 });
-// Toggle between mobile and desktop view
-document.addEventListener('DOMContentLoaded', function() {
-    const toggleBtn = document.getElementById('toggleViewBtn');
-    if (toggleBtn) {
-        toggleBtn.onclick = function() {
-            const body = document.body;
-            const isMobile = body.classList.toggle('mobile-view');
-            toggleBtn.textContent = isMobile ? 'Switch to Desktop View' : 'Switch to Mobile View';
-        };
-    }
-});
 // Store the unfiltered list for toggling
 let originalItems = [];
 
@@ -395,8 +384,8 @@ document.getElementById('fetchBtn').addEventListener('click', async () => {
         const parser = new DOMParser();
         const xmlDoc = parser.parseFromString(xmlText, 'application/xml');
         const items = xmlDoc.querySelectorAll('item');
-    allItems = [];
-    originalItems = [];
+        allItems = [];
+        originalItems = [];
         items.forEach(item => {
             const objecttype = item.getAttribute('objecttype');
             const objectid = item.getAttribute('objectid');
@@ -407,6 +396,8 @@ document.getElementById('fetchBtn').addEventListener('click', async () => {
             const year = Number(yearpublishedStr) || 0;
             const image = item.querySelector('image')?.textContent || '';
             const thumbnail = item.querySelector('thumbnail')?.textContent || '';
+            const comment = item.querySelector('comment')?.textContent || '';
+            const wishlistcomment = item.querySelector('wishlistcomment')?.textContent || '';
             const status = item.querySelector('status');
             const own = status?.getAttribute('own');
             const prevowned = status?.getAttribute('prevowned');
@@ -452,7 +443,7 @@ document.getElementById('fetchBtn').addEventListener('click', async () => {
             }
             const statusStr = `own=${own}<br>prevowned=${prevowned}<br>fortrade=${fortrade}<br>want=${want}<br>wanttoplay=${wanttoplay}<br>wanttobuy=${wanttobuy}<br>wishlist=${wishlist}<br>wishlistpriority=${wishlistpriority}<br>preordered=${preordered}`;
             const itemObj = {
-                objecttype, objectid, subtype, collid, name, yearpublished: yearpublishedStr, year, image, thumbnail, statusStr, lastmodified, numplays, minplayers, maxplayers, minplaytime, maxplaytime, playingtime, numowned, ratingValue, usersrated, average, bayesaverage, stddev, median, ranksStr, own, prevowned
+                objecttype, objectid, subtype, collid, name, yearpublished: yearpublishedStr, year, image, thumbnail, comment, wishlistcomment, statusStr, lastmodified, numplays, minplayers, maxplayers, minplaytime, maxplaytime, playingtime, numowned, ratingValue, usersrated, average, bayesaverage, stddev, median, ranksStr, own, prevowned
             };
             allItems.push(itemObj);
             originalItems.push(itemObj);
@@ -463,9 +454,9 @@ document.getElementById('fetchBtn').addEventListener('click', async () => {
         const durationMs = endTime - startTime;
         const minutes = Math.floor(durationMs / 60000);
         const seconds = Math.floor((durationMs % 60000) / 1000);
-    const totalPages = Math.ceil(allItems.length / itemsPerPage);
-    // Show only the total counts here; filtered counts will be handled in renderTablePage
-    timingInfo.textContent = `Start: ${startTime.toLocaleTimeString()} | End: ${endTime.toLocaleTimeString()} | Total: ${minutes}m ${seconds}s | Records: ${originalItems.length} | Pages: ${Math.ceil(originalItems.length / itemsPerPage)}`;
+        const totalPages = Math.ceil(allItems.length / itemsPerPage);
+        // Show only the total counts here; filtered counts will be handled in renderTablePage
+        timingInfo.textContent = `Start: ${startTime.toLocaleTimeString()} | End: ${endTime.toLocaleTimeString()} | Total: ${minutes}m ${seconds}s | Records: ${originalItems.length} | Pages: ${Math.ceil(originalItems.length / itemsPerPage)}`;
     } catch (err) {
         console.log('API fetch failed, using sample data:', err);
         // Fallback to sample data when API fails
@@ -929,6 +920,8 @@ function renderTablePage(page) {
                 <th>Std Dev</th>
                 <th>Median</th>
                 <th>Ranks</th>
+                <th>Comment</th>
+                <th>Wishlist Comment</th>
                 <th>Custom Score</th>
                 <th>Custom Buy Score</th>
                 <th>Link</th>`;
@@ -1045,6 +1038,8 @@ function renderTablePage(page) {
                     <td>${item.stddev}</td>
                     <td>${item.median}</td>
                     <td>${item.ranksStr}</td>
+                    <td>${item.comment || ''}</td>
+                    <td>${item.wishlistcomment || ''}</td>
                     <td>${customScore}</td>
                     <td>${customBuyScore}</td>
                     <td><a href="https://boardgamegeek.com/boardgame/${item.objectid}" target="_blank">View</a></td>
@@ -1236,8 +1231,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     // Fullscreen toggle for data table
-    const fullscreenBtn = document.getElementById('fullscreenTableBtn');
-    const resultsContainer = document.getElementById('results-container');
+    // (Removed duplicate declarations; see below for single block)
     if (fullscreenBtn && resultsContainer) {
         let isFullscreen = false;
         fullscreenBtn.onclick = function() {
@@ -1252,6 +1246,35 @@ document.addEventListener('DOMContentLoaded', function() {
         document.addEventListener('fullscreenchange', function() {
             isFullscreen = !!document.fullscreenElement;
             fullscreenBtn.textContent = isFullscreen ? '🡼' : '⛶';
+        });
+    }
+    // Fullscreen/focus mode for data table (iPhone/iOS gets focus mode)
+    var fullscreenBtn = document.getElementById('fullscreenTableBtn');
+    var resultsContainer = document.getElementById('results-container');
+    function isIOS() {
+        return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    }
+    if (fullscreenBtn && resultsContainer) {
+        let isFullscreen = false;
+        fullscreenBtn.onclick = function() {
+            if (isIOS()) {
+                // Focus mode for iOS: hide all except table
+                document.body.classList.toggle('focus-table-mode');
+                isFullscreen = document.body.classList.contains('focus-table-mode');
+                fullscreenBtn.textContent = isFullscreen ? '🡼' : '⛶';
+            } else {
+                if (!isFullscreen) {
+                    resultsContainer.requestFullscreen ? resultsContainer.requestFullscreen() : resultsContainer.webkitRequestFullscreen();
+                    fullscreenBtn.textContent = '🡼';
+                } else {
+                    document.exitFullscreen ? document.exitFullscreen() : document.webkitExitFullscreen();
+                    fullscreenBtn.textContent = '⛶';
+                }
+            }
+        };
+        document.addEventListener('fullscreenchange', function() {
+            isFullscreen = !!document.fullscreenElement;
+            if (!isIOS()) fullscreenBtn.textContent = isFullscreen ? '🡼' : '⛶';
         });
     }
 });

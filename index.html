@@ -13,8 +13,6 @@
             <div style="font-weight:600; margin-bottom:0.3em;">Collection Actions</div>
             <button id="fetchBtn" class="modern-btn" aria-label="Fetch your BGG collection">Fetch Sportomax</button>
             <button id="tierRankBtn" class="modern-btn" style="margin-left: 1em;" aria-label="Start tier ranking">Tier Rank</button>
-            <button id="simpleViewBtn" class="modern-btn" style="margin-left: 1em;" aria-label="Toggle simple/full table view">Simple View</button>
-            <button id="toggleViewBtn" class="modern-btn" style="margin-left: 1em;" aria-label="Toggle mobile/desktop view">Switch to Mobile View</button>
             <div style="display:inline-block; margin-left:1em;">
                 <button id="downloadComboBtn" class="modern-btn" aria-label="Download current view">Download ▼</button>
                 <div id="downloadDropdown" style="display:none; position:absolute; background:#fff; border:1px solid #0078d4; border-radius:5px; box-shadow:0 2px 8px rgba(0,0,0,0.12); z-index:1000; min-width:120px;">
@@ -32,9 +30,16 @@
         <div style="font-weight:600; margin-bottom:0.3em;">View & Search Options</div>
         <div style="display:flex; flex-wrap:wrap; justify-content:center; gap:1em; align-items:center;">
             <div>
+                <label for="userSelect" style="font-weight:bold; margin-right:0.5em;">User:</label>
+                <select id="userSelect" class="modern-btn" style="min-width:120px; font-size:1em; padding:0.4em 1em; background:#fff; color:#222; border:1.5px solid #0078d4; border-radius:5px;">
+                    <option value="sportomax">sportomax</option>
+                    <option value="dtwlibrary">dtwlibrary</option>
+                </select>
+            </div>
+            <div>
                 <input type="text" id="searchInput" placeholder="Search games by name..." style="padding: 8px; width: 220px; font-size: 14px;" aria-label="Search games by name">
                 <button id="clearSearchBtn" style="margin-left: 0.5em;" aria-label="Clear search">Clear</button>
-                <span style="font-size:0.95em; color:#666; margin-left:0.5em;">Type to filter by game name</span>
+                <!-- <span style="font-size:0.95em; color:#666; margin-left:0.5em;">Type to filter by game name</span> -->
             </div>
             <div>
                 <div style="font-weight:bold; font-size:1.1em; margin-bottom:0.2em;">Preset Views:</div>
@@ -49,6 +54,9 @@
                     <option value="prevOwned">Prev Owned (by Bayes Avg)</option>
                     <option value="all">Show All</option>
                 </select>
+            </div>
+            <div>
+                <button id="simpleViewBtn" class="modern-btn" aria-label="Toggle simple/full table view">Simple View</button>
             </div>
         </div>
     </div>

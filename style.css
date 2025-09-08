@@ -1,3 +1,30 @@
+/* Focus mode for iPhone/iOS: hide all non-table UI, maximize table area */
+body.focus-table-mode > *:not(#results-container) {
+    display: none !important;
+}
+body.focus-table-mode #results-container {
+    position: fixed !important;
+    top: 0; left: 0; right: 0; bottom: 0;
+    width: 100vw !important;
+    height: 100vh !important;
+    max-width: 100vw !important;
+    max-height: 100vh !important;
+    background: #fafdff !important;
+    z-index: 9999;
+    overflow: auto !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
+body.focus-table-mode #results {
+    border-radius: 0 !important;
+    padding: 0.5em 0.2em !important;
+    background: #fafdff !important;
+}
+body.focus-table-mode #fullscreenTableBtn {
+    top: 10px !important;
+    right: 16px !important;
+    z-index: 10001 !important;
+}
 .timing-summary-topright {
     position: absolute;
     top: 1.2em;
