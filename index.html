@@ -8,7 +8,7 @@
 </head>
 <body>
     <h1 style="text-align:center;">BGG Collection Analyzer</h1>
-    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1em;">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1em; border:2px dashed #0078d4; border-radius:10px; padding:1em; background:#fafdff;">
         <div>
             <div style="font-weight:600; margin-bottom:0.3em;">Collection Actions</div>
             <button id="fetchBtn" class="modern-btn" aria-label="Fetch your BGG collection">Fetch Sportomax</button>
@@ -23,7 +23,7 @@
             <span id="timingInfo" aria-label="API timing info"></span>
         </div>
     </div>
-    <div style="margin-bottom: 1em; text-align: center;">
+    <div style="margin-bottom: 1em; text-align: center; border:2px dashed #0078d4; border-radius:10px; padding:1em; background:#fafdff;">
         <div style="font-weight:600; margin-bottom:0.3em;">View & Search Options</div>
         <div style="display:flex; flex-wrap:wrap; justify-content:center; gap:1em; align-items:center;">
             <div>
@@ -47,11 +47,36 @@
             </div>
         </div>
     </div>
-    <div style="font-weight:600; margin-bottom:0.3em; text-align:center;">Main Filter Buttons</div>
-    <!-- The main filter buttons are rendered dynamically in the table area -->
-    <div style="font-weight:600; margin-bottom:0.3em; text-align:center;">Games Table & Filters</div>
-    <div id="results" aria-label="Games table and filters"></div>
-    <div id="rankingInterface" style="display: none;" aria-label="Pairwise ranking interface"></div>
+    <div style="font-weight:600; margin-bottom:0.3em; text-align:center; border:2px dashed #0078d4; border-radius:10px; padding:0.5em 0.5em 0.7em 0.5em; background:#fafdff;">
+        Main Filter Buttons
+        <div style="margin:0.3em 0 0.2em 0; text-align:center;">
+            <span>Filter by player count:</span>
+            <span id="playerCountCheckboxes">
+                <script>for(let n=1;n<=12;n++)document.write(`<label style='margin:0 2px;'><input type='checkbox' value='${n}' class='playerCountBox'/>${n}</label>`);</script>
+            </span>
+            <button id="applyPlayerFilterBtn" class="modern-btn" style="margin-left:0.3em;">Apply</button>
+            <button id="clearPlayerFilterBtn" class="modern-btn" style="margin-left:0.3em;">Clear</button>
+            <span id="selectedPlayerCounts" style="margin-left:0.7em;color:#0078d4;"></span>
+        </div>
+        <div id="statusFlagFilter" style="margin:0.2em 0 0.3em 0; text-align:center;">
+            <span style="font-weight:bold;">Status Flags:</span>
+            <label style='margin:0 4px;'><input type='checkbox' class='statusFlagBox' data-flag='own'>Own</label>
+            <label style='margin:0 4px;'><input type='checkbox' class='statusFlagBox' data-flag='prevowned'>Prev Owned</label>
+            <label style='margin:0 4px;'><input type='checkbox' class='statusFlagBox' data-flag='fortrade'>For Trade</label>
+            <label style='margin:0 4px;'><input type='checkbox' class='statusFlagBox' data-flag='want'>Want</label>
+            <label style='margin:0 4px;'><input type='checkbox' class='statusFlagBox' data-flag='wanttoplay'>Want to Play</label>
+            <label style='margin:0 4px;'><input type='checkbox' class='statusFlagBox' data-flag='wanttobuy'>Want to Buy</label>
+            <label style='margin:0 4px;'><input type='checkbox' class='statusFlagBox' data-flag='wishlist'>Wishlist</label>
+            <label style='margin:0 4px;'>Wishlist Priority: <input type='number' min='0' max='5' value='' class='statusFlagInput' data-flag='wishlistpriority' style='width:2.5em;'></label>
+            <label style='margin:0 4px;'><input type='checkbox' class='statusFlagBox' data-flag='preordered'>Preordered</label>
+            <button id="applyStatusFlagBtn" class="modern-btn" style="margin-left:0.3em;">Apply</button>
+            <button id="clearStatusFlagBtn" class="modern-btn" style="margin-left:0.3em;">Clear</button>
+            <span id="selectedStatusFlags" style="margin-left:0.7em;color:#0078d4;"></span>
+        </div>
+    </div>
+    <div style="font-weight:600; margin-bottom:0.3em; text-align:center; border:2px dashed #0078d4; border-radius:10px; padding:0.5em; background:#fafdff;">Games Table & Filters</div>
+    <div id="results" aria-label="Games table and filters" style="border:2px dashed #0078d4; border-radius:10px; padding:1em; background:#fafdff;"></div>
+    <div id="rankingInterface" style="display: none; border:2px dashed #0078d4; border-radius:10px; padding:1em; background:#fafdff;" aria-label="Pairwise ranking interface"></div>
     <script src="app.js"></script>
 </body>
 </html>

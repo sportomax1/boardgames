@@ -1,4 +1,10 @@
-let simpleView = false;
+let simpleView = true;
+
+// Ensure the button label matches the default view on load
+document.addEventListener('DOMContentLoaded', function() {
+    const simpleBtn = document.getElementById('simpleViewBtn');
+    if (simpleBtn) simpleBtn.textContent = 'Full View';
+});
 
 // Toggle Simple View
 document.addEventListener('DOMContentLoaded', function() {
@@ -446,7 +452,7 @@ document.getElementById('fetchBtn').addEventListener('click', async () => {
             }
             const statusStr = `own=${own}<br>prevowned=${prevowned}<br>fortrade=${fortrade}<br>want=${want}<br>wanttoplay=${wanttoplay}<br>wanttobuy=${wanttobuy}<br>wishlist=${wishlist}<br>wishlistpriority=${wishlistpriority}<br>preordered=${preordered}`;
             const itemObj = {
-                objecttype, objectid, subtype, collid, name, yearpublished: yearpublishedStr, year, image, thumbnail, statusStr, lastmodified, numplays, minplayers, maxplayers, minplaytime, maxplaytime, playingtime, numowned, ratingValue, usersrated, average, bayesaverage, stddev, median, ranksStr, own
+                objecttype, objectid, subtype, collid, name, yearpublished: yearpublishedStr, year, image, thumbnail, statusStr, lastmodified, numplays, minplayers, maxplayers, minplaytime, maxplaytime, playingtime, numowned, ratingValue, usersrated, average, bayesaverage, stddev, median, ranksStr, own, prevowned
             };
             allItems.push(itemObj);
             originalItems.push(itemObj);
@@ -547,40 +553,7 @@ function renderTablePage(page) {
     const startIdx = (page - 1) * itemsPerPage;
     const endIdx = Math.min(startIdx + itemsPerPage, allItems.length);
     const totalPages = Math.ceil(allItems.length / itemsPerPage);
-        // Player count filter (top) as checkboxes
-        const playerOptions = Array.from({length: 12}, (_, i) => i + 1); // 1-12 players
-        html += `<div style="margin:1em 0; text-align:center;">
-            <span>Filter by player count:</span>
-            <span id="playerCountCheckboxes">
-                ${playerOptions.map(n => `<label style='margin:0 4px;'><input type='checkbox' value='${n}' class='playerCountBox'/>${n}</label>`).join('')}
-            </span>
-            <button id="applyPlayerFilterBtn" class="modern-btn">Apply</button>
-            <button id="clearPlayerFilterBtn" class="modern-btn">Clear</button>
-            <span id="selectedPlayerCounts" style="margin-left:1em;color:#0078d4;"></span>
-        </div>`;
-
-        // Status flag toggles (below player count filter)
-        const statusFlags = [
-            { key: 'own', label: 'Own' },
-            { key: 'prevowned', label: 'Prev Owned' },
-            { key: 'fortrade', label: 'For Trade' },
-            { key: 'want', label: 'Want' },
-            { key: 'wanttoplay', label: 'Want to Play' },
-            { key: 'wanttobuy', label: 'Want to Buy' },
-            { key: 'wishlist', label: 'Wishlist' },
-            { key: 'wishlistpriority', label: 'Wishlist Priority', isPriority: true },
-            { key: 'preordered', label: 'Preordered' }
-        ];
-        html += `<div id="statusFlagFilter" style="margin:0.5em 0 1em 0; text-align:center;">
-            <span style="font-weight:bold;">Status Flags:</span>
-            ${statusFlags.map(flag => flag.isPriority
-                ? `<label style='margin:0 8px;'>${flag.label}: <input type='number' min='0' max='5' value='' class='statusFlagInput' data-flag='${flag.key}' style='width:2.5em;'></label>`
-                : `<label style='margin:0 8px;'><input type='checkbox' class='statusFlagBox' data-flag='${flag.key}'>${flag.label}</label>`
-            ).join('')}
-            <button id="applyStatusFlagBtn" class="modern-btn">Apply</button>
-            <button id="clearStatusFlagBtn" class="modern-btn">Clear</button>
-            <span id="selectedStatusFlags" style="margin-left:1em;color:#0078d4;"></span>
-        </div>`;
+    // Player count and status flag filters are now rendered in the Main Filter Buttons container (index.html)
     // Preset Views dropdown is now only in the View & Search Options area (index.html)
     // Add event handler for Prev Owned (prevowned>0, sort by bayesaverage desc)
     // Preset Views dropdown event handler
@@ -913,8 +886,20 @@ function renderTablePage(page) {
         html += `<div style="overflow-x:auto; max-height:600px;">
         <table class="bgg-table" border="1" cellpadding="4" cellspacing="0">
             <thead><tr>`;
+        // Determine if 'newest' preset is active
+        const presetDropdown = document.getElementById('presetViewsDropdown');
+    const isNewestPreset = presetDropdown && presetDropdown.value === 'newest';
+    const isQuickPreset = presetDropdown && presetDropdown.value === 'quick';
+    const isMostPlayedPreset = presetDropdown && presetDropdown.value === 'mostPlayed';
         if (simpleView) {
             html += `<th>#</th><th>Image</th><th>Name</th>`;
+            if (isNewestPreset) html += `<th style="color:#0078d4;">Year Published</th>`;
+            if (isQuickPreset) html += `<th style="color:#28a745;">Time to Play</th>`;
+            if (isMostPlayedPreset) html += `<th style="color:#ff9800;">Number of Plays</th>`;
+            const isWantToPlayPreset = presetDropdown && presetDropdown.value === 'wantToPlay';
+            const isWantToBuyPreset = presetDropdown && presetDropdown.value === 'wantToBuy';
+            if (isWantToPlayPreset) html += `<th style="color:#6f42c1;">Custom Play Number</th>`;
+            if (isWantToBuyPreset) html += `<th style="color:#c62828;">Custom Buy Number</th>`;
         } else {
             html += `<th>#</th>
                 <th>Thumbnail</th>
@@ -951,8 +936,51 @@ function renderTablePage(page) {
                 html += `<tr>
                     <td>${i + 1}</td>
                     <td><img src="${item.thumbnail}" alt="thumbnail" style="max-width:60px;max-height:45px;"></td>
-                    <td><a href="https://boardgamegeek.com/boardgame/${item.objectid}" target="_blank" rel="noopener" style="color:#007bff;text-decoration:underline;">${item.name}</a></td>
-                </tr>`;
+                    <td><a href="https://boardgamegeek.com/boardgame/${item.objectid}" target="_blank" rel="noopener" style="color:#007bff;text-decoration:underline;">${item.name}</a></td>`;
+                if (isNewestPreset) html += `<td style="color:#0078d4; font-weight:bold;">${item.yearpublished}</td>`;
+                if (isQuickPreset) html += `<td style="color:#28a745; font-weight:bold;">${item.playingtime}</td>`;
+                if (isMostPlayedPreset) html += `<td style="color:#ff9800; font-weight:bold;">${item.numplays}</td>`;
+                const isWantToPlayPreset = presetDropdown && presetDropdown.value === 'wantToPlay';
+                const isWantToBuyPreset = presetDropdown && presetDropdown.value === 'wantToBuy';
+                if (isWantToPlayPreset) {
+                    // Custom Play Number logic (same as main table)
+                    let customScore = 0;
+                    const status = item.statusStr || '';
+                    const wantToPlay = /wanttoplay=1/.test(status);
+                    const wishlist = /wishlist=1/.test(status);
+                    let wishlistPriority = 0;
+                    const match = status.match(/wishlistpriority=(\d+)/);
+                    if (match) wishlistPriority = parseInt(match[1], 10);
+                    if (wantToPlay) {
+                        if (wishlist) {
+                            let inverted = 6 - Math.max(1, Math.min(wishlistPriority, 5));
+                            customScore = 5 + inverted;
+                        } else {
+                            customScore = 5;
+                        }
+                    }
+                    html += `<td style="color:#6f42c1; font-weight:bold;">${customScore}</td>`;
+                }
+                if (isWantToBuyPreset) {
+                    // Custom Buy Number logic (same as main table)
+                    let customBuyScore = 0;
+                    const status = item.statusStr || '';
+                    const wantToBuy = /wanttobuy=1/.test(status);
+                    const wishlist = /wishlist=1/.test(status);
+                    let wishlistPriority = 0;
+                    const match = status.match(/wishlistpriority=(\d+)/);
+                    if (match) wishlistPriority = parseInt(match[1], 10);
+                    if (wantToBuy) {
+                        if (wishlist) {
+                            let inverted = 6 - Math.max(1, Math.min(wishlistPriority, 5));
+                            customBuyScore = 5 + inverted;
+                        } else {
+                            customBuyScore = 5;
+                        }
+                    }
+                    html += `<td style="color:#c62828; font-weight:bold;">${customBuyScore}</td>`;
+                }
+                html += `</tr>`;
             } else {
                 // Custom Score calculation
                 let customScore = 0;
