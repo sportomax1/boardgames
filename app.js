@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (simpleBtn) {
         simpleBtn.onclick = function() {
             simpleView = !simpleView;
+            document.body.classList.toggle('simple-view', simpleView);
             simpleBtn.textContent = simpleView ? 'Full View' : 'Simple View';
             renderTablePage(currentPage);
         };
@@ -484,17 +485,65 @@ const itemsPerPage = 100;
 
 function renderTablePage(page) {
     // Show filtered/total counts in timingInfo (always show both)
+        // Enhanced timing/filter info presentation (top right)
+    // Only show API timing and original record count in the top right, never filtered counts
     const timingInfo = document.getElementById('timingInfo');
     if (timingInfo && typeof originalItems !== 'undefined') {
+        // Extract start/end/total from previous info if present
+        let start = '', end = '', total = '';
+        const prev = timingInfo.textContent;
+        const startMatch = prev.match(/Start: ([^>|]+)/);
+        const endMatch = prev.match(/End: ([^=|]+)/);
+        const totalMatch = prev.match(/Total: ([^=|<]+)/);
+        if (startMatch) start = startMatch[1].trim();
+        if (endMatch) end = endMatch[1].trim();
+        if (totalMatch) total = totalMatch[1].trim();
         const totalRecords = originalItems.length;
         const totalPages = Math.ceil(totalRecords / itemsPerPage);
-        const filteredRecords = allItems.length;
-        const filteredPages = Math.ceil(filteredRecords / itemsPerPage);
-        // Try to preserve the start/end/time info if present
-        const base = timingInfo.textContent.split('| Records:')[0];
-        timingInfo.textContent = `${base}| Records: ${totalRecords} | Pages: ${totalPages} | Filtered: ${filteredRecords} | Filtered Pages: ${filteredPages}`;
+        // Compose info block (top right) in requested multiline format
+        let infoHtml = '<div class="timing-summary-topright" style="text-align:right;line-height:1.5;">';
+        if (start && end && total) {
+            infoHtml += `<div>Start: <b>${start}</b> &gt; End: <b>${end}</b> = <b>${total}</b></div>`;
+        }
+        infoHtml += `<div>Total Pages: <b>${totalPages}</b></div>`;
+        infoHtml += `<div>Total Records: <b>${totalRecords}</b></div>`;
+        infoHtml += '</div>';
+        timingInfo.innerHTML = infoHtml;
     }
+
+        // Prepare filter summary for above and below table
+        let filterSummary = '';
+        // Player count filter
+        const selectedPlayerCounts = Array.from(document.querySelectorAll('.playerCountBox:checked')).map(cb => cb.value);
+        if (selectedPlayerCounts.length) {
+            filterSummary += `<span class="active-filter">Players: ${selectedPlayerCounts.join(', ')}</span> `;
+        }
+        // Button filters (detect by button text or state)
+        const filterButtons = [
+            {id: 'quickGamesBtn', label: 'Quick Games'},
+            {id: 'newestGamesBtn', label: 'New Games'},
+            {id: 'mostPlayedBtn', label: 'Most Played Games'},
+            {id: 'ratingSortBtn', label: 'Best Rating'},
+            {id: 'wantToPlayBtn', label: 'Want to Play (by Rating)'},
+            {id: 'wantToBuyBtn', label: 'Want to Buy Games'}
+        ];
+        let lastActiveBtn = '';
+        filterButtons.forEach(btn => {
+            const el = document.getElementById(btn.id);
+            if (el && el.classList.contains('active-filter-btn')) {
+                lastActiveBtn = btn.label;
+            }
+        });
+        // Compose filter info for above and below table
+        let filterInfoHtml = '';
+        if (filterSummary || lastActiveBtn) {
+            filterInfoHtml += '<div class="pagination-filters" style="margin-bottom:0.3em; text-align:center;">';
+            if (filterSummary) filterInfoHtml += filterSummary;
+            if (lastActiveBtn) filterInfoHtml += `<span class="active-filter">${lastActiveBtn}</span>`;
+            filterInfoHtml += '</div>';
+        }
     let html = '';
+    // Download buttons are now in the Collection Actions area (index.html)
     const startIdx = (page - 1) * itemsPerPage;
     const endIdx = Math.min(startIdx + itemsPerPage, allItems.length);
     const totalPages = Math.ceil(allItems.length / itemsPerPage);
@@ -509,15 +558,103 @@ function renderTablePage(page) {
             <button id="clearPlayerFilterBtn" class="modern-btn">Clear</button>
             <span id="selectedPlayerCounts" style="margin-left:1em;color:#0078d4;"></span>
         </div>`;
-        // Filter/sort buttons (top)
-        html += `<div style="margin:1em 0; text-align:center;">
-            <button id="quickGamesBtn" class="modern-btn">Quick Games</button>
-            <button id="newestGamesBtn" class="modern-btn">New Games</button>
-            <button id="mostPlayedBtn" class="modern-btn">Most Played Games</button>
-            <button id="ratingSortBtn" class="modern-btn">Best Rating</button>
-            <button id="wantToPlayBtn" class="modern-btn">Want to Play (by Rating)</button>
-            <button id="wantToBuyBtn" class="modern-btn">Want to Buy Games</button>
+
+        // Status flag toggles (below player count filter)
+        const statusFlags = [
+            { key: 'own', label: 'Own' },
+            { key: 'prevowned', label: 'Prev Owned' },
+            { key: 'fortrade', label: 'For Trade' },
+            { key: 'want', label: 'Want' },
+            { key: 'wanttoplay', label: 'Want to Play' },
+            { key: 'wanttobuy', label: 'Want to Buy' },
+            { key: 'wishlist', label: 'Wishlist' },
+            { key: 'wishlistpriority', label: 'Wishlist Priority', isPriority: true },
+            { key: 'preordered', label: 'Preordered' }
+        ];
+        html += `<div id="statusFlagFilter" style="margin:0.5em 0 1em 0; text-align:center;">
+            <span style="font-weight:bold;">Status Flags:</span>
+            ${statusFlags.map(flag => flag.isPriority
+                ? `<label style='margin:0 8px;'>${flag.label}: <input type='number' min='0' max='5' value='' class='statusFlagInput' data-flag='${flag.key}' style='width:2.5em;'></label>`
+                : `<label style='margin:0 8px;'><input type='checkbox' class='statusFlagBox' data-flag='${flag.key}'>${flag.label}</label>`
+            ).join('')}
+            <button id="applyStatusFlagBtn" class="modern-btn">Apply</button>
+            <button id="clearStatusFlagBtn" class="modern-btn">Clear</button>
+            <span id="selectedStatusFlags" style="margin-left:1em;color:#0078d4;"></span>
         </div>`;
+    // Preset Views dropdown is now only in the View & Search Options area (index.html)
+    // Add event handler for Prev Owned (prevowned>0, sort by bayesaverage desc)
+    // Preset Views dropdown event handler
+    setTimeout(() => {
+        const presetDropdown = document.getElementById('presetViewsDropdown');
+        if (presetDropdown) {
+            presetDropdown.onchange = function() {
+                const val = this.value;
+                if (!val || val === '') return;
+                if (val === 'all') {
+                    allItems = [...originalItems];
+                } else if (val === 'quick') {
+                    allItems = originalItems.filter(item => Number(item.own) > 0)
+                        .sort((a, b) => Number(a.playingtime) - Number(b.playingtime));
+                } else if (val === 'newest') {
+                    allItems = originalItems.filter(item => Number(item.own) > 0)
+                        .sort((a, b) => (Number(b.year) || 0) - (Number(a.year) || 0));
+                } else if (val === 'mostPlayed') {
+                    allItems = originalItems.filter(item => Number(item.own) > 0)
+                        .sort((a, b) => Number(b.numplays) - Number(a.numplays));
+                } else if (val === 'bestRating') {
+                    allItems = originalItems.filter(item => Number(item.own) > 0)
+                        .sort((a, b) => Number(b.bayesaverage) - Number(a.bayesaverage));
+                } else if (val === 'wantToPlay') {
+                    allItems = originalItems.filter(item => /wanttoplay=1/.test(item.statusStr || ''))
+                        .map(item => {
+                            let customScore = 0;
+                            const status = item.statusStr || '';
+                            const wantToPlay = /wanttoplay=1/.test(status);
+                            const wishlist = /wishlist=1/.test(status);
+                            let wishlistPriority = 0;
+                            const match = status.match(/wishlistpriority=(\d+)/);
+                            if (match) wishlistPriority = parseInt(match[1], 10);
+                            if (wantToPlay) {
+                                if (wishlist) {
+                                    let inverted = 6 - Math.max(1, Math.min(wishlistPriority, 5));
+                                    customScore = 5 + inverted;
+                                } else {
+                                    customScore = 5;
+                                }
+                            }
+                            return { ...item, _customScore: customScore };
+                        })
+                        .sort((a, b) => b._customScore - a._customScore);
+                } else if (val === 'wantToBuy') {
+                    allItems = originalItems.filter(item => /wanttobuy=1/.test(item.statusStr || ''))
+                        .map(item => {
+                            let customBuyScore = 0;
+                            const status = item.statusStr || '';
+                            const wantToBuy = /wanttobuy=1/.test(status);
+                            const wishlist = /wishlist=1/.test(status);
+                            let wishlistPriority = 0;
+                            const match = status.match(/wishlistpriority=(\d+)/);
+                            if (match) wishlistPriority = parseInt(match[1], 10);
+                            if (wantToBuy) {
+                                if (wishlist) {
+                                    let inverted = 6 - Math.max(1, Math.min(wishlistPriority, 5));
+                                    customBuyScore = 5 + inverted;
+                                } else {
+                                    customBuyScore = 5;
+                                }
+                            }
+                            return { ...item, _customBuyScore: customBuyScore };
+                        })
+                        .sort((a, b) => b._customBuyScore - a._customBuyScore);
+                } else if (val === 'prevOwned') {
+                    allItems = originalItems.filter(item => Number(item.prevowned) > 0)
+                        .sort((a, b) => Number(b.bayesaverage) - Number(a.bayesaverage));
+                }
+                currentPage = 1;
+                renderTablePage(currentPage);
+            };
+        }
+    }, 0);
     // Add event handler for Want to Play (wanttoplay=1, order by bayesaverage desc)
     setTimeout(() => {
         const wantToPlayBtn = document.getElementById('wantToPlayBtn');
@@ -632,11 +769,57 @@ function renderTablePage(page) {
         if (clearBtn && checkboxes.length) {
             clearBtn.onclick = () => {
                 checkboxes.forEach(cb => cb.checked = false);
-                // Remove only the player count filter, keep other filters/sorts
-                // Re-render with the last non-player-count filtered set
-                // To do this, refetch the base set from the last filter/sort (not originalItems)
-                // We'll just trigger a re-render, which will use the current allItems
                 if (selectedDisplay) selectedDisplay.textContent = '';
+                renderTablePage(1);
+            };
+        }
+    }, 0);
+
+    // Add event handler for status flag filter (checkboxes and number input)
+    setTimeout(() => {
+        const applyStatusBtn = document.getElementById('applyStatusFlagBtn');
+        const clearStatusBtn = document.getElementById('clearStatusFlagBtn');
+        const flagBoxes = document.querySelectorAll('.statusFlagBox');
+        const flagInputs = document.querySelectorAll('.statusFlagInput');
+        const selectedStatusDisplay = document.getElementById('selectedStatusFlags');
+        if (applyStatusBtn) {
+            applyStatusBtn.onclick = () => {
+                // Start from current allItems (not originalItems)
+                let filtered = allItems;
+                let summary = [];
+                flagBoxes.forEach(cb => {
+                    if (cb.checked) {
+                        const flag = cb.getAttribute('data-flag');
+                        filtered = filtered.filter(item => {
+                            // statusStr: own=1<br>prevowned=0... etc
+                            const match = (item.statusStr || '').match(new RegExp(flag + '=(\\d+)'));
+                            return match && Number(match[1]) > 0;
+                        });
+                        summary.push(flag + '>0');
+                    }
+                });
+                flagInputs.forEach(input => {
+                    const val = input.value.trim();
+                    if (val !== '') {
+                        const flag = input.getAttribute('data-flag');
+                        filtered = filtered.filter(item => {
+                            const match = (item.statusStr || '').match(new RegExp(flag + '=(\\d+)'));
+                            return match && Number(match[1]) === Number(val);
+                        });
+                        summary.push(flag + '=' + val);
+                    }
+                });
+                allItems = filtered;
+                if (selectedStatusDisplay) selectedStatusDisplay.textContent = summary.length ? `Filtered: ${summary.join(', ')} | Records: ${allItems.length}` : '';
+                currentPage = 1;
+                renderTablePage(currentPage);
+            };
+        }
+        if (clearStatusBtn) {
+            clearStatusBtn.onclick = () => {
+                flagBoxes.forEach(cb => cb.checked = false);
+                flagInputs.forEach(input => input.value = '');
+                if (selectedStatusDisplay) selectedStatusDisplay.textContent = '';
                 renderTablePage(1);
             };
         }
@@ -688,13 +871,8 @@ function renderTablePage(page) {
             };
         }
     }, 0);
-    // Pagination controls (top)
+    // Remove legacy pagination controls (top). Only use new pagination with jump-to-page input.
     if (allItems.length > 0) {
-        html += `<div style="margin:1em 0; text-align:center;">
-            <button id="prevPageTop" ${page === 1 ? 'disabled' : ''}>Prev</button>
-            Page ${page} of ${totalPages}
-            <button id="nextPageTop" ${endIdx >= allItems.length ? 'disabled' : ''}>Next</button>
-        </div>`;
         html += `<style>
             .bgg-table thead th {
                 position: sticky;
@@ -705,6 +883,31 @@ function renderTablePage(page) {
             .bgg-table {
                 border-collapse: collapse;
                 min-width: 1800px;
+            }
+            .pagination-btn {
+                background: #0078d4;
+                color: #fff;
+                border: none;
+                border-radius: 4px;
+                padding: 0.4em 1.2em;
+                margin: 0 0.3em;
+                font-size: 1em;
+                cursor: pointer;
+                transition: background 0.2s;
+            }
+            .pagination-btn:disabled {
+                background: #b0b0b0;
+                color: #f0f0f0;
+                cursor: not-allowed;
+            }
+            .pagination-input {
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                padding: 0.2em 0.5em;
+                font-size: 1em;
+                width: 3em;
+                margin: 0 0.2em;
+                text-align: center;
             }
         </style>`;
         html += `<div style="overflow-x:auto; max-height:600px;">
@@ -809,24 +1012,82 @@ function renderTablePage(page) {
             }
         }
         html += '</tbody></table></div>';
-        // Pagination controls (bottom)
-        html += `<div style="margin:1em 0; text-align:center;">
-            <button id="prevPage" ${page === 1 ? 'disabled' : ''}>Prev</button>
-            Page ${page} of ${totalPages}
-            <button id="nextPage" ${endIdx >= allItems.length ? 'disabled' : ''}>Next</button>
-        </div>`;
+    // Show filters above table and pagination with jump-to-page input (top)
+    html = filterInfoHtml + getPaginationHtml('top') + html;
+    // Pagination controls (bottom) with jump-to-page input
+    html += filterInfoHtml + getPaginationHtml('bottom');
+// Helper to render pagination controls with jump-to-page input
+function getPaginationHtml(position) {
+    const totalPages = Math.ceil(allItems.length / itemsPerPage) || 1;
+    const page = currentPage;
+    return `<div class="pagination-controls" data-pos="${position}" style="margin:1em 0; text-align:center;">
+        <button id="prevPage${position}" class="modern-btn pagination-btn" ${page === 1 ? 'disabled' : ''}>Prev</button>
+        Page <input id="jumpPageInput${position}" type="number" min="1" max="${totalPages}" value="${page}" class="pagination-input" style="width:3em; text-align:center;"> of ${totalPages}
+        <span class="filtered-count">Filtered: <b>${allItems.length}</b></span>
+        <button id="nextPage${position}" class="modern-btn pagination-btn" ${page >= totalPages ? 'disabled' : ''}>Next</button>
+    </div>`;
+}
     }
     document.getElementById('results').innerHTML = html || 'No games found.';
-    // Add event handlers for pagination buttons if present
+    // Download CSV handler
+    const downloadCsvBtn = document.getElementById('downloadCsvBtn');
+    if (downloadCsvBtn) {
+        downloadCsvBtn.onclick = function() {
+            const csv = convertGamesToCsv(allItems);
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'bgg_collection.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        };
+    }
+    // Download XLSX handler (requires SheetJS if available)
+    const downloadXlsxBtn = document.getElementById('downloadXlsxBtn');
+    if (downloadXlsxBtn) {
+        downloadXlsxBtn.onclick = function() {
+            if (typeof XLSX !== 'undefined') {
+                const ws = XLSX.utils.json_to_sheet(allItems);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'Collection');
+                XLSX.writeFile(wb, 'bgg_collection.xlsx');
+            } else {
+                alert('XLSX export requires SheetJS (XLSX) library. Downloading CSV instead.');
+                if (downloadCsvBtn) downloadCsvBtn.click();
+            }
+        };
+    }
+    // Add event handlers for pagination buttons and jump inputs (top and bottom)
+// Convert current view to CSV string
+function convertGamesToCsv(items) {
+    if (!items || !items.length) return '';
+    // Use the keys of the first item as columns
+    const columns = Object.keys(items[0]);
+    const escape = v => '"' + String(v).replace(/"/g, '""') + '"';
+    const header = columns.map(escape).join(',');
+    const rows = items.map(item => columns.map(col => escape(item[col] ?? '')).join(','));
+    return [header, ...rows].join('\r\n');
+}
     if (allItems.length > 0) {
-        const prevBtn = document.getElementById('prevPage');
-        const nextBtn = document.getElementById('nextPage');
-        const prevBtnTop = document.getElementById('prevPageTop');
-        const nextBtnTop = document.getElementById('nextPageTop');
-        if (prevBtn) prevBtn.onclick = () => { if (currentPage > 1) { currentPage--; renderTablePage(currentPage); } };
-        if (nextBtn) nextBtn.onclick = () => { if ((currentPage * itemsPerPage) < allItems.length) { currentPage++; renderTablePage(currentPage); } };
-        if (prevBtnTop) prevBtnTop.onclick = () => { if (currentPage > 1) { currentPage--; renderTablePage(currentPage); } };
-        if (nextBtnTop) nextBtnTop.onclick = () => { if ((currentPage * itemsPerPage) < allItems.length) { currentPage++; renderTablePage(currentPage); } };
+        ['top', 'bottom'].forEach(pos => {
+            const prevBtn = document.getElementById(`prevPage${pos}`);
+            const nextBtn = document.getElementById(`nextPage${pos}`);
+            const jumpInput = document.getElementById(`jumpPageInput${pos}`);
+            if (prevBtn) prevBtn.onclick = () => { if (currentPage > 1) { currentPage--; renderTablePage(currentPage); } };
+            if (nextBtn) nextBtn.onclick = () => { if (currentPage < Math.ceil(allItems.length / itemsPerPage)) { currentPage++; renderTablePage(currentPage); } };
+            if (jumpInput) jumpInput.onchange = (e) => {
+                let val = parseInt(e.target.value, 10);
+                if (!isNaN(val) && val >= 1 && val <= Math.ceil(allItems.length / itemsPerPage)) {
+                    currentPage = val;
+                    renderTablePage(currentPage);
+                } else {
+                    e.target.value = currentPage;
+                }
+            };
+        });
     }
     // Add event handler for Quick Games (owned, sort by playing time asc)
     const quickBtn = document.getElementById('quickGamesBtn');

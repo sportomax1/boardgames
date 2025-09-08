@@ -7,24 +7,51 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>BoardGameGeek Collection Fetcher</h1>
-    <div style="margin-bottom: 1em;">
-    <button id="fetchBtn" class="modern-btn">Fetch Collection</button>
-    <button id="tierRankBtn" class="modern-btn" style="margin-left: 1em;">Tier Rank</button>
-        <span id="timingInfo" style="margin-left:1em;"></span>
+    <h1 style="text-align:center;">BGG Collection Analyzer</h1>
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1em;">
+        <div>
+            <div style="font-weight:600; margin-bottom:0.3em;">Collection Actions</div>
+            <button id="fetchBtn" class="modern-btn" aria-label="Fetch your BGG collection">Fetch Sportomax</button>
+            <button id="tierRankBtn" class="modern-btn" style="margin-left: 1em;" aria-label="Start tier ranking">Tier Rank</button>
+            <button id="simpleViewBtn" class="modern-btn" style="margin-left: 1em;" aria-label="Toggle simple/full table view">Simple View</button>
+            <button id="toggleViewBtn" class="modern-btn" style="margin-left: 1em;" aria-label="Toggle mobile/desktop view">Switch to Mobile View</button>
+            <button id="downloadCsvBtn" class="modern-btn" style="margin-left: 1em;" aria-label="Download current view as CSV">Download CSV</button>
+            <button id="downloadXlsxBtn" class="modern-btn" style="margin-left: 0.5em;" aria-label="Download current view as XLSX">Download XLSX</button>
+        </div>
+        <div style="min-width:340px; text-align:right; font-size:1em;">
+            <div style="font-weight:600; margin-bottom:0.2em;">API Timing & Collection Summary</div>
+            <span id="timingInfo" aria-label="API timing info"></span>
+        </div>
     </div>
     <div style="margin-bottom: 1em; text-align: center;">
-    <div style="margin-bottom: 1em; text-align: center;">
-        <button id="simpleViewBtn" class="modern-btn">Simple View</button>
+        <div style="font-weight:600; margin-bottom:0.3em;">View & Search Options</div>
+        <div style="display:flex; flex-wrap:wrap; justify-content:center; gap:1em; align-items:center;">
+            <div>
+                <input type="text" id="searchInput" placeholder="Search games by name..." style="padding: 8px; width: 220px; font-size: 14px;" aria-label="Search games by name">
+                <button id="clearSearchBtn" style="margin-left: 0.5em;" aria-label="Clear search">Clear</button>
+                <span style="font-size:0.95em; color:#666; margin-left:0.5em;">Type to filter by game name</span>
+            </div>
+            <div>
+                <div style="font-weight:bold; font-size:1.1em; margin-bottom:0.2em;">Preset Views:</div>
+                <select id="presetViewsDropdown" class="modern-btn" style="min-width:260px; font-size:1em; padding:0.4em 1em; background:#fff; color:#222; border:1.5px solid #0078d4; border-radius:5px; box-shadow:0 1px 4px rgba(0,0,0,0.07);">
+                    <option value="">-- Select a View --</option>
+                    <option value="quick">Quick Games</option>
+                    <option value="newest">New Games</option>
+                    <option value="mostPlayed">Most Played Games</option>
+                    <option value="bestRating">Best Rating</option>
+                    <option value="wantToPlay">Want to Play (by Rating)</option>
+                    <option value="wantToBuy">Want to Buy Games</option>
+                    <option value="prevOwned">Prev Owned (by Bayes Avg)</option>
+                    <option value="all">Show All</option>
+                </select>
+            </div>
+        </div>
     </div>
-    <div style="margin-bottom: 1em; text-align: center;">
-        <button id="toggleViewBtn" class="modern-btn">Switch to Mobile View</button>
-    </div>
-        <input type="text" id="searchInput" placeholder="Search games by name..." style="padding: 8px; width: 300px; font-size: 14px;">
-        <button id="clearSearchBtn" style="margin-left: 0.5em;">Clear</button>
-    </div>
-    <div id="results"></div>
-    <div id="rankingInterface" style="display: none;"></div>
+    <div style="font-weight:600; margin-bottom:0.3em; text-align:center;">Main Filter Buttons</div>
+    <!-- The main filter buttons are rendered dynamically in the table area -->
+    <div style="font-weight:600; margin-bottom:0.3em; text-align:center;">Games Table & Filters</div>
+    <div id="results" aria-label="Games table and filters"></div>
+    <div id="rankingInterface" style="display: none;" aria-label="Pairwise ranking interface"></div>
     <script src="app.js"></script>
 </body>
 </html>
