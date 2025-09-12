@@ -385,3 +385,50 @@ body { font-family: Arial, sans-serif; margin: 2em; }
     font-size: 12px;
     color: #666;
 }
+
+/* Collage Modes */
+.collage-zoom {
+  display: grid;
+  gap: 6px;
+}
+.collage-zoom img {
+  width: 160px !important;
+  height: 160px !important;
+  object-fit: cover;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px #0001;
+}
+.collage-widescreen {
+  display: grid;
+  gap: 18px;
+}
+.collage-widescreen img {
+  width: 90px !important;
+  height: 90px !important;
+  object-fit: cover;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px #0001;
+}
+.collage-vertical {
+  display: grid;
+  gap: 10px;
+}
+.collage-vertical img {
+  width: 90px !important;
+  height: 160px !important;
+  object-fit: cover;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px #0001;
+}
+.collage-fit {
+  display: grid;
+  gap: 10px;
+}
+.collage-fit img {
+  width: 120px !important;
+  height: 120px !important;
+  object-fit: contain !important;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 1px 4px #0001;
+}
