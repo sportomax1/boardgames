@@ -1,3 +1,64 @@
+// Random Game Selector logic
+function getFilteredGamesForRandom() {
+    // Use the same logic as the table/collage for current filtered/sorted games
+    if (typeof allItems !== 'undefined' && Array.isArray(allItems) && allItems.length > 0) {
+        return [...allItems];
+    }
+    if (typeof getCurrentSortedGames === 'function') {
+        return getCurrentSortedGames();
+    }
+    if (originalItems && originalItems.length > 0) return originalItems;
+    return sampleGames;
+}
+
+function showRandomGamePopup() {
+    const games = getFilteredGamesForRandom();
+    if (!games.length) {
+        alert('No games available to pick from!');
+        return;
+    }
+    pickAndShowRandomGame(games);
+    document.getElementById('randomGamePopup').style.display = 'flex';
+}
+
+function pickAndShowRandomGame(games) {
+    const idx = Math.floor(Math.random() * games.length);
+    const game = games[idx];
+    if (!game) return;
+    // Build popup content: image, name, year, player count, playtime, link
+    let html = '';
+    const img = game.image || game.thumbnail || 'https://via.placeholder.com/180';
+    html += `<img src="${img}" alt="${game.name}" style="width:180px; height:180px; object-fit:cover; border-radius:12px; box-shadow:0 2px 12px #0002; margin-bottom:1em;">`;
+    html += `<div style="font-size:1.3em; font-weight:bold; margin-bottom:0.3em; color:#1976d2;">${game.name}</div>`;
+    if (game.yearpublished) html += `<div style="color:#666; margin-bottom:0.2em;">Year: ${game.yearpublished}</div>`;
+    if (game.minplayers && game.maxplayers) html += `<div style="color:#444;">Players: ${game.minplayers} - ${game.maxplayers}</div>`;
+    if (game.playingtime) html += `<div style="color:#444;">Playtime: ${game.playingtime} min</div>`;
+    if (game.numplays !== undefined) html += `<div style="color:#444;">Plays: ${game.numplays}</div>`;
+    if (game.bayesaverage !== undefined) html += `<div style="color:#444;">Bayes Avg: ${game.bayesaverage}</div>`;
+    html += `<div style="margin-top:0.7em;"><a href="https://boardgamegeek.com/boardgame/${game.objectid}" target="_blank" style="color:#0078d4; text-decoration:underline; font-size:1.1em;">View on BGG</a></div>`;
+    document.getElementById('randomGameContent').innerHTML = html;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+        const randomGameBtn = document.getElementById('randomGameBtn');
+        const popup = document.getElementById('randomGamePopup');
+        const closeBtn = document.getElementById('closeRandomGamePopup');
+        const regenBtn = document.getElementById('regenRandomGameBtn');
+        let lastGames = [];
+        if (randomGameBtn && popup && closeBtn && regenBtn) {
+            randomGameBtn.onclick = () => {
+                lastGames = getFilteredGamesForRandom();
+                showRandomGamePopup();
+            };
+            closeBtn.onclick = () => {
+                popup.style.display = 'none';
+            };
+            regenBtn.onclick = () => {
+                if (!lastGames.length) lastGames = getFilteredGamesForRandom();
+                pickAndShowRandomGame(lastGames);
+            };
+        }
+});
 let simpleView = true;
 
 // Ensure the button label matches the default view on load
@@ -11,6 +72,7 @@ document.addEventListener('DOMContentLoaded', function() {
 document.addEventListener('DOMContentLoaded', function() {
     const collageCreateBtn = document.getElementById('collageCreateBtn');
     const copyCollageBtn = document.getElementById('copyCollageBtn');
+
     if (collageCreateBtn) {
         collageCreateBtn.onclick = () => {
             const x = Math.max(1, Math.min(10, parseInt(document.getElementById('collage-x').value) || 1));
@@ -30,8 +92,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 alert('html2canvas library is required to copy the collage.');
                 return;
             }
+            // Wait for all images to load
+            const imgs = Array.from(grid.querySelectorAll('img'));
+            await Promise.all(imgs.map(img => {
+                if (img.complete && img.naturalWidth !== 0) return Promise.resolve();
+                return new Promise(res => {
+                    img.onload = img.onerror = res;
+                });
+            }));
             try {
-                const canvas = await html2canvas(grid, {backgroundColor: '#fff'});
+                const canvas = await html2canvas(grid, {backgroundColor: '#fff', useCORS: true});
                 canvas.toBlob(blob => {
                     if (navigator.clipboard && window.ClipboardItem) {
                         const item = new window.ClipboardItem({ 'image/png': blob });
@@ -49,6 +119,70 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         };
     }
+
+    // Download collage as PNG
+    const downloadCollageBtn = document.getElementById('downloadCollageBtn');
+    if (downloadCollageBtn) {
+        downloadCollageBtn.onclick = async () => {
+            const grid = document.querySelector('#collage-container > div');
+            if (!grid) {
+                alert('No collage to download!');
+                return;
+            }
+            if (typeof html2canvas === 'undefined') {
+                alert('html2canvas library is required to download the collage.');
+                return;
+            }
+            // Wait for all images to load
+            const imgs = Array.from(grid.querySelectorAll('img'));
+            await Promise.all(imgs.map(img => {
+                if (img.complete && img.naturalWidth !== 0) return Promise.resolve();
+                return new Promise(res => {
+                    img.onload = img.onerror = res;
+                });
+            }));
+            try {
+                const canvas = await html2canvas(grid, {backgroundColor: '#fff', useCORS: true});
+                const link = document.createElement('a');
+                link.download = 'collage.png';
+                link.href = canvas.toDataURL('image/png');
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } catch (e) {
+                alert('Error downloading collage: ' + e.message);
+            }
+        };
+    }
+
+    // Toggle collage mode button logic
+    const toggleCollageModeBtn = document.getElementById('toggleCollageModeBtn');
+    let collageMode = 'zoom'; // default mode
+    if (toggleCollageModeBtn) {
+        toggleCollageModeBtn.onclick = () => {
+            collageMode = (collageMode === 'zoom') ? 'fit' : 'zoom';
+            updateCollageModeClass(collageMode);
+            toggleCollageModeBtn.textContent = collageMode === 'zoom' ? 'Fit Images (Show White Space)' : 'Zoom Images (Fill Square)';
+        };
+        toggleCollageModeBtn.textContent = 'Fit Images (Show White Space)';
+    }
+    // Helper to apply mode after collage is created
+    function updateCollageModeClass(mode) {
+        const grid = document.querySelector('#collage-container > div');
+        if (!grid) return;
+        grid.classList.remove('collage-zoom', 'collage-fit');
+        if (mode === 'fit') {
+            grid.classList.add('collage-fit');
+        } else {
+            grid.classList.add('collage-zoom');
+        }
+    }
+    // Patch createPhotoCollageGrid to always apply mode after rendering
+    const origCreatePhotoCollageGrid = window.createPhotoCollageGrid;
+    window.createPhotoCollageGrid = function(x, y) {
+        origCreatePhotoCollageGrid(x, y);
+        updateCollageModeClass(collageMode);
+    };
 });
 
 function getSortedGames() {
@@ -62,6 +196,7 @@ function getSortedGames() {
     return sampleGames;
 }
 
+// Patch createPhotoCollageGrid to not inline grid styles, but use class
 function createPhotoCollageGrid(x, y) {
     const games = getSortedGames();
     const collageGames = games.slice(0, x * y);
@@ -71,11 +206,11 @@ function createPhotoCollageGrid(x, y) {
         container.innerHTML = `<div style=\"color:#d32f2f;font-weight:bold;\">Not enough games to create a ${x}x${y} collage.</div>`;
         return;
     }
-    // Create a CSS grid of images
-    let html = `<div style=\"display:grid;grid-template-columns:repeat(${x}, 120px);grid-template-rows:repeat(${y}, 120px);gap:6px;\">`;
+    // Use a CSS class for the grid
+    let html = `<div class=\"collage-zoom\" style=\"grid-template-columns:repeat(${x},1fr);grid-template-rows:repeat(${y},1fr);\">`;
     collageGames.forEach(game => {
         const src = game.image || game.thumbnail || 'https://via.placeholder.com/120';
-        html += `<img src=\"${src}\" alt=\"${game.name}\" style=\"width:120px;height:120px;object-fit:cover;border-radius:8px;box-shadow:0 1px 4px #0001;\">`;
+        html += `<img src=\"${src}\" alt=\"${game.name}\">`;
     });
     html += '</div>';
     container.innerHTML = html;
@@ -953,7 +1088,7 @@ function renderTablePage(page) {
                             customScore = 5;
                         }
                     }
-                    html += `<td style="color:#6f42c1; font-weight:bold;">${customScore}</td>`;
+                    html += `<td style="color:#6f42c1; font-weight:bold;">${customScore}${getLastModifiedTag(item.lastmodified)}</td>`;
                 }
                 if (isWantToBuyPreset) {
                     // Custom Buy Number logic (same as main table)
@@ -1017,7 +1152,7 @@ function renderTablePage(page) {
                     <td>${item.subtype}</td>
                     <td>${item.collid}</td>
                     <td>${item.statusStr}</td>
-                    <td>${item.lastmodified || ''}</td>
+                    <td>${item.lastmodified || ''}${getLastModifiedTag(item.lastmodified)}</td>
                     <td>${item.numplays}</td>
                     <td>${item.image ? `<img src="${item.image}" alt="image" style="max-width:120px;max-height:90px;">` : ''}</td>
                     <td>${item.minplayers}</td>
@@ -1035,7 +1170,7 @@ function renderTablePage(page) {
                     <td>${item.ranksStr}</td>
                     <td>${item.comment || ''}</td>
                     <td>${item.wishlistcomment || ''}</td>
-                    <td>${customScore}</td>
+                    <td>${customScore}${getLastModifiedTag(item.lastmodified)}</td>
                     <td>${customBuyScore}</td>
                     <td><a href="https://boardgamegeek.com/boardgame/${item.objectid}" target="_blank">View</a></td>
                 </tr>`;
@@ -1273,3 +1408,19 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+// Tag for last modified date: RECENT (last 3 months), OLD (older than 12 months)
+function getLastModifiedTag(lastmodified) {
+    if (!lastmodified) return '';
+    const date = new Date(lastmodified);
+    if (isNaN(date.getTime())) return '';
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMonths = diffMs / (1000 * 60 * 60 * 24 * 30.44);
+    if (diffMonths <= 3) {
+        return ' <span style="color:#388e3c;font-weight:bold;">RECENT</span>';
+    } else if (diffMonths > 12) {
+        return ' <span style="color:#d32f2f;font-weight:bold;">OLD</span>';
+    }
+    return '';
+}
