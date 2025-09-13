@@ -500,6 +500,15 @@ document.addEventListener('DOMContentLoaded', () => {
     if (tierRankBtn) {
         tierRankBtn.addEventListener('click', startPairwiseRanking);
     }
+    
+    // Add event listener for the new page button
+    const newPageBtn = document.getElementById('newPageBtn');
+    if (newPageBtn) {
+        newPageBtn.addEventListener('click', function() {
+            console.log('Navigating to new page');
+            window.location.href = 'new-page.html';
+        });
+    }
 });
 
 document.getElementById('fetchBtn').addEventListener('click', async () => {
