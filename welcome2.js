@@ -1,20 +1,33 @@
 console.log('Welcome2 page loaded! (script start)');
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Pagination state
+    let currentPage = 1;
+    let totalPages = 1;
+    let pageSize = 100;
+    let lastFilteredArr = [];
+    const paginationTop = document.getElementById('paginationTop');
+    const paginationBottom = document.getElementById('paginationBottom');
     const searchNameOnly = document.getElementById('searchNameOnly');
     // Helper to render the table from records and fields
     function renderTable(records, fields, displayFields) {
+        // Pagination logic
+        totalPages = Math.max(1, Math.ceil(records.length / pageSize));
+        if (currentPage > totalPages) currentPage = totalPages;
+        const startIdx = (currentPage - 1) * pageSize;
+        const endIdx = startIdx + pageSize;
+        const pagedRecords = records.slice(startIdx, endIdx);
         let html = `<div style='overflow-x:auto;'><table border='1' cellpadding='6' style='border-collapse:collapse; margin:auto; background:#fff; min-width:1200px;'><thead><tr>`;
         displayFields.forEach(f => {
             let bg = f === 'idx' ? '#333' : (f.startsWith('collection_') ? '#b71c1c' : (f.startsWith('thing_') ? '#008080' : '#1976d2'));
             html += `<th style='background:${bg}; color:#fff; font-weight:600; position:sticky; top:0; z-index:2;'>${f}</th>`;
         });
         html += `</tr></thead><tbody>`;
-        records.forEach((rec, i) => {
+    pagedRecords.forEach((rec, i) => {
             html += '<tr>';
             displayFields.forEach((f, colIdx) => {
                 if (f === 'idx') {
-                    html += `<td style='font-size:0.98em; color:#222; font-weight:bold;'>${i + 1}</td>`;
+                    html += `<td style='font-size:0.98em; color:#222; font-weight:bold;'>${startIdx + i + 1}</td>`;
                 } else if (/image|thumbnail/i.test(f) && rec[f]) {
                     // Use larger size for main images, smaller for thumbnails
                     const isThumb = /thumbnail/i.test(f);
@@ -48,21 +61,64 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             html += '</tr>';
         });
-        html += '</tbody></table></div>';
-        return html;
+    html += '</tbody></table></div>';
+    return html;
     }
-    // Search bar logic
+    // Pagination controls rendering
+    function renderPagination() {
+        if (!paginationTop || !paginationBottom) return;
+        const makeControls = () => {
+            return `
+                    <div style="display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:0.7em; width:100%; max-width:100vw;">
+                        <button id="prevPageBtn" ${currentPage === 1 ? 'disabled' : ''} style="padding:7px 16px; font-size:1em; border-radius:6px;">Prev</button>
+                        <span style="font-size:1em;">Page</span>
+                        <input id="pageInput" type="number" min="1" max="${totalPages}" value="${currentPage}" style="width:54px; font-size:1em; text-align:center; border-radius:5px; border:1px solid #bbb; max-width:70px;">
+                        <span style="font-size:1em;">of ${totalPages}</span>
+                        <button id="nextPageBtn" ${currentPage === totalPages ? 'disabled' : ''} style="padding:7px 16px; font-size:1em; border-radius:6px;">Next</button>
+                        <span style="color:#888; font-size:0.98em; margin-left:0.7em;">(${lastFilteredArr.length} records)</span>
+                    </div>
+            `;
+        };
+        paginationTop.innerHTML = makeControls();
+        paginationBottom.innerHTML = makeControls();
+        // Add event listeners
+        const prevBtns = document.querySelectorAll('#prevPageBtn');
+        const nextBtns = document.querySelectorAll('#nextPageBtn');
+        const pageInputs = document.querySelectorAll('#pageInput');
+        prevBtns.forEach(btn => btn.onclick = () => { if (currentPage > 1) { currentPage--; updateTable(); }});
+        nextBtns.forEach(btn => btn.onclick = () => { if (currentPage < totalPages) { currentPage++; updateTable(); }});
+        pageInputs.forEach(input => {
+            input.onchange = (e) => {
+                let val = parseInt(e.target.value);
+                if (!isNaN(val) && val >= 1 && val <= totalPages) {
+                    currentPage = val;
+                    updateTable();
+                } else {
+                    e.target.value = currentPage;
+                }
+            };
+        });
+    }
+    // Update table and pagination
+    function updateTable() {
+        if (window.lastRecords && window.lastFields && window.lastDisplayFields) {
+            let arr = lastFilteredArr;
+            if (!arr || !Array.isArray(arr)) arr = window.lastRecords;
+            resultDiv.innerHTML = renderTable(arr, window.lastFields, window.lastDisplayFields);
+            renderPagination();
+        }
+    }
     const searchInput = document.getElementById('searchInput');
     let lastSearchTerm = '';
     function filterRecords(records, fields, term) {
-        if (!term) return records;
+    if (!term) return records;
         const lc = term.toLowerCase();
         let searchFields = fields;
         if (searchNameOnly && searchNameOnly.checked) {
             searchFields = fields.filter(f => /name.*primary|name$/i.test(f));
             if (searchFields.length === 0) searchFields = fields.filter(f => /name/i.test(f));
         }
-        return records.filter(rec => searchFields.some(f => (rec[f] + '').toLowerCase().includes(lc)));
+    return records.filter(rec => searchFields.some(f => (rec[f] + '').toLowerCase().includes(lc)));
     }
     // Settings modal logic
     const settingsBtn = document.getElementById('settingsBtn');
@@ -111,6 +167,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const resultDiv = document.getElementById('apiResult');
     if (runBtn && resultDiv) {
         runBtn.onclick = async function() {
+            currentPage = 1;
             console.log('RUN button clicked, starting API calls...');
             resultDiv.innerHTML = '<span style="color:#888;">Loading collection...</span>';
             try {
@@ -361,13 +418,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (searchInput && searchInput.value.trim()) {
                     initialFilteredArr = filterRecords(thingArr, displayFields, searchInput.value.trim());
                 }
+                lastFilteredArr = initialFilteredArr;
                 resultDiv.innerHTML = renderTable(initialFilteredArr, fields, displayFields);
+                renderPagination();
                 // Live search: update table as user types
                 if (searchInput) {
                     function doLiveSearch() {
                         if (window.lastRecords && window.lastFields && window.lastDisplayFields) {
-                            const filteredArr = filterRecords(window.lastRecords, window.lastDisplayFields, searchInput.value.trim());
-                            resultDiv.innerHTML = renderTable(filteredArr, window.lastFields, window.lastDisplayFields);
+                            lastFilteredArr = filterRecords(window.lastRecords, window.lastDisplayFields, searchInput.value.trim());
+                            currentPage = 1;
+                            updateTable();
                         }
                     }
                     searchInput.oninput = doLiveSearch;
@@ -375,6 +435,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             } catch (e) {
                 resultDiv.innerHTML = `<span style='color:#c00;'>Error: ${e.message}</span>`;
+                renderPagination();
             }
         };
     }
