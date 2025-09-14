@@ -76,8 +76,16 @@ document.addEventListener('DOMContentLoaded', function() {
 				html += `</tr></thead><tbody>`;
 				records.forEach(rec => {
 					html += '<tr>';
-					fields.forEach(f => {
-						html += `<td style='font-size:0.98em; color:#222;'>${rec[f] !== undefined ? rec[f] : ''}</td>`;
+					fields.forEach(f => { 
+						if ((f === 'image' || f === 'thumbnail') && rec[f]) {
+							// Show as image
+							const maxW = f === 'image' ? 120 : 80;
+							const maxH = f === 'image' ? 90 : 60;
+							const radius = f === 'image' ? 8 : 6;
+							html += `<td style='font-size:0.98em; color:#222;'><img src='${rec[f]}' alt='${f}' style='max-width:${maxW}px; max-height:${maxH}px; border-radius:${radius}px;'></td>`;
+						} else {
+							html += `<td style='font-size:0.98em; color:#222;'>${rec[f] !== undefined ? rec[f] : ''}</td>`;
+						}
 					});
 					html += '</tr>';
 				});
