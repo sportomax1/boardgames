@@ -16,6 +16,23 @@
         </div>
        
         <button id="runApiBtn" style="background:#d32f2f; color:#fff; border:none; border-radius:8px; padding:12px 28px; font-size:1.1em; font-weight:600; margin:1.2em 0 1em 0; cursor:pointer;">RUN</button>
+    <button id="settingsBtn" style="background:#1976d2; color:#fff; border:none; border-radius:8px; padding:12px 18px; font-size:1.1em; font-weight:600; margin:1.2em 0 1em 10px; cursor:pointer;">Settings</button>
+    <input id="searchInput" type="text" placeholder="Search records..." style="margin-left:18px; padding:7px 12px; font-size:1em; border-radius:6px; border:1px solid #bbb; width:220px;">
+        <label style="margin-left:10px; font-size:0.98em;">
+            <input type="checkbox" id="searchNameOnly" style="vertical-align:middle; margin-right:4px;"> Name only
+        </label>
+        <div id="settingsModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.25); z-index:1000; align-items:center; justify-content:center;">
+            <div style="background:#fff; border-radius:12px; padding:28px 32px; min-width:320px; max-width:90vw; max-height:80vh; overflow:auto; box-shadow:0 8px 32px #0003; position:relative;">
+                <h2 style="margin-top:0;">Select Columns to Display</h2>
+                <div id="settingsColumns" style="margin-bottom:18px; max-height:40vh; overflow:auto; border:1px solid #eee; padding:8px 12px; border-radius:6px; background:#fafbfc;"></div>
+                <div style="margin-bottom:12px;">
+                    <button id="selectAllBtn" style="margin-right:10px;">Select All</button>
+                    <button id="selectNoneBtn">Select None</button>
+                </div>
+                <button id="saveSettingsBtn" style="background:#388e3c; color:#fff; border:none; border-radius:6px; padding:8px 22px; font-size:1em; font-weight:600; margin-right:10px;">Save</button>
+                <button id="closeSettingsBtn" style="background:#b71c1c; color:#fff; border:none; border-radius:6px; padding:8px 22px; font-size:1em; font-weight:600;">Cancel</button>
+            </div>
+        </div>
         <div id="apiResult" style="margin-top:1.5em; text-align:left; max-width:600px; margin-left:auto; margin-right:auto; font-size:1em;"></div>
     </div>
     <script src="welcome.js"></script>
