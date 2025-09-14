@@ -199,7 +199,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
                 // Build table with ordered columns: collection_ fields first, then thing_ fields
                 const collectionKeys = [];
-                const thingKeys = [];
+                let thingKeys = [];
+                // Try to order thingKeys as in the first thingItem's XML
+                if (thingItems.length > 0) {
+                    const flatFirst = flattenXML(thingItems[0]);
+                    thingKeys = Object.keys(flatFirst).map(k => 'thing_' + k);
+                }
+                // Add any extra thingKeys not in the first item (fallback for missing fields)
                 thingArr.forEach(obj => {
                     Object.keys(obj).forEach(k => {
                         if (k.startsWith('collection_')) {
@@ -211,7 +217,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
                 const fields = [...collectionKeys, ...thingKeys];
                 // Add poll_numplayers_table as a visible column at the end
-                if (!fields.includes('thing_poll_numplayers_table')) fields.push('thing_poll_numplayers_table');
+                // Move thing_poll_numplayers_table after thing_maxplayers_value
+                const pollCol = 'thing_poll_numplayers_table';
+                const maxPlayersCol = 'thing_maxplayers_value';
+                // Remove pollCol if present
+                let idx = fields.indexOf(pollCol);
+                if (idx !== -1) fields.splice(idx, 1);
+                // Insert after maxPlayersCol
+                idx = fields.indexOf(maxPlayersCol);
+                if (idx !== -1) fields.splice(idx + 1, 0, pollCol);
+                else fields.push(pollCol);
                 console.log('Ordered table columns:', fields);
                 console.log('All merged records:', thingArr);
                 let html = `<div style='overflow-x:auto;'><table border='1' cellpadding='6' style='border-collapse:collapse; margin:auto; background:#fff; min-width:1200px;'><thead><tr>`;
