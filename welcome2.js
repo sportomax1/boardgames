@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', function() {
             try {
                 console.log('Starting collection API fetch...');
                 // API 1: Fetch user collection
-                const resp = await fetch('https://boardgamegeek.com/xmlapi2/collection?stats=1&username=sportomax');
+                const resp = await fetch('https://boardgamegeek.com/xmlapi2/collection?stats=1&username=sportomax&own=1');
                 if (!resp.ok) throw new Error('API error');
                 const xml = await resp.text();
                 const parser = new window.DOMParser();
@@ -104,12 +104,39 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 // Map objectid to flattened thing data
                 const thingMap = {};
+                // Helper to extract and format poll data for number of players
+                function extractPollTable(thingItem) {
+                    const poll = thingItem.querySelector('poll[name="suggested_numplayers"]');
+                    if (!poll) return '';
+                    let html = `<table style='border-collapse:collapse; font-size:0.98em; background:#f9f9f9; margin:0 auto;'>`;
+                    html += `<tr><th style='padding:2px 6px; background:#eee; font-weight:600;'># Players</th><th style='padding:2px 6px; background:#eee;'>Best</th><th style='padding:2px 6px; background:#eee;'>Recommended</th><th style='padding:2px 6px; background:#eee;'>Not Rec.</th></tr>`;
+                    const results = poll.querySelectorAll('results');
+                    results.forEach(res => {
+                        const num = res.getAttribute('numplayers');
+                        let best = 0, rec = 0, not = 0;
+                        res.querySelectorAll('result').forEach(r => {
+                            const v = r.getAttribute('value');
+                            const n = parseInt(r.getAttribute('numvotes')||'0',10);
+                            if (v === 'Best') best = n;
+                            else if (v === 'Recommended') rec = n;
+                            else if (v === 'Not Recommended') not = n;
+                        });
+                        html += `<tr><td style='padding:2px 6px; text-align:center;'>${num}</td>` +
+                            `<td style='padding:2px 6px; color:#fff; background:#388e3c; text-align:center;'>${best}</td>` +
+                            `<td style='padding:2px 6px; color:#fff; background:#1976d2; text-align:center;'>${rec}</td>` +
+                            `<td style='padding:2px 6px; color:#fff; background:#b71c1c; text-align:center;'>${not}</td></tr>`;
+                    });
+                    html += `</table>`;
+                    return html;
+                }
                 thingItems.forEach(thingItem => {
                     const objectid = thingItem.getAttribute('id');
                     const flat = flattenXML(thingItem);
                     Object.keys(flat).forEach(k => {
                         if (Array.isArray(flat[k])) flat[k] = flat[k].join(', ');
                     });
+                    // Add pretty poll table as a special field
+                    flat['poll_numplayers_table'] = extractPollTable(thingItem);
                     thingMap[objectid] = flat;
                 });
                 // Merge collection and thing data
@@ -183,6 +210,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
                 });
                 const fields = [...collectionKeys, ...thingKeys];
+                // Add poll_numplayers_table as a visible column at the end
+                if (!fields.includes('thing_poll_numplayers_table')) fields.push('thing_poll_numplayers_table');
                 console.log('Ordered table columns:', fields);
                 console.log('All merged records:', thingArr);
                 let html = `<div style='overflow-x:auto;'><table border='1' cellpadding='6' style='border-collapse:collapse; margin:auto; background:#fff; min-width:1200px;'><thead><tr>`;
@@ -201,9 +230,18 @@ document.addEventListener('DOMContentLoaded', function() {
                             const maxH = isThumb ? 60 : 90;
                             const radius = isThumb ? 6 : 8;
                             html += `<td style='font-size:0.98em; color:#222;'><img src='${rec[f]}' alt='${f}' style='max-width:${maxW}px; max-height:${maxH}px; border-radius:${radius}px;'></td>`;
+                        } else if (f === 'thing_poll_numplayers_table' && rec[f]) {
+                            html += `<td style='font-size:0.98em; color:#222;'>${rec[f]}</td>`;
                         } else {
                             let val = rec[f] !== undefined ? rec[f] : '';
-                            if (typeof val === 'string') {
+                            if (f === 'thing_name_alternate' && typeof val === 'string') {
+                                let arr = val.split(/,\s?/);
+                                if (arr.length > 5) {
+                                    val = arr.slice(0,5).join('\n') + '\n...';
+                                } else {
+                                    val = arr.join('\n');
+                                }
+                            } else if (typeof val === 'string') {
                                 const lines = val.split(/\r?\n/);
                                 if (val.length > 100 || lines.length > 10) {
                                     val = val.slice(0, 100);
@@ -213,7 +251,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     val += '...';
                                 }
                             }
-                            html += `<td style='font-size:0.98em; color:#222;'>${val}</td>`;
+                            html += `<td style='font-size:0.98em; color:#222; white-space:pre-line;'>${val}</td>`;
                         }
                     });
                     html += '</tr>';
