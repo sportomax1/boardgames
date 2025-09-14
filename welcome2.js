@@ -119,7 +119,31 @@ document.addEventListener('DOMContentLoaded', function() {
                         rec['collection_' + attr.name] = attr.value;
                     });
                     Array.from(item.children).forEach(child => {
-                        if (child.children.length === 0 && child.textContent) {
+                        if (child.tagName === 'status') {
+                            // Flatten status attributes
+                            Array.from(child.attributes).forEach(attr => {
+                                rec['collection_status_' + attr.name] = attr.value;
+                            });
+                        } else if (child.tagName === 'stats') {
+                            // Flatten stats attributes
+                            Array.from(child.attributes).forEach(attr => {
+                                rec['collection_stats_' + attr.name] = attr.value;
+                            });
+                            // Flatten rating inside stats
+                            const rating = child.querySelector('rating');
+                            if (rating) {
+                                Array.from(rating.attributes).forEach(attr => {
+                                    rec['collection_rating_' + attr.name] = attr.value;
+                                });
+                                // usersrated, average, bayesaverage, stddev, median
+                                ['usersrated','average','bayesaverage','stddev','median'].forEach(tag => {
+                                    const el = rating.querySelector(tag);
+                                    if (el && el.hasAttribute('value')) {
+                                        rec['collection_rating_' + tag] = el.getAttribute('value');
+                                    }
+                                });
+                            }
+                        } else if (child.children.length === 0 && child.textContent) {
                             rec['collection_' + child.tagName] = child.textContent;
                         } else if (child.tagName === 'name') {
                             const key = 'collection_name_' + (child.getAttribute('type') || 'unknown');
@@ -163,7 +187,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log('All merged records:', thingArr);
                 let html = `<div style='overflow-x:auto;'><table border='1' cellpadding='6' style='border-collapse:collapse; margin:auto; background:#fff; min-width:1200px;'><thead><tr>`;
                 fields.forEach(f => {
-                    html += `<th style='background:#1976d2; color:#fff; font-weight:600;'>${f}</th>`;
+                    let bg = f.startsWith('collection_') ? '#b71c1c' : (f.startsWith('thing_') ? '#008080' : '#1976d2');
+                    html += `<th style='background:${bg}; color:#fff; font-weight:600; position:sticky; top:0; z-index:2;'>${f}</th>`;
                 });
                 html += `</tr></thead><tbody>`;
                 thingArr.forEach(rec => {
