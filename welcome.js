@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', function() {
 		runBtn.onclick = async function() {
 			resultDiv.innerHTML = '<span style="color:#888;">Loading...</span>';
 			try {
-				const resp = await fetch('https://boardgamegeek.com/xmlapi2/collection?stats=1&username=sportomax');
+				const resp = await fetch('https://boardgamegeek.com/xmlapi2/collection?stats=1&own=1&username=sportomax');
 				if (!resp.ok) throw new Error('API error');
 				const xml = await resp.text();
 				const parser = new window.DOMParser();
