@@ -30,6 +30,7 @@
                     <button id="downloadXlsxBtn" class="modern-btn" style="width:100%; border-radius:0 0 5px 5px; background:#fff; color:#222; text-align:left; padding:0.5em 1em;" aria-label="Download current view as XLSX">Download XLSX</button>
                 </div>
             </div>
+            <button id="openWelcomeBtn" style="margin-left:1em; background:#d32f2f; color:#fff; border:none; border-radius:6px; padding:10px 20px; font-size:1rem; font-weight:600; box-shadow:0 2px 8px rgba(0,0,0,0.08); cursor:pointer; transition:background 0.2s, box-shadow 0.2s, transform 0.1s;" aria-label="Open Welcome Page">Open Welcome Page</button>
         </div>
         <div style="min-width:340px; text-align:right; font-size:1em;">
             <div style="font-weight:600; margin-bottom:0.2em;">API Timing & Collection Summary</div>
@@ -132,11 +133,24 @@
     <button id="collageCreateBtn" class="modern-btn" aria-label="Create custom collage">Create Collage</button>
     <button id="copyCollageBtn" class="modern-btn" aria-label="Copy collage image" style="margin-left:1em;">Copy Collage</button>
     <button id="downloadCollageBtn" class="modern-btn" aria-label="Download collage image" style="margin-left:1em;">Download Collage</button>
+
+    <button id="openWelcomeBtn" style="margin-left:1em; background:#d32f2f; color:#fff; border:none; border-radius:6px; padding:10px 20px; font-size:1rem; font-weight:600; box-shadow:0 2px 8px rgba(0,0,0,0.08); cursor:pointer; transition:background 0.2s, box-shadow 0.2s, transform 0.1s;" aria-label="Open Welcome Page">Open Welcome Page</button>
+    <!-- Welcome Modal removed: now opens in new tab -->
     <button id="toggleCollageModeBtn" class="modern-btn" aria-label="Toggle collage zoom/widescreen" style="margin-left:1em;">Toggle Zoom/Widescreen</button>
     </div>
     <div id="collage-container" style="display:flex; justify-content:center; align-items:center; min-height:340px; margin-bottom:2em;"></div>
     <div id="rankingInterface" style="display: none; border:2px dashed #0078d4; border-radius:10px; padding:1em; background:#fafdff;" aria-label="Pairwise ranking interface"></div>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script src="app.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var openWelcomeBtn = document.getElementById('openWelcomeBtn');
+        if (openWelcomeBtn) {
+            openWelcomeBtn.onclick = function() {
+                window.open('welcome.html', '_blank');
+            };
+        }
+    });
+    </script>
 </body>
 </html>
