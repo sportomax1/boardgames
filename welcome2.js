@@ -85,6 +85,405 @@ document.addEventListener('DOMContentLoaded', function() {
     const shareDropdown = document.getElementById('shareDropdown');
     const downloadTableBtn = document.getElementById('downloadTableBtn');
     const copyTableBtn = document.getElementById('copyTableBtn');
+        const runBtn = document.getElementById('runApiBtn');
+        const prepBtn = document.getElementById('prepApiBtn');
+        let prepUsername = 'sportomax';
+        if (prepBtn) {
+            prepBtn.onclick = function() {
+                // Show popup for username entry, owned games only checkbox, and max records input
+                const mainMaxInput = document.getElementById('maxRecordsInput');
+                const currentMax = mainMaxInput && !isNaN(parseInt(mainMaxInput.value)) ? parseInt(mainMaxInput.value) : 10;
+                const modal = document.createElement('div');
+                modal.style.position = 'fixed';
+                modal.style.top = '0';
+                modal.style.left = '0';
+                modal.style.width = '100vw';
+                modal.style.height = '100vh';
+                modal.style.background = 'rgba(0,0,0,0.25)';
+                modal.style.zIndex = '2000';
+                modal.style.display = 'flex';
+                modal.style.alignItems = 'center';
+                modal.style.justifyContent = 'center';
+                modal.innerHTML = `<div style='background:#fff; border-radius:14px; padding:24px 28px; box-shadow:0 8px 32px #0003; position:relative; max-width:98vw; max-height:90vh; overflow:auto;'>
+                    <h2 style='margin-top:0;'>Enter BoardGameGeek Username</h2>
+                    <div style='margin-bottom:18px;'>
+                        <label style='font-size:1em; margin-right:12px;'>Username:
+                            <input id='prepUsernameInput' type='text' value='${prepUsername}' style='margin-left:4px; padding:2px 8px; border-radius:4px; border:1px solid #bbb; font-size:1em;'>
+                        </label>
+                    </div>
+                    <div style='margin-bottom:18px;'>
+                        <label for='prepMaxRecordsInput' style='font-weight:600;'>Max records to load:</label>
+                        <input id='prepMaxRecordsInput' type='number' min='1' max='200' value='${currentMax}' style='width:60px; font-size:1em; margin-left:8px; padding:3px 6px; border-radius:4px; border:1px solid #bbb;'>
+                    </div>
+                    <div style='margin-bottom:18px;'>
+                        <label style='font-size:1em;'><input id='prepOwnCheckbox' type='checkbox' style='margin-right:7px;'> Owned games only</label>
+                    </div>
+                    <button id='prepSaveBtn' style='background:#1976d2; color:#fff; border:none; border-radius:6px; padding:8px 22px; font-size:1em; font-weight:600; margin-right:10px;'>Save</button>
+                    <button id='prepCancelBtn' style='background:#b71c1c; color:#fff; border:none; border-radius:6px; padding:8px 22px; font-size:1em; font-weight:600;'>Cancel</button>
+                </div>`;
+                document.body.appendChild(modal);
+                // Set checkbox state from previous session or default (checked)
+                if (typeof window.prepOwnOnly === 'undefined') window.prepOwnOnly = true;
+                modal.querySelector('#prepOwnCheckbox').checked = window.prepOwnOnly;
+                modal.querySelector('#prepCancelBtn').onclick = () => { document.body.removeChild(modal); };
+                modal.querySelector('#prepSaveBtn').onclick = async () => {
+                    // Log API calls for debugging
+                    prepUsername = modal.querySelector('#prepUsernameInput').value.trim() || 'sportomax';
+                    window.prepOwnOnly = modal.querySelector('#prepOwnCheckbox').checked;
+                    // Sync max records value to main input, but always use user value for API
+                    const prepMaxInput = modal.querySelector('#prepMaxRecordsInput');
+                    let maxRecords = 10;
+                    if (prepMaxInput) {
+                        let val = parseInt(prepMaxInput.value);
+                        if (isNaN(val) || val < 1) val = 1;
+                        if (val > 200) val = 200;
+                        maxRecords = val;
+                        if (mainMaxInput) mainMaxInput.value = val;
+                    }
+                    document.body.removeChild(modal);
+                    // --- FULL RUN LOGIC BELOW, using popup's username, own, and maxRecords ---
+                    const resultDiv = document.getElementById('apiResult');
+                    let currentPage = 1;
+                    if (resultDiv) {
+                        resultDiv.innerHTML = '<span style="color:#888;">Loading collection...</span>';
+                        try {
+                            // Get values from popup
+                            const username = prepUsername || 'sportomax';
+                            const ownParam = (typeof window.prepOwnOnly === 'undefined' || window.prepOwnOnly) ? '&own=1' : '';
+                            const collectionUrl = `https://boardgamegeek.com/xmlapi2/collection?stats=1&username=${encodeURIComponent(username)}${ownParam}`;
+                            console.log('PREP: Fetching collection API:', collectionUrl);
+                            // API 1: Fetch user collection
+                            const resp = await fetch(collectionUrl);
+                            // Log each thing API call
+                            if (!resp.ok) throw new Error('API error');
+                            const xml = await resp.text();
+                            const parser = new window.DOMParser();
+                            const doc = parser.parseFromString(xml, 'text/xml');
+                            let items = Array.from(doc.querySelectorAll('item'));
+                            // Only process up to maxRecords
+                            items = items.slice(0, maxRecords);
+                            if (!items.length) {
+                                let diag = `<div style='color:#c00;'><b>Error: No records found.</b></div>`;
+                                diag += `<div style='margin:8px 0;'><b>Parsed items:</b> ${doc.querySelectorAll('item').length}</div>`;
+                                diag += `<details><summary>Show raw XML response</summary><pre style='max-height:300px;overflow:auto;background:#f8f8f8;border:1px solid #ccc;'>${xml.replace(/</g,'&lt;')}</pre></details>`;
+                                resultDiv.innerHTML = diag;
+                                return;
+                            }
+                            // Add progress bar
+                            resultDiv.innerHTML = `
+                                <div id="progressContainer" style="width:80%;margin:20px auto 10px auto;max-width:500px;">
+                                    <div id="progressBar" style="height:22px;width:0%;background:#1976d2;border-radius:8px;transition:width 0.3s;"></div>
+                                </div>
+                                <div id="progressText" style="text-align:center;font-size:1.1em;margin-bottom:10px;">Loading details for each game...</div>
+                            `;
+                            const progressBar = document.getElementById('progressBar');
+                            const progressText = document.getElementById('progressText');
+                            // API 2: Fetch thing details for each objectid
+                            function flattenXML(node, prefix = '', out = {}) {
+                                if (node.attributes) {
+                                    Array.from(node.attributes).forEach(attr => {
+                                        out[prefix + attr.name] = attr.value;
+                                    });
+                                }
+                                Array.from(node.children || []).forEach(child => {
+                                    const tag = child.tagName;
+                                    if (tag === 'link' || tag === 'name') {
+                                        const type = child.getAttribute('type') || tag;
+                                        const key = prefix + tag + '_' + type;
+                                        const val = child.getAttribute('value') || child.getAttribute('id') || child.textContent;
+                                        if (!out[key]) out[key] = [];
+                                        out[key].push(val);
+                                    } else if (tag === 'rank') {
+                                        const name = child.getAttribute('name') || 'rank';
+                                        const key = prefix + 'rank_' + name;
+                                        out[key] = Array.from(child.attributes).map(a => `${a.name}:${a.value}`).join('; ');
+                                    } else if (child.children.length === 0 && child.textContent) {
+                                        out[prefix + tag] = child.textContent;
+                                    } else {
+                                        flattenXML(child, prefix + tag + '_', out);
+                                    }
+                                });
+                                return out;
+                            }
+                            // Batch objectids in groups of 20 for the second API call
+                            const objectids = items.map(item => item.getAttribute('objectid'));
+                            function chunk(arr, size) {
+                                const out = [];
+                                for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+                                return out;
+                            }
+                            const batches = chunk(objectids, 20);
+                            let thingItems = [];
+                            function sleep(ms) { return new Promise(res => setTimeout(res, ms)); }
+                            let batchNum = 0;
+                            const batchStartTime = Date.now();
+                            for (const batch of batches) {
+                                const ids = batch.join(',');
+                                const thingUrl = `https://boardgamegeek.com/xmlapi2/thing?id=${ids}&stats=1`;
+                                console.log('PREP: Fetching thing API:', thingUrl);
+                                try {
+                                    const resp = await fetch(thingUrl);
+                                    if (!resp.ok) throw new Error('Thing API error');
+                                    const xml = await resp.text();
+                                    const parser = new window.DOMParser();
+                                    const doc = parser.parseFromString(xml, 'text/xml');
+                                    const itemsInBatch = Array.from(doc.querySelectorAll('item'));
+                                    thingItems = thingItems.concat(itemsInBatch);
+                                } catch (e) {
+                                    console.log('Thing batch fetch error:', e);
+                                }
+                                batchNum++;
+                                const percent = Math.round((batchNum / batches.length) * 100);
+                                if (progressBar) progressBar.style.width = percent + '%';
+                                const elapsed = ((Date.now() - batchStartTime) / 1000).toFixed(1);
+                                if (progressText) progressText.textContent = `Loading details: Batch ${batchNum} of ${batches.length} (${percent}%) - ${elapsed}s`;
+                                await sleep(1000);
+                            }
+                            // Map objectid to flattened thing data
+                            const thingMap = {};
+                            function extractPlayerAgePollTable(thingItem) {
+                                const poll = Array.from(thingItem.querySelectorAll('poll[name="suggested_playerage"]')).find(p => (p.getAttribute('title')||'').trim() === 'User Suggested Player Age');
+                                if (!poll) return '';
+                                let html = `<table style='border-collapse:collapse; font-size:0.98em; background:#f9f9f9; margin:0 auto;'>`;
+                                html += `<tr><th style='padding:2px 6px; background:#eee; font-weight:600;'>Player Age</th><th style='padding:2px 6px; background:#eee;'>Votes</th></tr>`;
+                                const results = poll.querySelectorAll('result');
+                                let hasRows = false;
+                                results.forEach(res => {
+                                    const age = res.getAttribute('value');
+                                    const votes = parseInt(res.getAttribute('numvotes'), 10);
+                                    if (votes > 0) {
+                                        html += `<tr><td style='padding:2px 6px; text-align:center;'>${age}</td>` +
+                                            `<td style='padding:2px 6px; text-align:center;'>${votes}</td></tr>`;
+                                        hasRows = true;
+                                    }
+                                });
+                                html += `</table>`;
+                                return hasRows ? html : '';
+                            }
+                            function extractLanguagePollTable(thingItem) {
+                                const poll = Array.from(thingItem.querySelectorAll('poll[name="language_dependence"]')).find(p => (p.getAttribute('title')||'').trim() === 'Language Dependence');
+                                if (!poll) return '';
+                                let html = `<table style='border-collapse:collapse; font-size:0.98em; background:#f9f9f9; margin:0 auto;'>`;
+                                html += `<tr><th style='padding:2px 6px; background:#eee; font-weight:600;'>Level</th><th style='padding:2px 6px; background:#eee;'>Description</th><th style='padding:2px 6px; background:#eee;'>Votes</th></tr>`;
+                                const results = poll.querySelectorAll('result');
+                                let hasRows = false;
+                                results.forEach(res => {
+                                    const level = res.getAttribute('level');
+                                    const desc = res.getAttribute('value');
+                                    const votes = parseInt(res.getAttribute('numvotes'), 10);
+                                    if (votes > 0) {
+                                        html += `<tr><td style='padding:2px 6px; text-align:center;'>${level}</td>` +
+                                            `<td style='padding:2px 6px;'>${desc}</td>` +
+                                            `<td style='padding:2px 6px; text-align:center;'>${votes}</td></tr>`;
+                                        hasRows = true;
+                                    }
+                                });
+                                html += `</table>`;
+                                return hasRows ? html : '';
+                            }
+                            function extractPollTable(thingItem) {
+                                const poll = thingItem.querySelector('poll[name="suggested_numplayers"]');
+                                if (!poll) return '';
+                                let html = `<table style='border-collapse:collapse; font-size:0.98em; background:#f9f9f9; margin:0 auto;'>`;
+                                html += `<tr><th style='padding:2px 6px; background:#eee; font-weight:600;'># Players</th><th style='padding:2px 6px; background:#eee;'>Best</th><th style='padding:2px 6px; background:#eee;'>Recommended</th><th style='padding:2px 6px; background:#eee;'>Not Rec.</th></tr>`;
+                                const results = poll.querySelectorAll('results');
+                                results.forEach(res => {
+                                    const num = res.getAttribute('numplayers');
+                                    let best = 0, rec = 0, not = 0;
+                                    res.querySelectorAll('result').forEach(r => {
+                                        const v = r.getAttribute('value');
+                                        const n = parseInt(r.getAttribute('numvotes')||'0',10);
+                                        if (v === 'Best') best = n;
+                                        else if (v === 'Recommended') rec = n;
+                                        else if (v === 'Not Recommended') not = n;
+                                    });
+                                    html += `<tr><td style='padding:2px 6px; text-align:center;'>${num}</td>` +
+                                        `<td style='padding:2px 6px; color:#fff; background:#388e3c; text-align:center;'>${best}</td>` +
+                                        `<td style='padding:2px 6px; color:#fff; background:#1976d2; text-align:center;'>${rec}</td>` +
+                                        `<td style='padding:2px 6px; color:#fff; background:#b71c1c; text-align:center;'>${not}</td></tr>`;
+                                });
+                                html += `</table>`;
+                                return html;
+                            }
+                            thingItems.forEach(thingItem => {
+                                const objectid = thingItem.getAttribute('id');
+                                const flat = flattenXML(thingItem);
+                                Object.keys(flat).forEach(k => {
+                                    if (Array.isArray(flat[k])) flat[k] = flat[k].join(', ');
+                                });
+                                flat['poll_numplayers_table'] = extractPollTable(thingItem);
+                                flat['poll_playerage_table'] = extractPlayerAgePollTable(thingItem);
+                                const playerAgePoll = Array.from(thingItem.querySelectorAll('poll[name="suggested_playerage"]')).find(p => (p.getAttribute('title')||'').trim() === 'User Suggested Player Age');
+                                if (playerAgePoll) {
+                                    flat['suggested_playerage_votes'] = playerAgePoll.getAttribute('totalvotes') || '';
+                                }
+                                const poll = thingItem.querySelector('poll[name="suggested_numplayers"]');
+                                if (poll) {
+                                    flat['suggested_numplayers_votes'] = poll.getAttribute('totalvotes') || '';
+                                }
+                                const langPoll = thingItem.querySelector('poll[name="language_dependence"]');
+                                if (langPoll) {
+                                    flat['language_votes'] = langPoll.getAttribute('totalvotes') || '';
+                                    flat['poll_language_table'] = extractLanguagePollTable(thingItem);
+                                }
+                                const pollSummary = thingItem.querySelector('poll-summary[name="suggested_numplayers"]');
+                                if (pollSummary) {
+                                    const bestwith = pollSummary.querySelector('result[name="bestwith"]');
+                                    if (bestwith) {
+                                        let val = bestwith.getAttribute('value') || '';
+                                        val = val.replace(/^Best with\s*/i, '').trim();
+                                        flat['bestwith'] = val;
+                                    }
+                                    const recommendedwith = pollSummary.querySelector('result[name="recommmendedwith"]');
+                                    if (recommendedwith) {
+                                        let val = recommendedwith.getAttribute('value') || '';
+                                        val = val.replace(/^Recommended with\s*/i, '').trim();
+                                        flat['recommendedwith'] = val;
+                                    }
+                                }
+                                thingMap[objectid] = flat;
+                            });
+                            const thingArr = items.map(item => {
+                                const rec = {};
+                                Array.from(item.attributes).forEach(attr => {
+                                    rec['collection_' + attr.name] = attr.value;
+                                });
+                                Array.from(item.children).forEach(child => {
+                                    if (child.tagName === 'status') {
+                                        Array.from(child.attributes).forEach(attr => {
+                                            rec['collection_status_' + attr.name] = attr.value;
+                                        });
+                                    } else if (child.tagName === 'stats') {
+                                        Array.from(child.attributes).forEach(attr => {
+                                            rec['collection_stats_' + attr.name] = attr.value;
+                                        });
+                                        const rating = child.querySelector('rating');
+                                        if (rating) {
+                                            Array.from(rating.attributes).forEach(attr => {
+                                                rec['collection_rating_' + attr.name] = attr.value;
+                                            });
+                                            ['usersrated','average','bayesaverage','stddev','median'].forEach(tag => {
+                                                const el = rating.querySelector(tag);
+                                                if (el && el.hasAttribute('value')) {
+                                                    rec['collection_rating_' + tag] = el.getAttribute('value');
+                                                }
+                                            });
+                                        }
+                                    } else if (child.children.length === 0 && child.textContent) {
+                                        rec['collection_' + child.tagName] = child.textContent;
+                                    } else if (child.tagName === 'name') {
+                                        const key = 'collection_name_' + (child.getAttribute('type') || 'unknown');
+                                        if (!rec[key]) rec[key] = [];
+                                        rec[key].push(child.getAttribute('value'));
+                                    } else if (child.tagName === 'link') {
+                                        const type = child.getAttribute('type') || 'unknown';
+                                        const key = 'collection_link_' + type;
+                                        if (!rec[key]) rec[key] = [];
+                                        rec[key].push(child.getAttribute('value'));
+                                    } else {
+                                        rec['collection_' + child.tagName] = child.outerHTML;
+                                    }
+                                });
+                                Object.keys(rec).forEach(k => {
+                                    if (Array.isArray(rec[k])) rec[k] = rec[k].join(', ');
+                                });
+                                const objectid = item.getAttribute('objectid');
+                                const flat = thingMap[objectid];
+                                if (flat) {
+                                    Object.keys(flat).forEach(k => {
+                                        rec['thing_' + k] = flat[k];
+                                    });
+                                }
+                                return rec;
+                            });
+                            const collectionKeys = [];
+                            let thingKeys = [];
+                            let numPlayersCols = [];
+                            if (thingItems.length > 0) {
+                                const flatFirst = flattenXML(thingItems[0]);
+                                thingKeys = Object.keys(flatFirst).map(k => 'thing_' + k);
+                            }
+                            thingArr.forEach(obj => {
+                                Object.keys(obj).forEach(k => {
+                                    if (k.startsWith('collection_')) {
+                                        if (!collectionKeys.includes(k)) collectionKeys.push(k);
+                                    } else if (k.startsWith('thing_')) {
+                                        if (!thingKeys.includes(k)) thingKeys.push(k);
+                                    } else if (k.startsWith('numplayers_')) {
+                                        if (!numPlayersCols.includes(k)) numPlayersCols.push(k);
+                                    }
+                                });
+                            });
+                            let fields = ['idx', ...collectionKeys, ...thingKeys];
+                            const maxPlayersIdx = fields.indexOf('thing_maxplayers_value');
+                            if (maxPlayersIdx !== -1 && numPlayersCols.length > 0) {
+                                fields = [
+                                    ...fields.slice(0, maxPlayersIdx + 1),
+                                    ...numPlayersCols.map(c => 'thing_' + c),
+                                    ...fields.slice(maxPlayersIdx + 1)
+                                ];
+                            } else if (numPlayersCols.length > 0) {
+                                fields = [...fields, ...numPlayersCols.map(c => 'thing_' + c)];
+                            }
+                            window.lastFields = fields;
+                            let displayFields = fields;
+                            if (selectedColumns.length > 0) {
+                                displayFields = fields.filter(f => selectedColumns.includes(f));
+                            }
+                            window.lastFields = fields;
+                            window.lastRecords = thingArr;
+                            window.lastDisplayFields = displayFields;
+                            const pollCol = 'thing_poll_numplayers_table';
+                            const suggestedCol = 'thing_suggested_numplayers_votes';
+                            const bestwithCol = 'thing_bestwith';
+                            const recommendedwithCol = 'thing_recommendedwith';
+                            const maxPlayersCol = 'thing_maxplayers_value';
+                            const playerAgeCol = 'thing_poll_playerage_table';
+                            const minAgeCol = 'thing_minage_value';
+                            const pollSummaryCols = [
+                                'thing_poll-summary_name',
+                                'thing_poll-summary_title',
+                                'thing_poll-summary_result_name',
+                                'thing_poll-summary_result_value'
+                            ];
+                            const pollCols = [
+                                'thing_poll_name',
+                                'thing_poll_title',
+                                'thing_poll_totalvotes',
+                                'thing_poll_results_numplayers',
+                                'thing_poll_results_result_value',
+                                'thing_poll_results_result_numvotes'
+                            ];
+                            [pollCol, suggestedCol, bestwithCol, recommendedwithCol, playerAgeCol, ...pollSummaryCols, ...pollCols].forEach(col => {
+                                let idx = displayFields.indexOf(col);
+                                while (idx !== -1) {
+                                    displayFields.splice(idx, 1);
+                                    idx = displayFields.indexOf(col);
+                                }
+                            });
+                            let minAgeIdx = displayFields.indexOf(minAgeCol);
+                            if (minAgeIdx === -1) minAgeIdx = displayFields.length - 1;
+                            const playerAgeVotesCol = 'thing_suggested_playerage_votes';
+                            let idxVotes = displayFields.indexOf(playerAgeVotesCol);
+                            if (idxVotes !== -1) displayFields.splice(idxVotes, 1);
+                            let idxPlayerAge = displayFields.indexOf(playerAgeCol);
+                            if (idxPlayerAge !== -1) displayFields.splice(idxPlayerAge, 1);
+                            displayFields.splice(minAgeIdx + 1, 0, playerAgeVotesCol, playerAgeCol);
+                            let insertIdx = displayFields.indexOf(maxPlayersCol);
+                            if (insertIdx === -1) insertIdx = displayFields.length - 1;
+                            displayFields.splice(insertIdx + 1, 0, suggestedCol, pollCol);
+                            let pollInsertIdx = displayFields.indexOf(pollCol);
+                            displayFields.splice(pollInsertIdx + 1, 0, bestwithCol, recommendedwithCol);
+                            resultDiv.innerHTML = renderTable(thingArr, fields, displayFields);
+                            renderPagination();
+                        } catch (e) {
+                            resultDiv.innerHTML = `<span style='color:#c00;'>Error: ${e.message}</span>`;
+                            renderPagination();
+                        }
+                    }
+                };
+            };
+        }
     // Toggle dropdown
     if (shareBtn && shareDropdown) {
         shareBtn.onclick = (e) => {
@@ -135,20 +534,19 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     // Pagination state
     let currentPage = 1;
-    let totalPages = 1;
-    let pageSize = 100;
+    let pageSize = 25;
     let lastFilteredArr = [];
     const paginationTop = document.getElementById('paginationTop');
     const paginationBottom = document.getElementById('paginationBottom');
     const searchNameOnly = document.getElementById('searchNameOnly');
     // Helper to render the table from records and fields
     function renderTable(records, fields, displayFields) {
-        // Pagination logic
-        totalPages = Math.max(1, Math.ceil(records.length / pageSize));
-        if (currentPage > totalPages) currentPage = totalPages;
-        const startIdx = (currentPage - 1) * pageSize;
-        const endIdx = startIdx + pageSize;
-        const pagedRecords = records.slice(startIdx, endIdx);
+    // Pagination logic
+    const localTotalPages = Math.max(1, Math.ceil(records.length / pageSize));
+    if (currentPage > localTotalPages) currentPage = localTotalPages;
+    const startIdx = (currentPage - 1) * pageSize;
+    const endIdx = startIdx + pageSize;
+    const pagedRecords = records.slice(startIdx, endIdx);
         let html = `<div style='overflow-x:auto;'><table border='1' cellpadding='6' style='border-collapse:collapse; margin:auto; background:#fff; min-width:1200px;'><thead><tr>`;
         displayFields.forEach(f => {
             let bg = f === 'idx' ? '#333' : (f.startsWith('collection_') ? '#b71c1c' : (f.startsWith('thing_') ? '#008080' : '#1976d2'));
@@ -205,43 +603,61 @@ document.addEventListener('DOMContentLoaded', function() {
     // Pagination controls rendering
     function renderPagination() {
         if (!paginationTop || !paginationBottom) return;
-        const makeControls = () => {
+        // Always compute totalPages from the filtered array
+        const arr = lastFilteredArr && Array.isArray(lastFilteredArr) && lastFilteredArr.length > 0 ? lastFilteredArr : (window.lastRecords || []);
+        const localTotalPages = Math.max(1, Math.ceil(arr.length / pageSize));
+        const makeControls = (pos) => {
             return `
-                    <div style="display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:0.7em; width:100%; max-width:100vw;">
-                        <button id="prevPageBtn" ${currentPage === 1 ? 'disabled' : ''} style="padding:7px 16px; font-size:1em; border-radius:6px;">Prev</button>
-                        <span style="font-size:1em;">Page</span>
-                        <input id="pageInput" type="number" min="1" max="${totalPages}" value="${currentPage}" style="width:54px; font-size:1em; text-align:center; border-radius:5px; border:1px solid #bbb; max-width:70px;">
-                        <span style="font-size:1em;">of ${totalPages}</span>
-                        <button id="nextPageBtn" ${currentPage === totalPages ? 'disabled' : ''} style="padding:7px 16px; font-size:1em; border-radius:6px;">Next</button>
-                        <span style="color:#888; font-size:0.98em; margin-left:0.7em;">(${lastFilteredArr.length} records)</span>
-                    </div>
+                <div style="display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:0.7em; width:100%; max-width:100vw;">
+                    <button id="prevPageBtn${pos}" ${currentPage === 1 ? 'disabled' : ''} style="padding:7px 16px; font-size:1em; border-radius:6px;">Prev</button>
+                    <span style="font-size:1em;">Page</span>
+                    <input id="pageInput${pos}" type="number" min="1" max="${localTotalPages}" value="${currentPage}" style="width:54px; font-size:1em; text-align:center; border-radius:5px; border:1px solid #bbb; max-width:70px;">
+                    <span style="font-size:1em;">of ${localTotalPages}</span>
+                    <button id="nextPageBtn${pos}" ${currentPage === localTotalPages ? 'disabled' : ''} style="padding:7px 16px; font-size:1em; border-radius:6px;">Next</button>
+                    <span style="color:#888; font-size:0.98em; margin-left:0.7em;">(${arr.length} records)</span>
+                </div>
             `;
         };
-        paginationTop.innerHTML = makeControls();
-        paginationBottom.innerHTML = makeControls();
-        // Add event listeners
-        const prevBtns = document.querySelectorAll('#prevPageBtn');
-        const nextBtns = document.querySelectorAll('#nextPageBtn');
-        const pageInputs = document.querySelectorAll('#pageInput');
-        prevBtns.forEach(btn => btn.onclick = () => { if (currentPage > 1) { currentPage--; updateTable(); }});
-        nextBtns.forEach(btn => btn.onclick = () => { if (currentPage < totalPages) { currentPage++; updateTable(); }});
-        pageInputs.forEach(input => {
-            input.onchange = (e) => {
-                let val = parseInt(e.target.value);
-                if (!isNaN(val) && val >= 1 && val <= totalPages) {
-                    currentPage = val;
-                    updateTable();
-                } else {
-                    e.target.value = currentPage;
-                }
-            };
-        });
+        paginationTop.innerHTML = makeControls('Top');
+        paginationBottom.innerHTML = makeControls('Bottom');
+        // Add event listeners for both top and bottom controls
+        const prevBtnTop = document.getElementById('prevPageBtnTop');
+        const nextBtnTop = document.getElementById('nextPageBtnTop');
+        const pageInputTop = document.getElementById('pageInputTop');
+        const prevBtnBottom = document.getElementById('prevPageBtnBottom');
+        const nextBtnBottom = document.getElementById('nextPageBtnBottom');
+        const pageInputBottom = document.getElementById('pageInputBottom');
+        if (prevBtnTop) prevBtnTop.onclick = () => { if (currentPage > 1) { currentPage--; updateTable(); }};
+        if (nextBtnTop) nextBtnTop.onclick = () => { if (currentPage < localTotalPages) { currentPage++; updateTable(); }};
+        if (pageInputTop) pageInputTop.onchange = (e) => {
+            let val = parseInt(e.target.value);
+            if (!isNaN(val) && val >= 1 && val <= localTotalPages) {
+                currentPage = val;
+                updateTable();
+            } else {
+                e.target.value = currentPage;
+            }
+        };
+        if (prevBtnBottom) prevBtnBottom.onclick = () => { if (currentPage > 1) { currentPage--; updateTable(); }};
+        if (nextBtnBottom) nextBtnBottom.onclick = () => { if (currentPage < localTotalPages) { currentPage++; updateTable(); }};
+        if (pageInputBottom) pageInputBottom.onchange = (e) => {
+            let val = parseInt(e.target.value);
+            if (!isNaN(val) && val >= 1 && val <= localTotalPages) {
+                currentPage = val;
+                updateTable();
+            } else {
+                e.target.value = currentPage;
+            }
+        };
     }
     // Update table and pagination
     function updateTable() {
         if (window.lastRecords && window.lastFields && window.lastDisplayFields) {
-            let arr = lastFilteredArr;
-            if (!arr || !Array.isArray(arr)) arr = window.lastRecords;
+            // Always use lastFilteredArr if it exists, else use all records
+            let arr = (Array.isArray(lastFilteredArr) && lastFilteredArr.length > 0) ? lastFilteredArr : window.lastRecords;
+            // If currentPage is out of range after filtering, set to last page
+            const totalPages = Math.max(1, Math.ceil(arr.length / pageSize));
+            if (currentPage > totalPages) currentPage = totalPages;
             resultDiv.innerHTML = renderTable(arr, window.lastFields, window.lastDisplayFields);
             renderPagination();
         }
@@ -301,7 +717,7 @@ document.addEventListener('DOMContentLoaded', function() {
     sessionStorage.setItem('selectedColumns', JSON.stringify(selectedColumns));
     settingsModal.style.display = 'none';
     };
-    const runBtn = document.getElementById('runApiBtn');
+    // const runBtn = document.getElementById('runApiBtn'); // Removed duplicate declaration
     const resultDiv = document.getElementById('apiResult');
     if (runBtn && resultDiv) {
         runBtn.onclick = async function() {
@@ -316,8 +732,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (maxInput && !isNaN(parseInt(maxInput.value))) {
                     maxRecords = Math.max(1, Math.min(200, parseInt(maxInput.value)));
                 }
+                // Use username and own filter from PREP popup
+                const username = prepUsername || 'sportomax';
+                const ownParam = (typeof window.prepOwnOnly === 'undefined' || window.prepOwnOnly) ? '&own=1' : '';
                 // API 1: Fetch user collection
-                const resp = await fetch('https://boardgamegeek.com/xmlapi2/collection?stats=1&username=sportomax&own=1');
+                const resp = await fetch(`https://boardgamegeek.com/xmlapi2/collection?stats=1&username=${encodeURIComponent(username)}${ownParam}`);
                 if (!resp.ok) throw new Error('API error');
                 const xml = await resp.text();
                 const parser = new window.DOMParser();
@@ -712,6 +1131,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 lastFilteredArr = initialFilteredArr;
                 resultDiv.innerHTML = renderTable(initialFilteredArr, fields, displayFields);
+                currentPage = 1;
                 renderPagination();
                 // Live search: update table as user types
                 if (searchInput) {
