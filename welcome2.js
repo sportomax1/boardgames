@@ -1,3 +1,82 @@
+    // Collage button logic (in share dropdown, grid size in popup)
+    const collageBtn = document.getElementById('collageBtn');
+    if (collageBtn) {
+        collageBtn.onclick = function() {
+            // Show modal to choose grid size and generate collage
+            const modal = document.createElement('div');
+            modal.style.position = 'fixed';
+            modal.style.top = '0';
+            modal.style.left = '0';
+            modal.style.width = '100vw';
+            modal.style.height = '100vh';
+            modal.style.background = 'rgba(0,0,0,0.25)';
+            modal.style.zIndex = '2000';
+            modal.style.display = 'flex';
+            modal.style.alignItems = 'center';
+            modal.style.justifyContent = 'center';
+            modal.innerHTML = `<div style='background:#fff; border-radius:14px; padding:24px 28px; box-shadow:0 8px 32px #0003; position:relative; max-width:98vw; max-height:90vh; overflow:auto;'>
+                <h2 style='margin-top:0;'>Create Collage</h2>
+                <div style='margin-bottom:18px;'>
+                    <label style='font-size:1em; margin-right:12px;'>Rows:
+                        <select id='collageRows' style='margin-left:4px; padding:2px 6px; border-radius:4px;'>
+                            <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option>
+                        </select>
+                    </label>
+                    <label style='font-size:1em;'>Columns:
+                        <select id='collageCols' style='margin-left:4px; padding:2px 6px; border-radius:4px;'>
+                            <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option>
+                        </select>
+                    </label>
+                </div>
+                <button id='generateCollageBtn' style='background:#ff9800; color:#fff; border:none; border-radius:6px; padding:8px 22px; font-size:1em; font-weight:600; margin-right:10px;'>Generate</button>
+                <button id='closeCollageBtn' style='background:#b71c1c; color:#fff; border:none; border-radius:6px; padding:8px 22px; font-size:1em; font-weight:600;'>Cancel</button>
+                <div id='collagePreview' style='margin-top:18px;'></div>
+            </div>`;
+            document.body.appendChild(modal);
+            // Set default to 3x3
+            modal.querySelector('#collageRows').value = '3';
+            modal.querySelector('#collageCols').value = '3';
+            modal.querySelector('#closeCollageBtn').onclick = () => { document.body.removeChild(modal); };
+            modal.querySelector('#generateCollageBtn').onclick = () => {
+                const rows = Math.max(1, Math.min(10, parseInt(modal.querySelector('#collageRows').value)));
+                const cols = Math.max(1, Math.min(10, parseInt(modal.querySelector('#collageCols').value)));
+                const count = rows * cols;
+                // Use current filtered view if available
+                let arr = window.lastRecords;
+                if (window.lastDisplayFields && window.lastRecords && typeof lastFilteredArr !== 'undefined' && Array.isArray(lastFilteredArr) && lastFilteredArr.length > 0) {
+                    arr = lastFilteredArr;
+                }
+                // Find the first image or thumbnail field in displayFields
+                let imgField = null;
+                if (window.lastDisplayFields) {
+                    for (const f of window.lastDisplayFields) {
+                        if (/image|thumbnail/i.test(f)) { imgField = f; break; }
+                    }
+                }
+                if (!imgField) {
+                    alert('No image or thumbnail field found in current view.');
+                    return;
+                }
+                // Get top X images
+                const images = arr.map(r => r[imgField]).filter(Boolean).slice(0, count);
+                if (images.length === 0) {
+                    alert('No images found in current view.');
+                    return;
+                }
+                // Create collage HTML
+                let collageHtml = `<div style='display:grid; grid-template-rows:repeat(${rows},1fr); grid-template-columns:repeat(${cols},1fr); gap:4px; background:#eee; padding:8px; border-radius:10px; max-width:calc(120px*${cols}); margin:auto;'>`;
+                for (let i = 0; i < count; ++i) {
+                    if (i < images.length) {
+                        collageHtml += `<div style='width:120px; height:90px; display:flex; align-items:center; justify-content:center; background:#fff; border-radius:8px; overflow:hidden;'><img src='${images[i]}' style='max-width:100%; max-height:100%; object-fit:contain;'></div>`;
+                    } else {
+                        collageHtml += `<div style='width:120px; height:90px; background:#fafafa; border-radius:8px;'></div>`;
+                    }
+                }
+                collageHtml += '</div>';
+                modal.querySelector('#collagePreview').innerHTML = collageHtml;
+            };
+        };
+    }
 console.log('Welcome2 page loaded! (script start)');
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -76,7 +155,7 @@ document.addEventListener('DOMContentLoaded', function() {
             html += `<th style='background:${bg}; color:#fff; font-weight:600; position:sticky; top:0; z-index:2;'>${f}</th>`;
         });
         html += `</tr></thead><tbody>`;
-    pagedRecords.forEach((rec, i) => {
+        pagedRecords.forEach((rec, i) => {
             html += '<tr>';
             displayFields.forEach((f, colIdx) => {
                 if (f === 'idx') {
@@ -89,6 +168,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     const radius = isThumb ? 6 : 8;
                     html += `<td style='font-size:0.98em; color:#222;'><img src='${rec[f]}' alt='${f}' style='max-width:${maxW}px; max-height:${maxH}px; border-radius:${radius}px;'></td>`;
                 } else if (f === 'thing_poll_numplayers_table' && rec[f]) {
+                    html += `<td style='font-size:0.98em; color:#222;'>${rec[f]}</td>`;
+                } else if (f === 'thing_poll_playerage_table') {
+                    // Only render the poll table, never fallback to other data
+                    html += `<td style='font-size:0.98em; color:#222;'>${rec[f] ? rec[f] : ''}</td>`;
+                } else if (f === 'thing_poll_language_table' && rec[f]) {
+                    // Render language poll table as HTML
                     html += `<td style='font-size:0.98em; color:#222;'>${rec[f]}</td>`;
                 } else {
                     let val = rec[f] !== undefined ? rec[f] : '';
@@ -114,8 +199,8 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             html += '</tr>';
         });
-    html += '</tbody></table></div>';
-    return html;
+        html += '</tbody></table></div>';
+        return html;
     }
     // Pagination controls rendering
     function renderPagination() {
@@ -329,6 +414,50 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Map objectid to flattened thing data
                 const thingMap = {};
                 // Helper to extract and format poll data for number of players
+                // Helper to extract and format poll data for suggested player age
+                function extractPlayerAgePollTable(thingItem) {
+                    // Only use poll with title 'User Suggested Player Age'
+                    const poll = Array.from(thingItem.querySelectorAll('poll[name="suggested_playerage"]')).find(p => (p.getAttribute('title')||'').trim() === 'User Suggested Player Age');
+                    if (!poll) return '';
+                    let html = `<table style='border-collapse:collapse; font-size:0.98em; background:#f9f9f9; margin:0 auto;'>`;
+                    html += `<tr><th style='padding:2px 6px; background:#eee; font-weight:600;'>Player Age</th><th style='padding:2px 6px; background:#eee;'>Votes</th></tr>`;
+                    const results = poll.querySelectorAll('result');
+                    let hasRows = false;
+                    results.forEach(res => {
+                        const age = res.getAttribute('value');
+                        const votes = parseInt(res.getAttribute('numvotes'), 10);
+                        if (votes > 0) {
+                            html += `<tr><td style='padding:2px 6px; text-align:center;'>${age}</td>` +
+                                `<td style='padding:2px 6px; text-align:center;'>${votes}</td></tr>`;
+                            hasRows = true;
+                        }
+                    });
+                    html += `</table>`;
+                    return hasRows ? html : '';
+                }
+                    // Extract language dependence poll table
+                    function extractLanguagePollTable(thingItem) {
+                        // Only use poll with name 'language_dependence' and title 'Language Dependence'
+                        const poll = Array.from(thingItem.querySelectorAll('poll[name="language_dependence"]')).find(p => (p.getAttribute('title')||'').trim() === 'Language Dependence');
+                        if (!poll) return '';
+                        let html = `<table style='border-collapse:collapse; font-size:0.98em; background:#f9f9f9; margin:0 auto;'>`;
+                        html += `<tr><th style='padding:2px 6px; background:#eee; font-weight:600;'>Level</th><th style='padding:2px 6px; background:#eee;'>Description</th><th style='padding:2px 6px; background:#eee;'>Votes</th></tr>`;
+                        const results = poll.querySelectorAll('result');
+                        let hasRows = false;
+                        results.forEach(res => {
+                            const level = res.getAttribute('level');
+                            const desc = res.getAttribute('value');
+                            const votes = parseInt(res.getAttribute('numvotes'), 10);
+                            if (votes > 0) {
+                                html += `<tr><td style='padding:2px 6px; text-align:center;'>${level}</td>` +
+                                    `<td style='padding:2px 6px;'>${desc}</td>` +
+                                    `<td style='padding:2px 6px; text-align:center;'>${votes}</td></tr>`;
+                                hasRows = true;
+                            }
+                        });
+                        html += `</table>`;
+                        return hasRows ? html : '';
+                    }
                 function extractPollTable(thingItem) {
                     const poll = thingItem.querySelector('poll[name="suggested_numplayers"]');
                     if (!poll) return '';
@@ -361,6 +490,47 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
                     // Add pretty poll table as a special field
                     flat['poll_numplayers_table'] = extractPollTable(thingItem);
+
+                    // Add suggested player age poll table as a special field
+                    flat['poll_playerage_table'] = extractPlayerAgePollTable(thingItem);
+
+                    // Add thing_suggested_playerage_votes (totalvotes from poll with title 'User Suggested Player Age')
+                    const playerAgePoll = Array.from(thingItem.querySelectorAll('poll[name="suggested_playerage"]')).find(p => (p.getAttribute('title')||'').trim() === 'User Suggested Player Age');
+                    if (playerAgePoll) {
+                        flat['suggested_playerage_votes'] = playerAgePoll.getAttribute('totalvotes') || '';
+                    }
+
+                    // Add thing_suggested_numplayers_votes (totalvotes from poll)
+                    const poll = thingItem.querySelector('poll[name="suggested_numplayers"]');
+                    if (poll) {
+                        flat['suggested_numplayers_votes'] = poll.getAttribute('totalvotes') || '';
+                        // (numplayers columns logic remains commented out)
+                    }
+
+                    // Add thing_language_votes and thing_language_results
+                    const langPoll = thingItem.querySelector('poll[name="language_dependence"]');
+                    if (langPoll) {
+                        flat['language_votes'] = langPoll.getAttribute('totalvotes') || '';
+                        flat['poll_language_table'] = extractLanguagePollTable(thingItem);
+                    }
+                    // Add bestwith and recommendedwith from <poll-summary>
+                    const pollSummary = thingItem.querySelector('poll-summary[name="suggested_numplayers"]');
+                    if (pollSummary) {
+                        const bestwith = pollSummary.querySelector('result[name="bestwith"]');
+                        if (bestwith) {
+                            let val = bestwith.getAttribute('value') || '';
+                            // Remove 'Best with' prefix if present
+                            val = val.replace(/^Best with\s*/i, '').trim();
+                            flat['bestwith'] = val;
+                        }
+                        const recommendedwith = pollSummary.querySelector('result[name="recommmendedwith"]');
+                        if (recommendedwith) {
+                            let val = recommendedwith.getAttribute('value') || '';
+                            // Remove 'Recommended with' prefix if present
+                            val = val.replace(/^Recommended with\s*/i, '').trim();
+                            flat['recommendedwith'] = val;
+                        }
+                    }
                     thingMap[objectid] = flat;
                 });
                 // Merge collection and thing data
@@ -424,6 +594,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Build table with ordered columns: collection_ fields first, then thing_ fields
                 const collectionKeys = [];
                 let thingKeys = [];
+                let numPlayersCols = [];
                 // Try to order thingKeys as in the first thingItem's XML
                 if (thingItems.length > 0) {
                     const flatFirst = flattenXML(thingItems[0]);
@@ -436,11 +607,24 @@ document.addEventListener('DOMContentLoaded', function() {
                             if (!collectionKeys.includes(k)) collectionKeys.push(k);
                         } else if (k.startsWith('thing_')) {
                             if (!thingKeys.includes(k)) thingKeys.push(k);
+                        } else if (k.startsWith('numplayers_')) {
+                            if (!numPlayersCols.includes(k)) numPlayersCols.push(k);
                         }
                     });
                 });
                 // Add idx as the first column
-                const fields = ['idx', ...collectionKeys, ...thingKeys];
+                // Insert numplayers columns after thing_maxplayers_value
+                let fields = ['idx', ...collectionKeys, ...thingKeys];
+                const maxPlayersIdx = fields.indexOf('thing_maxplayers_value');
+                if (maxPlayersIdx !== -1 && numPlayersCols.length > 0) {
+                    fields = [
+                        ...fields.slice(0, maxPlayersIdx + 1),
+                        ...numPlayersCols.map(c => 'thing_' + c),
+                        ...fields.slice(maxPlayersIdx + 1)
+                    ];
+                } else if (numPlayersCols.length > 0) {
+                    fields = [...fields, ...numPlayersCols.map(c => 'thing_' + c)];
+                }
                 window.lastFields = fields;
                 // Use selectedColumns if set
                 let displayFields = fields;
@@ -451,15 +635,68 @@ document.addEventListener('DOMContentLoaded', function() {
                 window.lastFields = fields;
                 window.lastRecords = thingArr;
                 window.lastDisplayFields = displayFields;
-                // Add poll_numplayers_table as a visible column at the end
-                // Move thing_poll_numplayers_table after thing_maxplayers_value in displayFields
+                // Insert thing_suggested_numplayers_votes and thing_poll_numplayers_table after thing_maxplayers_value
+                // Then insert thing_bestwith and thing_recommendedwith after thing_poll_numplayers_table
+                // Insert thing_poll_playerage_table after thing_minage_value
                 const pollCol = 'thing_poll_numplayers_table';
+                const suggestedCol = 'thing_suggested_numplayers_votes';
+                const bestwithCol = 'thing_bestwith';
+                const recommendedwithCol = 'thing_recommendedwith';
                 const maxPlayersCol = 'thing_maxplayers_value';
-                let idx = displayFields.indexOf(pollCol);
-                if (idx !== -1) displayFields.splice(idx, 1);
-                idx = displayFields.indexOf(maxPlayersCol);
-                if (idx !== -1) displayFields.splice(idx + 1, 0, pollCol);
-                else displayFields.push(pollCol);
+                const playerAgeCol = 'thing_poll_playerage_table';
+                const minAgeCol = 'thing_minage_value';
+                // Remove pollCol, suggestedCol, bestwithCol, recommendedwithCol, playerAgeCol from displayFields if present
+                // Also remove poll-summary and poll columns if present
+                const pollSummaryCols = [
+                    'thing_poll-summary_name',
+                    'thing_poll-summary_title',
+                    'thing_poll-summary_result_name',
+                    'thing_poll-summary_result_value'
+                ];
+                const pollCols = [
+                    'thing_poll_name',
+                    'thing_poll_title',
+                    'thing_poll_totalvotes',
+                    'thing_poll_results_numplayers',
+                    'thing_poll_results_result_value',
+                    'thing_poll_results_result_numvotes'
+                ];
+                [pollCol, suggestedCol, bestwithCol, recommendedwithCol, playerAgeCol, ...pollSummaryCols, ...pollCols].forEach(col => {
+                    let idx = displayFields.indexOf(col);
+                    while (idx !== -1) {
+                        displayFields.splice(idx, 1);
+                        idx = displayFields.indexOf(col);
+                    }
+                });
+                // Insert playerAgeCol after minAgeCol
+                let minAgeIdx = displayFields.indexOf(minAgeCol);
+                if (minAgeIdx === -1) minAgeIdx = displayFields.length - 1;
+                // Insert thing_suggested_playerage_votes before thing_poll_playerage_table
+                const playerAgeVotesCol = 'thing_suggested_playerage_votes';
+                // Remove if present
+                let idxVotes = displayFields.indexOf(playerAgeVotesCol);
+                if (idxVotes !== -1) displayFields.splice(idxVotes, 1);
+                // Remove playerAgeCol if present (will re-insert)
+                let idxPlayerAge = displayFields.indexOf(playerAgeCol);
+                if (idxPlayerAge !== -1) displayFields.splice(idxPlayerAge, 1);
+                // Insert votes then table
+                // Insert language columns after player age poll columns
+                const languageVotesCol = 'thing_language_votes';
+                const languageResultsCol = 'thing_poll_language_table';
+                // Remove if present
+                [languageVotesCol, languageResultsCol].forEach(col => {
+                    let idx = displayFields.indexOf(col);
+                    if (idx !== -1) displayFields.splice(idx, 1);
+                });
+                displayFields.splice(minAgeIdx + 1, 0, playerAgeVotesCol, playerAgeCol, languageVotesCol, languageResultsCol);
+                // Find where to insert poll columns
+                let insertIdx = displayFields.indexOf(maxPlayersCol);
+                if (insertIdx === -1) insertIdx = displayFields.length - 1;
+                // Insert suggestedCol and pollCol after maxPlayersCol
+                displayFields.splice(insertIdx + 1, 0, suggestedCol, pollCol);
+                // Insert bestwith and recommendedwith after pollCol
+                let pollInsertIdx = displayFields.indexOf(pollCol);
+                displayFields.splice(pollInsertIdx + 1, 0, bestwithCol, recommendedwithCol);
                 console.log('Ordered table columns:', displayFields);
                 console.log('All merged records:', thingArr);
                 let html = `<div style='overflow-x:auto;'><table border='1' cellpadding='6' style='border-collapse:collapse; margin:auto; background:#fff; min-width:1200px;'><thead><tr>`;
