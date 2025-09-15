@@ -1,6 +1,59 @@
 console.log('Welcome2 page loaded! (script start)');
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Share button logic
+    const shareBtn = document.getElementById('shareBtn');
+    const shareDropdown = document.getElementById('shareDropdown');
+    const downloadTableBtn = document.getElementById('downloadTableBtn');
+    const copyTableBtn = document.getElementById('copyTableBtn');
+    // Toggle dropdown
+    if (shareBtn && shareDropdown) {
+        shareBtn.onclick = (e) => {
+            e.stopPropagation();
+            shareDropdown.style.display = shareDropdown.style.display === 'block' ? 'none' : 'block';
+        };
+        document.addEventListener('click', (e) => {
+            if (shareDropdown.style.display === 'block') shareDropdown.style.display = 'none';
+        });
+    }
+    // Download table as CSV
+    if (downloadTableBtn) {
+        downloadTableBtn.onclick = () => {
+            if (!window.lastRecords || !window.lastDisplayFields) return;
+            const arr = window.lastRecords;
+            const fields = window.lastDisplayFields;
+            let csv = fields.join(',') + '\n';
+            arr.forEach(row => {
+                csv += fields.map(f => '"' + (row[f] ? ('' + row[f]).replace(/"/g, '""') : '') + '"').join(',') + '\n';
+            });
+            const blob = new Blob([csv], {type: 'text/csv'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'table.csv';
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+        };
+    }
+    // Copy table to clipboard
+    if (copyTableBtn) {
+        copyTableBtn.onclick = async () => {
+            if (!window.lastRecords || !window.lastDisplayFields) return;
+            const arr = window.lastRecords;
+            const fields = window.lastDisplayFields;
+            let tsv = fields.join('\t') + '\n';
+            arr.forEach(row => {
+                tsv += fields.map(f => row[f] ? ('' + row[f]).replace(/\t/g, ' ') : '').join('\t') + '\n';
+            });
+            try {
+                await navigator.clipboard.writeText(tsv);
+                alert('Table copied to clipboard!');
+            } catch (e) {
+                alert('Failed to copy table.');
+            }
+        };
+    }
     // Pagination state
     let currentPage = 1;
     let totalPages = 1;
@@ -251,6 +304,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Helper to pause between requests
                 function sleep(ms) { return new Promise(res => setTimeout(res, ms)); }
                 let batchNum = 0;
+                const batchStartTime = Date.now();
                 for (const batch of batches) {
                     const ids = batch.join(',');
                     try {
@@ -268,7 +322,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Update progress bar
                     const percent = Math.round((batchNum / batches.length) * 100);
                     if (progressBar) progressBar.style.width = percent + '%';
-                    if (progressText) progressText.textContent = `Loading details: Batch ${batchNum} of ${batches.length} (${percent}%)`;
+                    const elapsed = ((Date.now() - batchStartTime) / 1000).toFixed(1);
+                    if (progressText) progressText.textContent = `Loading details: Batch ${batchNum} of ${batches.length} (${percent}%) - ${elapsed}s`;
                     await sleep(1000);
                 }
                 // Map objectid to flattened thing data
