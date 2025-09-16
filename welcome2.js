@@ -609,11 +609,13 @@ document.addEventListener('DOMContentLoaded', function() {
         const makeControls = (pos) => {
             return `
                 <div style="display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:0.7em; width:100%; max-width:100vw;">
+                    <button id="firstPageBtn${pos}" ${currentPage === 1 ? 'disabled' : ''} style="padding:7px 16px; font-size:1em; border-radius:6px;">First</button>
                     <button id="prevPageBtn${pos}" ${currentPage === 1 ? 'disabled' : ''} style="padding:7px 16px; font-size:1em; border-radius:6px;">Prev</button>
                     <span style="font-size:1em;">Page</span>
                     <input id="pageInput${pos}" type="number" min="1" max="${localTotalPages}" value="${currentPage}" style="width:54px; font-size:1em; text-align:center; border-radius:5px; border:1px solid #bbb; max-width:70px;">
                     <span style="font-size:1em;">of ${localTotalPages}</span>
                     <button id="nextPageBtn${pos}" ${currentPage === localTotalPages ? 'disabled' : ''} style="padding:7px 16px; font-size:1em; border-radius:6px;">Next</button>
+                    <button id="lastPageBtn${pos}" ${currentPage === localTotalPages ? 'disabled' : ''} style="padding:7px 16px; font-size:1em; border-radius:6px;">Last</button>
                     <span style="color:#888; font-size:0.98em; margin-left:0.7em;">(${arr.length} records)</span>
                 </div>
             `;
@@ -621,14 +623,20 @@ document.addEventListener('DOMContentLoaded', function() {
         paginationTop.innerHTML = makeControls('Top');
         paginationBottom.innerHTML = makeControls('Bottom');
         // Add event listeners for both top and bottom controls
+        const firstBtnTop = document.getElementById('firstPageBtnTop');
         const prevBtnTop = document.getElementById('prevPageBtnTop');
         const nextBtnTop = document.getElementById('nextPageBtnTop');
+        const lastBtnTop = document.getElementById('lastPageBtnTop');
         const pageInputTop = document.getElementById('pageInputTop');
+        const firstBtnBottom = document.getElementById('firstPageBtnBottom');
         const prevBtnBottom = document.getElementById('prevPageBtnBottom');
         const nextBtnBottom = document.getElementById('nextPageBtnBottom');
+        const lastBtnBottom = document.getElementById('lastPageBtnBottom');
         const pageInputBottom = document.getElementById('pageInputBottom');
+        if (firstBtnTop) firstBtnTop.onclick = () => { if (currentPage > 1) { currentPage = 1; updateTable(); }};
         if (prevBtnTop) prevBtnTop.onclick = () => { if (currentPage > 1) { currentPage--; updateTable(); }};
         if (nextBtnTop) nextBtnTop.onclick = () => { if (currentPage < localTotalPages) { currentPage++; updateTable(); }};
+        if (lastBtnTop) lastBtnTop.onclick = () => { if (currentPage < localTotalPages) { currentPage = localTotalPages; updateTable(); }};
         if (pageInputTop) pageInputTop.onchange = (e) => {
             let val = parseInt(e.target.value);
             if (!isNaN(val) && val >= 1 && val <= localTotalPages) {
@@ -638,8 +646,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 e.target.value = currentPage;
             }
         };
+        if (firstBtnBottom) firstBtnBottom.onclick = () => { if (currentPage > 1) { currentPage = 1; updateTable(); }};
         if (prevBtnBottom) prevBtnBottom.onclick = () => { if (currentPage > 1) { currentPage--; updateTable(); }};
         if (nextBtnBottom) nextBtnBottom.onclick = () => { if (currentPage < localTotalPages) { currentPage++; updateTable(); }};
+        if (lastBtnBottom) lastBtnBottom.onclick = () => { if (currentPage < localTotalPages) { currentPage = localTotalPages; updateTable(); }};
         if (pageInputBottom) pageInputBottom.onchange = (e) => {
             let val = parseInt(e.target.value);
             if (!isNaN(val) && val >= 1 && val <= localTotalPages) {
