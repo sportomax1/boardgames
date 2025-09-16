@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome Page</title>
+    <title>Board Game Hub</title>
     <link rel="stylesheet" href="welcome.css">
 </head>
 <body>
     <div class="welcome-container">
         <h1>Board Game Hub🏆</h1>
-        <p>9/15/2025 9:11 PM</p>
+        <p>9/15/2025 9:58 PM</p>
         <!-- <div style="margin-bottom:0.7em;">
             <label for="maxRecordsInput" style="font-weight:600;">Max records to load:</label>
             <input id="maxRecordsInput" type="number" min="1" max="200" value="10" style="width:60px; font-size:1em; margin-left:8px; padding:3px 6px; border-radius:4px; border:1px solid #bbb;">
@@ -27,12 +27,12 @@
 
         <!-- Settings Modal (ensure not inside label or other element) -->
         <div id="settingsModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.25); z-index:1000; align-items:center; justify-content:center;">
-            <div style="background:#fff; border-radius:12px; padding:28px 32px; min-width:320px; max-width:90vw; max-height:80vh; overflow:auto; box-shadow:0 8px 32px #0003; position:relative;">
-                <h2 style="margin-top:0;">Select Columns to Display</h2>
-                <div id="settingsColumns" style="margin-bottom:18px; max-height:40vh; overflow:auto; border:1px solid #eee; padding:8px 12px; border-radius:6px; background:#fafbfc;"></div>
+            <div style="background:#fff; border-radius:12px; padding:28px 32px; min-width:320px; max-width:90vw; max-height:80vh; overflow:auto; box-shadow:0 8px 32px #0003; position:relative; text-align:left;">
+                <h2 style="margin-top:0;">Settings</h2>
+                <div id="settingsColumns" style="margin-bottom:18px; max-height:40vh; overflow:auto; border:1px solid #eee; padding:8px 12px; border-radius:6px; background:#fafbfc; text-align:left;"></div>
                 <div style="margin-bottom:12px;">
-                    <button id="selectAllBtn" style="margin-right:10px;">Select All</button>
-                    <button id="selectNoneBtn">Select None</button>
+                    <button id="selectAllBtn" style="background:#1976d2; color:#fff; border:none; border-radius:6px; padding:8px 18px; font-size:1em; font-weight:600; margin-right:10px; cursor:pointer;">Select All</button>
+                    <button id="selectNoneBtn" style="background:#bdbdbd; color:#222; border:none; border-radius:6px; padding:8px 18px; font-size:1em; font-weight:600; cursor:pointer;">Select None</button>
                 </div>
                 <button id="saveSettingsBtn" style="background:#388e3c; color:#fff; border:none; border-radius:6px; padding:8px 22px; font-size:1em; font-weight:600; margin-right:10px;">Save</button>
                 <button id="closeSettingsBtn" style="background:#b71c1c; color:#fff; border:none; border-radius:6px; padding:8px 22px; font-size:1em; font-weight:600;">Cancel</button>
