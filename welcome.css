@@ -1,5 +1,5 @@
 body {
-    background: #fff0f0;
+    background: #fff;
     margin: 0;
     padding: 0;
     font-family: Arial, sans-serif;
@@ -9,13 +9,13 @@ body {
     margin: 100px auto;
     background: #fff;
     border-radius: 16px;
-    box-shadow: 0 4px 24px #d32f2f33;
+    box-shadow: 0 4px 24px #222a;
     padding: 2em 2em 1.5em 2em;
     text-align: center;
-    border: 2px solid #d32f2f;
+    border: 2px solid #222;
 }
 .welcome-container h1 {
-    color: #d32f2f;
+    color: #222;
     font-size: 2.5em;
     margin-bottom: 0.3em;
 }
