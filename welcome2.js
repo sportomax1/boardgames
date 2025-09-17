@@ -391,7 +391,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 const flat = thingMap[objectid];
                                 if (flat) {
                                     Object.keys(flat).forEach(k => {
-                                        rec['thing_' + k] = flat[k];
+                                        rec['t_' + k] = flat[k];
                                     });
                                 }
                                 return rec;
@@ -401,13 +401,13 @@ document.addEventListener('DOMContentLoaded', function() {
                             let numPlayersCols = [];
                             if (thingItems.length > 0) {
                                 const flatFirst = flattenXML(thingItems[0]);
-                                thingKeys = Object.keys(flatFirst).map(k => 'thing_' + k);
+                                thingKeys = Object.keys(flatFirst).map(k => 't_' + k);
                             }
                             thingArr.forEach(obj => {
                                 Object.keys(obj).forEach(k => {
                                     if (k.startsWith('collection_')) {
                                         if (!collectionKeys.includes(k)) collectionKeys.push(k);
-                                    } else if (k.startsWith('thing_')) {
+                                    } else if (k.startsWith('t_')) {
                                         if (!thingKeys.includes(k)) thingKeys.push(k);
                                     } else if (k.startsWith('numplayers_')) {
                                         if (!numPlayersCols.includes(k)) numPlayersCols.push(k);
@@ -415,15 +415,15 @@ document.addEventListener('DOMContentLoaded', function() {
                                 });
                             });
                             let fields = ['idx', ...collectionKeys, ...thingKeys];
-                            const maxPlayersIdx = fields.indexOf('thing_maxplayers_value');
+                            const maxPlayersIdx = fields.indexOf('t_maxplayers_value');
                             if (maxPlayersIdx !== -1 && numPlayersCols.length > 0) {
                                 fields = [
                                     ...fields.slice(0, maxPlayersIdx + 1),
-                                    ...numPlayersCols.map(c => 'thing_' + c),
+                                    ...numPlayersCols.map(c => 't_' + c),
                                     ...fields.slice(maxPlayersIdx + 1)
                                 ];
                             } else if (numPlayersCols.length > 0) {
-                                fields = [...fields, ...numPlayersCols.map(c => 'thing_' + c)];
+                                fields = [...fields, ...numPlayersCols.map(c => 't_' + c)];
                             }
                             window.lastFields = fields;
                             let displayFields = fields;
@@ -433,26 +433,26 @@ document.addEventListener('DOMContentLoaded', function() {
                             window.lastFields = fields;
                             window.lastRecords = thingArr;
                             window.lastDisplayFields = displayFields;
-                            const pollCol = 'thing_poll_numplayers_table';
-                            const suggestedCol = 'thing_suggested_numplayers_votes';
-                            const bestwithCol = 'thing_bestwith';
-                            const recommendedwithCol = 'thing_recommendedwith';
-                            const maxPlayersCol = 'thing_maxplayers_value';
-                            const playerAgeCol = 'thing_poll_playerage_table';
-                            const minAgeCol = 'thing_minage_value';
+                            const pollCol = 't_poll_numplayers_table';
+                            const suggestedCol = 't_suggested_numplayers_votes';
+                            const bestwithCol = 't_bestwith';
+                            const recommendedwithCol = 't_recommendedwith';
+                            const maxPlayersCol = 't_maxplayers_value';
+                            const playerAgeCol = 't_poll_playerage_table';
+                            const minAgeCol = 't_minage_value';
                             const pollSummaryCols = [
-                                'thing_poll-summary_name',
-                                'thing_poll-summary_title',
-                                'thing_poll-summary_result_name',
-                                'thing_poll-summary_result_value'
+                                't_poll-summary_name',
+                                't_poll-summary_title',
+                                't_poll-summary_result_name',
+                                't_poll-summary_result_value'
                             ];
                             const pollCols = [
-                                'thing_poll_name',
-                                'thing_poll_title',
-                                'thing_poll_totalvotes',
-                                'thing_poll_results_numplayers',
-                                'thing_poll_results_result_value',
-                                'thing_poll_results_result_numvotes'
+                                't_poll_name',
+                                't_poll_title',
+                                't_poll_totalvotes',
+                                't_poll_results_numplayers',
+                                't_poll_results_result_value',
+                                't_poll_results_result_numvotes'
                             ];
                             [pollCol, suggestedCol, bestwithCol, recommendedwithCol, playerAgeCol, ...pollSummaryCols, ...pollCols].forEach(col => {
                                 let idx = displayFields.indexOf(col);
@@ -463,7 +463,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             });
                             let minAgeIdx = displayFields.indexOf(minAgeCol);
                             if (minAgeIdx === -1) minAgeIdx = displayFields.length - 1;
-                            const playerAgeVotesCol = 'thing_suggested_playerage_votes';
+                            const playerAgeVotesCol = 't_suggested_playerage_votes';
                             let idxVotes = displayFields.indexOf(playerAgeVotesCol);
                             if (idxVotes !== -1) displayFields.splice(idxVotes, 1);
                             let idxPlayerAge = displayFields.indexOf(playerAgeCol);
@@ -549,7 +549,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const pagedRecords = records.slice(startIdx, endIdx);
         let html = `<div style='overflow-x:auto;'><table border='1' cellpadding='6' style='border-collapse:collapse; margin:auto; background:#fff; min-width:1200px;'><thead><tr>`;
         displayFields.forEach(f => {
-            let bg = f === 'idx' ? '#333' : (f.startsWith('collection_') ? '#b71c1c' : (f.startsWith('thing_') ? '#008080' : '#1976d2'));
+            let bg = f === 'idx' ? '#333' : (f.startsWith('collection_') ? '#b71c1c' : (f.startsWith('t_') ? '#008080' : '#1976d2'));
             html += `<th style='background:${bg}; color:#fff; font-weight:600; position:sticky; top:0; z-index:2;'>${f}</th>`;
         });
         html += `</tr></thead><tbody>`;
@@ -565,17 +565,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     const maxH = isThumb ? 60 : 90;
                     const radius = isThumb ? 6 : 8;
                     html += `<td style='font-size:0.98em; color:#222;'><img src='${rec[f]}' alt='${f}' style='max-width:${maxW}px; max-height:${maxH}px; border-radius:${radius}px;'></td>`;
-                } else if (f === 'thing_poll_numplayers_table' && rec[f]) {
+                } else if (f === 't_poll_numplayers_table' && rec[f]) {
                     html += `<td style='font-size:0.98em; color:#222;'>${rec[f]}</td>`;
-                } else if (f === 'thing_poll_playerage_table') {
+                } else if (f === 't_poll_playerage_table') {
                     // Only render the poll table, never fallback to other data
                     html += `<td style='font-size:0.98em; color:#222;'>${rec[f] ? rec[f] : ''}</td>`;
-                } else if (f === 'thing_poll_language_table' && rec[f]) {
+                } else if (f === 't_poll_language_table' && rec[f]) {
                     // Render language poll table as HTML
                     html += `<td style='font-size:0.98em; color:#222;'>${rec[f]}</td>`;
                 } else {
                     let val = rec[f] !== undefined ? rec[f] : '';
-                    if (f === 'thing_name_alternate' && typeof val === 'string') {
+                    if (f === 't_name_alternate' && typeof val === 'string') {
                         let arr = val.split(/,\s?/);
                         if (arr.length > 5) {
                             val = arr.slice(0,5).join('\n') + '\n...';
@@ -923,20 +923,20 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Add suggested player age poll table as a special field
                     flat['poll_playerage_table'] = extractPlayerAgePollTable(thingItem);
 
-                    // Add thing_suggested_playerage_votes (totalvotes from poll with title 'User Suggested Player Age')
+                    // Add t_suggested_playerage_votes (totalvotes from poll with title 'User Suggested Player Age')
                     const playerAgePoll = Array.from(thingItem.querySelectorAll('poll[name="suggested_playerage"]')).find(p => (p.getAttribute('title')||'').trim() === 'User Suggested Player Age');
                     if (playerAgePoll) {
                         flat['suggested_playerage_votes'] = playerAgePoll.getAttribute('totalvotes') || '';
                     }
 
-                    // Add thing_suggested_numplayers_votes (totalvotes from poll)
+                    // Add t_suggested_numplayers_votes (totalvotes from poll)
                     const poll = thingItem.querySelector('poll[name="suggested_numplayers"]');
                     if (poll) {
                         flat['suggested_numplayers_votes'] = poll.getAttribute('totalvotes') || '';
                         // (numplayers columns logic remains commented out)
                     }
 
-                    // Add thing_language_votes and thing_language_results
+                    // Add t_language_votes and t_language_results
                     const langPoll = thingItem.querySelector('poll[name="language_dependence"]');
                     if (langPoll) {
                         flat['language_votes'] = langPoll.getAttribute('totalvotes') || '';
@@ -1015,26 +1015,26 @@ document.addEventListener('DOMContentLoaded', function() {
                     const flat = thingMap[objectid];
                     if (flat) {
                         Object.keys(flat).forEach(k => {
-                            rec['thing_' + k] = flat[k];
+                            rec['t_' + k] = flat[k];
                         });
                     }
                     return rec;
                 });
-                // Build table with ordered columns: collection_ fields first, then thing_ fields
+                // Build table with ordered columns: collection_ fields first, then t_ fields
                 const collectionKeys = [];
                 let thingKeys = [];
                 let numPlayersCols = [];
                 // Try to order thingKeys as in the first thingItem's XML
                 if (thingItems.length > 0) {
                     const flatFirst = flattenXML(thingItems[0]);
-                    thingKeys = Object.keys(flatFirst).map(k => 'thing_' + k);
+                    thingKeys = Object.keys(flatFirst).map(k => 't_' + k);
                 }
                 // Add any extra thingKeys not in the first item (fallback for missing fields)
                 thingArr.forEach(obj => {
                     Object.keys(obj).forEach(k => {
                         if (k.startsWith('collection_')) {
                             if (!collectionKeys.includes(k)) collectionKeys.push(k);
-                        } else if (k.startsWith('thing_')) {
+                        } else if (k.startsWith('t_')) {
                             if (!thingKeys.includes(k)) thingKeys.push(k);
                         } else if (k.startsWith('numplayers_')) {
                             if (!numPlayersCols.includes(k)) numPlayersCols.push(k);
@@ -1042,17 +1042,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
                 });
                 // Add idx as the first column
-                // Insert numplayers columns after thing_maxplayers_value
+                // Insert numplayers columns after t_maxplayers_value
                 let fields = ['idx', ...collectionKeys, ...thingKeys];
-                const maxPlayersIdx = fields.indexOf('thing_maxplayers_value');
+                const maxPlayersIdx = fields.indexOf('t_maxplayers_value');
                 if (maxPlayersIdx !== -1 && numPlayersCols.length > 0) {
                     fields = [
                         ...fields.slice(0, maxPlayersIdx + 1),
-                        ...numPlayersCols.map(c => 'thing_' + c),
+                        ...numPlayersCols.map(c => 't_' + c),
                         ...fields.slice(maxPlayersIdx + 1)
                     ];
                 } else if (numPlayersCols.length > 0) {
-                    fields = [...fields, ...numPlayersCols.map(c => 'thing_' + c)];
+                    fields = [...fields, ...numPlayersCols.map(c => 't_' + c)];
                 }
                 window.lastFields = fields;
                 // Use selectedColumns if set
@@ -1064,31 +1064,31 @@ document.addEventListener('DOMContentLoaded', function() {
                 window.lastFields = fields;
                 window.lastRecords = thingArr;
                 window.lastDisplayFields = displayFields;
-                // Insert thing_suggested_numplayers_votes and thing_poll_numplayers_table after thing_maxplayers_value
-                // Then insert thing_bestwith and thing_recommendedwith after thing_poll_numplayers_table
-                // Insert thing_poll_playerage_table after thing_minage_value
-                const pollCol = 'thing_poll_numplayers_table';
-                const suggestedCol = 'thing_suggested_numplayers_votes';
-                const bestwithCol = 'thing_bestwith';
-                const recommendedwithCol = 'thing_recommendedwith';
-                const maxPlayersCol = 'thing_maxplayers_value';
-                const playerAgeCol = 'thing_poll_playerage_table';
-                const minAgeCol = 'thing_minage_value';
+                // Insert t_suggested_numplayers_votes and t_poll_numplayers_table after t_maxplayers_value
+                // Then insert t_bestwith and t_recommendedwith after t_poll_numplayers_table
+                // Insert t_poll_playerage_table after t_minage_value
+                const pollCol = 't_poll_numplayers_table';
+                const suggestedCol = 't_suggested_numplayers_votes';
+                const bestwithCol = 't_bestwith';
+                const recommendedwithCol = 't_recommendedwith';
+                const maxPlayersCol = 't_maxplayers_value';
+                const playerAgeCol = 't_poll_playerage_table';
+                const minAgeCol = 't_minage_value';
                 // Remove pollCol, suggestedCol, bestwithCol, recommendedwithCol, playerAgeCol from displayFields if present
                 // Also remove poll-summary and poll columns if present
                 const pollSummaryCols = [
-                    'thing_poll-summary_name',
-                    'thing_poll-summary_title',
-                    'thing_poll-summary_result_name',
-                    'thing_poll-summary_result_value'
+                    't_poll-summary_name',
+                    't_poll-summary_title',
+                    't_poll-summary_result_name',
+                    't_poll-summary_result_value'
                 ];
                 const pollCols = [
-                    'thing_poll_name',
-                    'thing_poll_title',
-                    'thing_poll_totalvotes',
-                    'thing_poll_results_numplayers',
-                    'thing_poll_results_result_value',
-                    'thing_poll_results_result_numvotes'
+                    't_poll_name',
+                    't_poll_title',
+                    't_poll_totalvotes',
+                    't_poll_results_numplayers',
+                    't_poll_results_result_value',
+                    't_poll_results_result_numvotes'
                 ];
                 [pollCol, suggestedCol, bestwithCol, recommendedwithCol, playerAgeCol, ...pollSummaryCols, ...pollCols].forEach(col => {
                     let idx = displayFields.indexOf(col);
@@ -1100,8 +1100,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Insert playerAgeCol after minAgeCol
                 let minAgeIdx = displayFields.indexOf(minAgeCol);
                 if (minAgeIdx === -1) minAgeIdx = displayFields.length - 1;
-                // Insert thing_suggested_playerage_votes before thing_poll_playerage_table
-                const playerAgeVotesCol = 'thing_suggested_playerage_votes';
+                // Insert t_suggested_playerage_votes before t_poll_playerage_table
+                const playerAgeVotesCol = 't_suggested_playerage_votes';
                 // Remove if present
                 let idxVotes = displayFields.indexOf(playerAgeVotesCol);
                 if (idxVotes !== -1) displayFields.splice(idxVotes, 1);
@@ -1110,8 +1110,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (idxPlayerAge !== -1) displayFields.splice(idxPlayerAge, 1);
                 // Insert votes then table
                 // Insert language columns after player age poll columns
-                const languageVotesCol = 'thing_language_votes';
-                const languageResultsCol = 'thing_poll_language_table';
+                const languageVotesCol = 't_language_votes';
+                const languageResultsCol = 't_poll_language_table';
                 // Remove if present
                 [languageVotesCol, languageResultsCol].forEach(col => {
                     let idx = displayFields.indexOf(col);
@@ -1130,7 +1130,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log('All merged records:', thingArr);
                 let html = `<div style='overflow-x:auto;'><table border='1' cellpadding='6' style='border-collapse:collapse; margin:auto; background:#fff; min-width:1200px;'><thead><tr>`;
                 displayFields.forEach(f => {
-                    let bg = f === 'idx' ? '#333' : (f.startsWith('collection_') ? '#b71c1c' : (f.startsWith('thing_') ? '#008080' : '#1976d2'));
+                    let bg = f === 'idx' ? '#333' : (f.startsWith('collection_') ? '#b71c1c' : (f.startsWith('t_') ? '#008080' : '#1976d2'));
                     html += `<th style='background:${bg}; color:#fff; font-weight:600; position:sticky; top:0; z-index:2;'>${f}</th>`;
                 });
                 html += `</tr></thead><tbody>`;
