@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Tabletop Events Library</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: #f7f7fa;
+            color: #222;
+        }
+        .container {
+            max-width: 480px;
+            margin: 0 auto;
+            padding: 1.2em 0.7em;
+        }
+        h1 {
+            font-size: 2em;
+            margin-bottom: 0.5em;
+            text-align: center;
+        }
+        #gamesList {
+            margin-top: 1.2em;
+        }
+        .game-card {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px #0001;
+            margin-bottom: 1em;
+            padding: 1em 1.2em;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .game-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            margin-bottom: 0.3em;
+        }
+        .game-details {
+            font-size: 0.98em;
+            color: #555;
+        }
+        @media (max-width: 600px) {
+            .container {
+                max-width: 100vw;
+                padding: 1em 0.2em;
+            }
+            h1 {
+                font-size: 1.4em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Tabletop Events Library</h1>
+        <div id="gamesTableWrapper">
+            <div style="text-align:center; color:#888; font-size:1.1em;">Loading games...</div>
+        </div>
+    </div>
+    <script>
+    async function fetchGames() {
+    const gamesTableWrapper = document.getElementById('gamesTableWrapper');
+        try {
+            const resp = await fetch('https://tabletop.events/api/library/0AEB11DA-2B7D-11EC-B400-855F800FD618/librarygames');
+            if (!resp.ok) throw new Error('Failed to fetch games');
+            const data = await resp.json();
+            const items = data.result && Array.isArray(data.result.items) ? data.result.items : [];
+            if (items.length === 0) {
+                gamesTableWrapper.innerHTML = '<div style="text-align:center; color:#888;">No games found.</div>';
+                return;
+            }
+            // Filter out games with blank location
+            const filteredItems = items.filter(game => {
+                let loc = game.Location || (game.custom_fields && game.custom_fields.Location);
+                return loc !== undefined && loc !== null && String(loc).trim() !== '';
+            });
+            // Sort by date_updated descending
+            filteredItems.sort((a, b) => {
+                let da = new Date(a.date_updated || a.date_created || 0);
+                let db = new Date(b.date_updated || b.date_created || 0);
+                return db - da;
+            });
+            // Collect all unique fields from all games
+            const allFields = new Set();
+            filteredItems.forEach(game => {
+                Object.keys(game).forEach(key => allFields.add(key));
+                if (game.custom_fields) {
+                    Object.keys(game.custom_fields).forEach(key => allFields.add(key));
+                }
+            });
+            const fieldList = Array.from(allFields);
+            // Build table with grid lines
+            let html = `<div style='overflow-x:auto;'><table style='width:100%; border-collapse:collapse; background:#fff; border-radius:12px; box-shadow:0 2px 12px #0001; font-size:0.95em; border:2px solid #a020f0;'>`;
+            html += `<thead><tr style='background:#a020f0; color:#fff;'>`;
+            fieldList.forEach(field => {
+                html += `<th style='padding:8px 4px; border:1px solid #a020f0;'>${field}</th>`;
+            });
+            html += `</tr></thead><tbody>`;
+            filteredItems.forEach(game => {
+                html += `<tr>`;
+                fieldList.forEach(field => {
+                    let val = game[field];
+                    if (val === undefined && game.custom_fields) val = game.custom_fields[field];
+                    if (field === 'bgg_id' && val) {
+                        val = `<a href='https://boardgamegeek.com/boardgame/${val}' target='_blank' style='color:#1976d2;'>${val}</a>`;
+                    }
+                    html += `<td style='padding:8px 4px; border:1px solid #a020f0;'>${val !== undefined ? val : ''}</td>`;
+                });
+                html += `</tr>`;
+            });
+            html += '</tbody></table></div>';
+            gamesTableWrapper.innerHTML = html;
+        } catch (e) {
+            gamesList.innerHTML = `<div style='text-align:center; color:#c00;'>Error: ${e.message}</div>`;
+        }
+    }
+    fetchGames();
+    </script>
+</body>
+</html>
