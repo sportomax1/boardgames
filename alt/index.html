@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, viewport-fit=cover">
+    <title>Boardgames PWA Home</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#a020f0">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: #f7f7fa;
+            color: #222;
+        }
+        .container {
+            max-width: 480px;
+            margin: 0 auto;
+            padding: 2em 1em;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 {
+            font-size: 2em;
+            margin-bottom: 1.2em;
+            text-align: center;
+        }
+        .btn {
+            width: 100%;
+            max-width: 320px;
+            margin-bottom: 1em;
+            padding: 1em 0;
+            font-size: 1.2em;
+            font-weight: 600;
+            border: none;
+            border-radius: 12px;
+            background: #a020f0;
+            color: #fff;
+            box-shadow: 0 2px 12px #0001;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn:active {
+            background: #7c1bb2;
+        }
+        @media (max-width: 600px) {
+            .container {
+                max-width: 100vw;
+                padding: 1em 0.2em;
+            }
+            h1 {
+                font-size: 1.4em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container" style="box-sizing:border-box; max-width:430px; min-height:100vh; padding-bottom:env(safe-area-inset-bottom);">
+        <h1>Boardgames Hub</h1>
+        <button class="btn" onclick="location.href='hotgames.html'">Hot Games</button>
+        <button class="btn" onclick="location.href='collection.html'">Collection</button>
+        <button class="btn" onclick="location.href='dtw.html'">DTW</button>
+        <button class="btn" onclick="location.href='dte.html'">DTE</button>
+        <button class="btn" onclick="location.href='bggcon.html'">BGG CON</button>
+    </div>
+    <script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+            navigator.serviceWorker.register('service-worker.js');
+        });
+    }
+    </script>
+</body>
+</html>

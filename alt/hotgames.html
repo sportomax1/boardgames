@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, viewport-fit=cover">
+    <title>Hot Games - Boardgames Hub</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: #f7f7fa;
+            color: #222;
+        }
+        .container {
+            max-width: 430px;
+            margin: 0 auto;
+            padding: 2em 1em 1em 1em;
+            box-sizing: border-box;
+            min-height: 100vh;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        h1 {
+            font-size: 1.7em;
+            margin-bottom: 1em;
+            text-align: center;
+        }
+        .hot-list {
+            margin-top: 1em;
+        }
+        .hot-card {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px #0001;
+            margin-bottom: 1em;
+            padding: 1em 1.2em;
+            display: flex;
+            align-items: center;
+        }
+        .hot-img {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-right: 1em;
+            background: #eee;
+        }
+        .hot-info {
+            flex: 1;
+        }
+        .hot-title {
+            font-size: 1.1em;
+            font-weight: 600;
+            margin-bottom: 0.2em;
+        }
+        .hot-rank {
+            font-size: 0.95em;
+            color: #a020f0;
+            font-weight: 600;
+        }
+        .hot-link {
+            color: #1976d2;
+            text-decoration: none;
+            font-size: 0.98em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Hot Board Games</h1>
+        <div id="hotList" class="hot-list">
+            <div style="text-align:center; color:#888; font-size:1.1em;">Loading hot games...</div>
+        </div>
+    </div>
+    <script>
+    async function fetchHotGames() {
+        const hotList = document.getElementById('hotList');
+        try {
+            const resp = await fetch('https://boardgamegeek.com/xmlapi2/hot?type=boardgame');
+            if (!resp.ok) throw new Error('Failed to fetch hot games');
+            const xml = await resp.text();
+            const parser = new window.DOMParser();
+            const doc = parser.parseFromString(xml, 'text/xml');
+            const items = Array.from(doc.querySelectorAll('item'));
+            if (items.length === 0) {
+                hotList.innerHTML = '<div style="text-align:center; color:#888;">No hot games found.</div>';
+                return;
+            }
+            hotList.innerHTML = '';
+            items.forEach(item => {
+                const rank = item.getAttribute('rank');
+                const id = item.getAttribute('id');
+                const name = item.querySelector('name')?.getAttribute('value') || 'Unknown';
+                const year = item.querySelector('yearpublished')?.getAttribute('value') || '';
+                const thumbnail = item.querySelector('thumbnail')?.getAttribute('value') || '';
+                const bggLink = `https://boardgamegeek.com/boardgame/${id}`;
+                const card = document.createElement('div');
+                card.className = 'hot-card';
+                card.style.cursor = 'pointer';
+                card.onclick = () => { window.open(bggLink, '_blank'); };
+                card.innerHTML = `
+                    <img class='hot-img' src='${thumbnail}' alt='${name}'>
+                    <div class='hot-info'>
+                        <div class='hot-title'>${name} ${year ? `<span style='color:#888; font-size:0.95em;'>(${year})</span>` : ''}</div>
+                        <div class='hot-rank'>Rank #${rank}</div>
+                        <a class='hot-link' href='${bggLink}' target='_blank' onclick='event.stopPropagation();'>View on BGG</a>
+                    </div>
+                `;
+                hotList.appendChild(card);
+            });
+        } catch (e) {
+            hotList.innerHTML = `<div style='text-align:center; color:#c00;'>Error: ${e.message}</div>`;
+        }
+    }
+    fetchHotGames();
+    </script>
+</body>
+</html>
