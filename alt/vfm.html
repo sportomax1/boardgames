@@ -21,9 +21,9 @@
     <div class="container">
         <h1>Virtual Flea Market (VFM)</h1>
         <div style="margin-bottom:1em; text-align:center; display:flex; flex-direction:row; justify-content:center; align-items:center; gap:0.7em; flex-wrap:wrap;">
-            <button id="analyticsBtn" style="background:#43a047; color:#fff; border:none; border-radius:10px; padding:0.7em 1.4em; font-size:1em; font-weight:600; cursor:pointer; min-height:44px; -webkit-appearance:none;">Analytics</button>
-            <button id="statusFilterBtn" style="background:#1976d2; color:#fff; border:none; border-radius:10px; padding:0.7em 1.4em; font-size:1em; font-weight:600; cursor:pointer; min-height:44px; -webkit-appearance:none;">Filter by Status</button>
-            <select id="statusFilterSelect" style="font-size:1em; padding:0.6em 1em; border-radius:10px; border:1px solid #bbb; display:none; min-height:44px; -webkit-appearance:none;">
+            <button id="analyticsBtn" style="background:#43a047; color:#fff; border:none; border-radius:10px; padding:0.7em 1.4em; font-size:1em; font-weight:600; cursor:pointer; min-height:44px; -webkit-appearance:none; appearance:none;">Analytics</button>
+            <button id="statusFilterBtn" style="background:#1976d2; color:#fff; border:none; border-radius:10px; padding:0.7em 1.4em; font-size:1em; font-weight:600; cursor:pointer; min-height:44px; -webkit-appearance:none; appearance:none;">Filter by Status</button>
+            <select id="statusFilterSelect" style="font-size:1em; padding:0.6em 1em; border-radius:10px; border:1px solid #bbb; display:none; min-height:44px; -webkit-appearance:none; appearance:none;">
                 <option value="">All</option>
                 <option value="own">✅ Own</option>
                 <option value="wanttoplay">🎮 Want to Play</option>
@@ -43,11 +43,11 @@
             📤 Trading Away &mdash; You are trading away this game<br>
         </div> -->
         <div id="filterBar" style="margin-bottom:1em; text-align:center;">
-            <input id="filterInput" type="text" placeholder="Filter by name..." style="font-size:1.1em; padding:0.6em 1em; border-radius:10px; border:1px solid #bbb; width:70%; max-width:200px; margin-bottom:0.7em; -webkit-appearance:none;">
+            <input id="filterInput" type="text" placeholder="Filter by name..." style="font-size:1.1em; padding:0.6em 1em; border-radius:10px; border:1px solid #bbb; width:70%; max-width:200px; margin-bottom:0.7em; -webkit-appearance:none; appearance:none;">
             <div style="display:flex; justify-content:center; gap:0.4em; flex-wrap:wrap;">
-                <button id="exactMatchBtn" data-mode="exact" style="background:#ccc; color:#333; border:none; border-radius:8px; padding:0.5em 1em; font-size:0.9em; min-height:36px; cursor:pointer; font-weight:500; -webkit-appearance:none;">Exact Match</button>
-                <button id="startsWithBtn" data-mode="startswith" style="background:#ccc; color:#333; border:none; border-radius:8px; padding:0.5em 1em; font-size:0.9em; min-height:36px; cursor:pointer; font-weight:500; -webkit-appearance:none;">Starts With</button>
-                <button id="containsBtn" data-mode="contains" style="background:#1976d2; color:#fff; border:none; border-radius:8px; padding:0.5em 1em; font-size:0.9em; min-height:36px; cursor:pointer; font-weight:500; -webkit-appearance:none;">Contains</button>
+                <button id="exactMatchBtn" data-mode="exact" style="background:#ccc; color:#333; border:none; border-radius:8px; padding:0.5em 1em; font-size:0.9em; min-height:36px; cursor:pointer; font-weight:500; -webkit-appearance:none; appearance:none;">Exact Match</button>
+                <button id="startsWithBtn" data-mode="startswith" style="background:#ccc; color:#333; border:none; border-radius:8px; padding:0.5em 1em; font-size:0.9em; min-height:36px; cursor:pointer; font-weight:500; -webkit-appearance:none; appearance:none;">Starts With</button>
+                <button id="containsBtn" data-mode="contains" style="background:#1976d2; color:#fff; border:none; border-radius:8px; padding:0.5em 1em; font-size:0.9em; min-height:36px; cursor:pointer; font-weight:500; -webkit-appearance:none; appearance:none;">Contains</button>
             </div>
         </div>
         <div id="gamesCardWrapper">
