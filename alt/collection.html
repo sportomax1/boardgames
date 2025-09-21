@@ -37,6 +37,137 @@
             display: flex;
             flex-direction: row;
             align-items: center;
+            position: relative;
+        }
+        .status-emoji {
+            position: absolute;
+            top: 0.5em;
+            right: 0.5em;
+            font-size: 1.2em;
+            z-index: 1;
+        }
+        .display-mode-toggle {
+            display: flex;
+            justify-content: center;
+            gap: 0.5em;
+            margin-bottom: 1em;
+            flex-wrap: wrap;
+        }
+        .mode-btn {
+            background: #ccc;
+            color: #333;
+            border: none;
+            border-radius: 10px;
+            padding: 0.7em 1.4em;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            min-height: 44px;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+        .mode-btn.active {
+            background: #1976d2;
+            color: #fff;
+        }
+        .card-deck-view {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: #000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+            box-sizing: border-box;
+        }
+        .full-card {
+            width: 90vw;
+            max-width: 380px;
+            height: calc(85vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+            background: #fff;
+            border-radius: 20px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            touch-action: pan-x;
+        }
+        .full-card-image {
+            width: 100%;
+            height: 60%;
+            object-fit: cover;
+            background: #f0f0f0;
+        }
+        .full-card-info {
+            padding: 1.5em;
+            height: 40%;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .full-card-title {
+            font-size: 1.4em;
+            font-weight: 700;
+            margin-bottom: 0.5em;
+            line-height: 1.2;
+        }
+        .full-card-details {
+            font-size: 1.1em;
+            color: #555;
+            line-height: 1.4;
+        }
+        .full-card-emoji {
+            position: absolute;
+            top: 1em;
+            right: 1em;
+            font-size: 2em;
+            background: rgba(255,255,255,0.9);
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .card-deck-nav {
+            position: absolute;
+            bottom: calc(2em + env(safe-area-inset-bottom));
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 1em;
+        }
+        .nav-btn {
+            background: rgba(255,255,255,0.9);
+            border: none;
+            border-radius: 50%;
+            width: 54px;
+            height: 54px;
+            font-size: 1.5em;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 44px;
+            -webkit-appearance: none;
+            appearance: none;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+        }
+        .card-counter {
+            position: absolute;
+            top: calc(2em + env(safe-area-inset-top));
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255,255,255,0.9);
+            padding: 0.6em 1.2em;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 1em;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.15);
         }
         .game-thumb {
             width: 64px;
@@ -60,6 +191,31 @@
             font-size: 0.98em;
             color: #555;
         }
+        .modal {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0,0,0,0.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+            box-sizing: border-box;
+        }
+        .modal-content {
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            max-height: 85vh;
+            overflow-y: auto;
+            max-width: 390px;
+            width: 90vw;
+            margin: 1em;
+            position: relative;
+        }
     </style>
 </head>
 <body>
@@ -68,60 +224,88 @@
     </a>
     <div class="container">
         <h1>Collection</h1>
-        <button id="filterSortBtn" style="background:#1976d2; color:#fff; border:none; border-radius:8px; padding:0.7em 2em; font-size:1.1em; font-weight:600; cursor:pointer; margin-bottom:1em; width:100%; max-width:320px;">Filter & Sort</button>
+        <div class="display-mode-toggle">
+            <button id="listModeBtn" class="mode-btn active">📋 List</button>
+            <button id="cardModeBtn" class="mode-btn">🃏 Cards</button>
+        </div>
+        <button id="filterSortBtn" style="background:#1976d2; color:#fff; border:none; border-radius:10px; padding:0.8em 2em; font-size:1.1em; font-weight:600; cursor:pointer; margin-bottom:1em; width:100%; max-width:320px; min-height:44px; -webkit-appearance:none; appearance:none;">Filter & Sort</button>
         <div id="filterSortModal" class="modal" style="display:none;">
-            <div class="modal-content" style="max-width:430px; width:96vw; box-sizing:border-box; padding:1.2em 0.7em 1em 0.7em;">
-                <h2 style="font-size:1.2em;">Filter & Sort</h2>
-                <label style="font-size:1em;">Name contains:<br>
-                    <input id="filterName" type="text" style="width:90%; font-size:1em; margin-bottom:1em; border-radius:8px; border:1px solid #bbb; padding:0.5em 1em;">
-                </label><br>
-                <div style="font-size:1em; margin-bottom:1em;">
+            <div class="modal-content" style="padding:1.5em 1em 1.2em 1em;">
+                <h2 style="font-size:1.3em; margin-bottom:1em; font-weight:600;">Filter & Sort</h2>
+                <label style="font-size:1em; display:block; margin-bottom:1em;">Name contains:<br>
+                    <input id="filterName" type="text" style="width:100%; font-size:1.1em; margin-top:0.5em; border-radius:10px; border:1px solid #bbb; padding:0.7em 1em; box-sizing:border-box; min-height:44px; -webkit-appearance:none; appearance:none;">
+                </label>
+                <div style="font-size:1em; margin-bottom:1.5em;">
                     <b>Collection Status:</b><br>
-                    <table style="width:100%; font-size:1em;">
-                        <tr><td>Owned</td>
-                            <td><label><input type="radio" name="own" value="any" checked>Any</label></td>
-                            <td><label><input type="radio" name="own" value="yes">Yes</label></td>
-                            <td><label><input type="radio" name="own" value="no">No</label></td></tr>
-                        <tr><td>For Trade</td>
-                            <td><label><input type="radio" name="fortrade" value="any" checked>Any</label></td>
-                            <td><label><input type="radio" name="fortrade" value="yes">Yes</label></td>
-                            <td><label><input type="radio" name="fortrade" value="no">No</label></td></tr>
-                        <tr><td>Want</td>
-                            <td><label><input type="radio" name="want" value="any" checked>Any</label></td>
-                            <td><label><input type="radio" name="want" value="yes">Yes</label></td>
-                            <td><label><input type="radio" name="want" value="no">No</label></td></tr>
-                        <tr><td>Want to Play</td>
-                            <td><label><input type="radio" name="wanttoplay" value="any" checked>Any</label></td>
-                            <td><label><input type="radio" name="wanttoplay" value="yes">Yes</label></td>
-                            <td><label><input type="radio" name="wanttoplay" value="no">No</label></td></tr>
-                        <tr><td>Want to Buy</td>
-                            <td><label><input type="radio" name="wanttobuy" value="any" checked>Any</label></td>
-                            <td><label><input type="radio" name="wanttobuy" value="yes">Yes</label></td>
-                            <td><label><input type="radio" name="wanttobuy" value="no">No</label></td></tr>
-                        <tr><td>Previously Owned</td>
-                            <td><label><input type="radio" name="prevowned" value="any" checked>Any</label></td>
-                            <td><label><input type="radio" name="prevowned" value="yes">Yes</label></td>
-                            <td><label><input type="radio" name="prevowned" value="no">No</label></td></tr>
-                        <tr><td>Wishlist</td>
-                            <td><label><input type="radio" name="wishlist" value="any" checked>Any</label></td>
-                            <td><label><input type="radio" name="wishlist" value="yes">Yes</label></td>
-                            <td><label><input type="radio" name="wishlist" value="no">No</label></td></tr>
+                    <table style="width:100%; font-size:1em; margin-top:0.5em;">
+                        <tr><td style="padding:0.3em 0;">Owned</td>
+                            <td><label><input type="radio" name="own" value="any" checked style="margin-right:0.3em;">Any</label></td>
+                            <td><label><input type="radio" name="own" value="yes" style="margin-right:0.3em;">Yes</label></td>
+                            <td><label><input type="radio" name="own" value="no" style="margin-right:0.3em;">No</label></td></tr>
+                        <tr><td style="padding:0.3em 0;">For Trade</td>
+                            <td><label><input type="radio" name="fortrade" value="any" checked style="margin-right:0.3em;">Any</label></td>
+                            <td><label><input type="radio" name="fortrade" value="yes" style="margin-right:0.3em;">Yes</label></td>
+                            <td><label><input type="radio" name="fortrade" value="no" style="margin-right:0.3em;">No</label></td></tr>
+                        <tr><td style="padding:0.3em 0;">Want</td>
+                            <td><label><input type="radio" name="want" value="any" checked style="margin-right:0.3em;">Any</label></td>
+                            <td><label><input type="radio" name="want" value="yes" style="margin-right:0.3em;">Yes</label></td>
+                            <td><label><input type="radio" name="want" value="no" style="margin-right:0.3em;">No</label></td></tr>
+                        <tr><td style="padding:0.3em 0;">Want to Play</td>
+                            <td><label><input type="radio" name="wanttoplay" value="any" checked style="margin-right:0.3em;">Any</label></td>
+                            <td><label><input type="radio" name="wanttoplay" value="yes" style="margin-right:0.3em;">Yes</label></td>
+                            <td><label><input type="radio" name="wanttoplay" value="no" style="margin-right:0.3em;">No</label></td></tr>
+                        <tr><td style="padding:0.3em 0;">Want to Buy</td>
+                            <td><label><input type="radio" name="wanttobuy" value="any" checked style="margin-right:0.3em;">Any</label></td>
+                            <td><label><input type="radio" name="wanttobuy" value="yes" style="margin-right:0.3em;">Yes</label></td>
+                            <td><label><input type="radio" name="wanttobuy" value="no" style="margin-right:0.3em;">No</label></td></tr>
+                        <tr><td style="padding:0.3em 0;">Previously Owned</td>
+                            <td><label><input type="radio" name="prevowned" value="any" checked style="margin-right:0.3em;">Any</label></td>
+                            <td><label><input type="radio" name="prevowned" value="yes" style="margin-right:0.3em;">Yes</label></td>
+                            <td><label><input type="radio" name="prevowned" value="no" style="margin-right:0.3em;">No</label></td></tr>
+                        <tr><td style="padding:0.3em 0;">Wishlist</td>
+                            <td><label><input type="radio" name="wishlist" value="any" checked style="margin-right:0.3em;">Any</label></td>
+                            <td><label><input type="radio" name="wishlist" value="yes" style="margin-right:0.3em;">Yes</label></td>
+                            <td><label><input type="radio" name="wishlist" value="no" style="margin-right:0.3em;">No</label></td></tr>
                     </table>
                 </div>
-                <label style="font-size:1em;">Sort by:
-                    <select id="sortBy" style="font-size:1em; border-radius:8px; border:1px solid #bbb; padding:0.5em 1em;">
+                <label style="font-size:1em; display:block; margin-bottom:1.5em;">Sort by:
+                    <select id="sortBy" style="font-size:1em; border-radius:10px; border:1px solid #bbb; padding:0.7em 1em; margin-top:0.5em; width:100%; min-height:44px; -webkit-appearance:none; appearance:none; background:#fff;">
                         <option value="name">Name</option>
                         <option value="year">Year</option>
                         <option value="plays">Plays</option>
                         <option value="rating">Rating</option>
                     </select>
-                </label><br><br>
-                <button id="applyFilterSortBtn" style="background:#1976d2; color:#fff; border:none; border-radius:8px; padding:0.7em 2em; font-size:1.1em; font-weight:600; cursor:pointer; margin-top:1em;">Apply</button>
-                <button id="closeFilterSortBtn" style="background:#bbb; color:#222; border:none; border-radius:8px; padding:0.7em 2em; font-size:1.1em; font-weight:600; cursor:pointer; margin-top:1em; margin-left:1em;">Close</button>
+                </label>
+                <div style="display:flex; gap:0.5em; flex-wrap:wrap;">
+                    <button id="applyFilterSortBtn" style="background:#1976d2; color:#fff; border:none; border-radius:10px; padding:0.8em 1.5em; font-size:1em; font-weight:600; cursor:pointer; flex:1; min-width:120px; min-height:44px; -webkit-appearance:none; appearance:none;">Apply</button>
+                    <button id="closeFilterSortBtn" style="background:#bbb; color:#222; border:none; border-radius:10px; padding:0.8em 1.5em; font-size:1em; font-weight:600; cursor:pointer; flex:1; min-width:120px; min-height:44px; -webkit-appearance:none; appearance:none;">Close</button>
+                </div>
             </div>
         </div>
         <div id="gameList" class="game-list">
             <div style="text-align:center; color:#888; font-size:1.1em;">Loading...</div>
+        </div>
+        
+        <!-- Full Card Deck View -->
+        <div id="cardDeckView" class="card-deck-view">
+            <div class="card-counter" id="cardCounter">1 / 1</div>
+            <div class="full-card" id="fullCard">
+                <div class="full-card-emoji" id="fullCardEmoji"></div>
+                <img class="full-card-image" id="fullCardImage" src="" alt="">
+                <div class="full-card-info">
+                    <div class="full-card-title" id="fullCardTitle">Game Title</div>
+                    <div class="full-card-details" id="fullCardDetails">
+                        <b>Year:</b> 2023<br>
+                        <b>Plays:</b> 5<br>
+                        <b>Rating:</b> 8.5
+                    </div>
+                </div>
+            </div>
+            <div class="card-deck-nav">
+                <button class="nav-btn" id="prevCardBtn">‹</button>
+                <button class="nav-btn" id="closeCardViewBtn">✕</button>
+                <button class="nav-btn" id="nextCardBtn">›</button>
+            </div>
         </div>
     <button id="scrollTopBtn" style="position:fixed; right:calc(50vw - 215px); bottom:calc(24px + env(safe-area-inset-bottom)); z-index:999; background:#1976d2; color:#fff; border:none; border-radius:50%; width:54px; height:54px; font-size:2em; box-shadow:0 2px 12px #0002; display:none; align-items:center; justify-content:center; max-width:430px;">&#8679;</button>
     <button id="scrollBottomBtn" style="position:fixed; left:calc(50vw - 215px); bottom:calc(24px + env(safe-area-inset-bottom)); z-index:999; background:#1976d2; color:#fff; border:none; border-radius:50%; width:54px; height:54px; font-size:2em; box-shadow:0 2px 12px #0002; display:none; align-items:center; justify-content:center; max-width:430px;">&#8681;</button>
@@ -152,6 +336,22 @@
     let loadedCount = 0;
     const PAGE_SIZE = 50;
     let loading = false;
+    let currentDisplayMode = 'list'; // 'list' or 'cards'
+    let currentCardIndex = 0;
+
+    function getStatusEmoji(item) {
+        const status = item.querySelector('status');
+        if (!status) return '';
+        
+        // Priority order: own > wanttoplay > wanttobuy > wantintrade > prevowned > fortrade
+        if (status.getAttribute('own') === '1') return '✅';
+        if (status.getAttribute('wanttoplay') === '1') return '🎮';
+        if (status.getAttribute('wanttobuy') === '1') return '🛒';
+        if (status.getAttribute('wantintrade') === '1') return '🔄';
+        if (status.getAttribute('prevowned') === '1') return '⏪';
+        if (status.getAttribute('fortrade') === '1') return '📤';
+        return '';
+    }
 
     async function fetchCollection(username) {
         const gameList = document.getElementById('gameList');
@@ -189,13 +389,16 @@
             const plays = item.querySelector('numplays')?.textContent || '0';
             const rating = item.querySelector('stats rating')?.getAttribute('value') || '';
             const bggLink = gameId ? `https://boardgamegeek.com/boardgame/${gameId}` : '';
+            const status = item.querySelector('status');
             const statuses = ['own','fortrade','want','wanttoplay','wanttobuy','prevowned','wishlist'].map(f => ({
                 label: f.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase()),
-                value: item.getAttribute(f) === '1'
+                value: status ? status.getAttribute(f) === '1' : false
             }));
+            const statusEmoji = getStatusEmoji(item);
             const card = document.createElement('div');
             card.className = 'game-card';
             card.innerHTML = `
+                ${statusEmoji ? `<div class='status-emoji'>${statusEmoji}</div>` : ''}
                 ${thumbUrl ? `<img src='${thumbUrl}' alt='${name} thumbnail' class='game-thumb'>` : ''}
                 <div class='game-info'>
                     <div class='game-title'>${name}</div>
@@ -212,6 +415,10 @@
             };
             gameList.appendChild(card);
         });
+
+        loadedCount += nextItems.length;
+        loading = false;
+    }
 
     function showGameModal(data) {
         const modal = document.createElement('div');
@@ -243,9 +450,11 @@
         document.getElementById('closeGameModalBtn').onclick = () => {
             document.body.removeChild(modal);
         };
-    }
-        loadedCount += nextItems.length;
-        loading = false;
+        modal.onclick = (e) => {
+            if (e.target === modal) {
+                document.body.removeChild(modal);
+            }
+        };
     }
 
     window.addEventListener('scroll', () => {
@@ -268,6 +477,13 @@
     closeFilterSortBtn.onclick = () => {
         filterSortModal.style.display = 'none';
     };
+    
+    // Click outside modal to close
+    filterSortModal.onclick = (e) => {
+        if (e.target === filterSortModal) {
+            filterSortModal.style.display = 'none';
+        }
+    };
     applyFilterSortBtn.onclick = () => {
         const nameVal = document.getElementById('filterName').value.trim().toLowerCase();
         const statusFields = ['own','fortrade','want','wanttoplay','wanttobuy','prevowned','wishlist'];
@@ -278,11 +494,22 @@
         const sortBy = document.getElementById('sortBy').value;
         filteredItems = allItems.filter(item => {
             const name = item.querySelector('name')?.textContent.toLowerCase() || '';
+            const status = item.querySelector('status');
             let match = true;
+            
+            // Name filter - must contain the search term
             if (nameVal && !name.includes(nameVal)) match = false;
+            
+            // Status filters - AND-ed together
             for (const f of statusFields) {
-                if (statusVals[f] === 'yes' && (!item.getAttribute(f) || item.getAttribute(f) !== '1')) match = false;
-                if (statusVals[f] === 'no' && item.getAttribute(f) === '1') match = false;
+                const statusValue = status ? status.getAttribute(f) : null;
+                if (statusVals[f] === 'yes' && statusValue !== '1') {
+                    match = false; // Must have this status but doesn't
+                }
+                if (statusVals[f] === 'no' && statusValue === '1') {
+                    match = false; // Must NOT have this status but does
+                }
+                // If statusVals[f] === 'any', we don't filter by this status (include all)
             }
             return match;
         });
@@ -318,6 +545,132 @@
     };
 
     fetchCollection('sportomax');
+    
+    // Display mode toggle
+    const listModeBtn = document.getElementById('listModeBtn');
+    const cardModeBtn = document.getElementById('cardModeBtn');
+    const cardDeckView = document.getElementById('cardDeckView');
+    
+    listModeBtn.onclick = () => {
+        currentDisplayMode = 'list';
+        listModeBtn.classList.add('active');
+        cardModeBtn.classList.remove('active');
+        cardDeckView.style.display = 'none';
+    };
+    
+    cardModeBtn.onclick = () => {
+        if (filteredItems.length === 0) {
+            alert('No games to display in card view.');
+            return;
+        }
+        currentDisplayMode = 'cards';
+        cardModeBtn.classList.add('active');
+        listModeBtn.classList.remove('active');
+        currentCardIndex = 0;
+        showCardView();
+    };
+    
+    // Card view functionality
+    function showCardView() {
+        if (filteredItems.length === 0) return;
+        
+        cardDeckView.style.display = 'flex';
+        updateCurrentCard();
+    }
+    
+    function updateCurrentCard() {
+        if (currentCardIndex < 0) currentCardIndex = 0;
+        if (currentCardIndex >= filteredItems.length) currentCardIndex = filteredItems.length - 1;
+        
+        const item = filteredItems[currentCardIndex];
+        const name = item.querySelector('name')?.textContent || 'Unknown';
+        const thumbUrl = item.querySelector('thumbnail')?.textContent || '';
+        const imageUrl = item.querySelector('image')?.textContent || thumbUrl;
+        const year = item.querySelector('yearpublished')?.textContent || '';
+        const plays = item.querySelector('numplays')?.textContent || '0';
+        const rating = item.querySelector('stats rating')?.getAttribute('value') || '';
+        const statusEmoji = getStatusEmoji(item);
+        
+        document.getElementById('fullCardTitle').textContent = name;
+        document.getElementById('fullCardImage').src = imageUrl || thumbUrl || '';
+        document.getElementById('fullCardImage').alt = `${name} image`;
+        document.getElementById('fullCardEmoji').textContent = statusEmoji;
+        document.getElementById('fullCardEmoji').style.display = statusEmoji ? 'flex' : 'none';
+        document.getElementById('fullCardDetails').innerHTML = `
+            <b>Year:</b> ${year}<br>
+            <b>Plays:</b> ${plays}<br>
+            <b>Rating:</b> ${rating || 'N/A'}
+        `;
+        document.getElementById('cardCounter').textContent = `${currentCardIndex + 1} / ${filteredItems.length}`;
+    }
+    
+    // Card navigation
+    document.getElementById('prevCardBtn').onclick = () => {
+        currentCardIndex--;
+        updateCurrentCard();
+    };
+    
+    document.getElementById('nextCardBtn').onclick = () => {
+        currentCardIndex++;
+        updateCurrentCard();
+    };
+    
+    document.getElementById('closeCardViewBtn').onclick = () => {
+        cardDeckView.style.display = 'none';
+        currentDisplayMode = 'list';
+        listModeBtn.classList.add('active');
+        cardModeBtn.classList.remove('active');
+    };
+    
+    // Touch/swipe functionality for cards
+    let startX = 0;
+    let startY = 0;
+    const fullCard = document.getElementById('fullCard');
+    
+    fullCard.addEventListener('touchstart', (e) => {
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+    });
+    
+    fullCard.addEventListener('touchend', (e) => {
+        const endX = e.changedTouches[0].clientX;
+        const endY = e.changedTouches[0].clientY;
+        const diffX = startX - endX;
+        const diffY = startY - endY;
+        
+        // Only trigger swipe if horizontal movement is greater than vertical
+        if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50) {
+            if (diffX > 0) {
+                // Swipe left - next card
+                currentCardIndex++;
+                updateCurrentCard();
+            } else {
+                // Swipe right - previous card
+                currentCardIndex--;
+                updateCurrentCard();
+            }
+        }
+    });
+    
+    // Tap to show detailed modal in card view
+    fullCard.addEventListener('click', () => {
+        if (filteredItems.length > 0) {
+            const item = filteredItems[currentCardIndex];
+            const name = item.querySelector('name')?.textContent || 'Unknown';
+            const gameId = item.getAttribute('objectid') || '';
+            const thumbUrl = item.querySelector('thumbnail')?.textContent || '';
+            const year = item.querySelector('yearpublished')?.textContent || '';
+            const plays = item.querySelector('numplays')?.textContent || '0';
+            const rating = item.querySelector('stats rating')?.getAttribute('value') || '';
+            const bggLink = gameId ? `https://boardgamegeek.com/boardgame/${gameId}` : '';
+            const status = item.querySelector('status');
+            const statuses = ['own','fortrade','want','wanttoplay','wanttobuy','prevowned','wishlist'].map(f => ({
+                label: f.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase()),
+                value: status ? status.getAttribute(f) === '1' : false
+            }));
+            showGameModal({name, thumbUrl, year, plays, rating, bggLink, statuses});
+        }
+    });
     </script>
 </body>
 </html>
