@@ -134,17 +134,31 @@
 
     async function fetchGames() {
         const gamesCardWrapper = document.getElementById('gamesCardWrapper');
+        gamesCardWrapper.innerHTML = '<div style="text-align:center; color:#888; font-size:1.1em;">Loading all games...</div>';
+        let allItems = [];
+        let page = 1;
+        let totalPages = 1;
         try {
-            const resp = await fetch('https://tabletop.events/api/library/0AEB11DA-2B7D-11EC-B400-855F800FD618/librarygames');
-            if (!resp.ok) throw new Error('Failed to fetch games');
-            const data = await resp.json();
-            const items = data.result && Array.isArray(data.result.items) ? data.result.items : [];
-            if (items.length === 0) {
-                gamesCardWrapper.innerHTML = '<div style="text-align:center; color:#888;">No games found.</div>';
-                return;
-            }
+            do {
+                const apiUrl = `https://tabletop.events/api/library/0AEB11DA-2B7D-11EC-B400-855F800FD618/librarygames?page=${page}`;
+                console.log(`Fetching API page: ${page} | URL: ${apiUrl}`);
+                const resp = await fetch(apiUrl);
+                if (!resp.ok) throw new Error('Failed to fetch games');
+                const data = await resp.json();
+                const items = data.result && Array.isArray(data.result.items) ? data.result.items : [];
+                console.log(`API page ${page} returned ${items.length} items.`);
+                if (page === 1 && data.paging && data.paging.total_pages) {
+                    console.log(`Total pages reported by API: ${data.paging.total_pages}`);
+                }
+                if (items.length === 0) break;
+                allItems = allItems.concat(items);
+                if (data.paging && data.paging.total_pages) {
+                    totalPages = data.paging.total_pages;
+                }
+                page++;
+            } while (page <= totalPages);
             // Filter out games with blank location
-            const filteredItems = items.filter(game => {
+            const filteredItems = allItems.filter(game => {
                 let loc = game.Location || (game.custom_fields && game.custom_fields.Location);
                 return loc !== undefined && loc !== null && String(loc).trim() !== '';
             });
@@ -167,6 +181,7 @@
                 const condition = game.overall_condition || '';
                 const bggId = game.bgg_id || '';
                 html += `<div class='game-card' id='gamecard-${i}' style='background:#fff; border-radius:12px; box-shadow:0 2px 12px #0001; margin-bottom:1em; padding:1em 1.2em;'>
+                    <div style='font-size:1em; color:#1976d2; font-weight:700; margin-bottom:0.2em;'>#${i + 1}</div>
                     <img src='' alt='' class='game-thumb' style='width:80px; height:80px; border-radius:12px; margin-bottom:1em; object-fit:cover; display:none;'>
                     <div class='game-title' style='font-size:1.2em; font-weight:600; margin-bottom:0.3em;'>${name}</div>
                     <div class='game-details' style='font-size:0.98em; color:#555;'>
