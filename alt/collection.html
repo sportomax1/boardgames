@@ -343,14 +343,16 @@
         const status = item.querySelector('status');
         if (!status) return '';
         
-        // Priority order: own > wanttoplay > wanttobuy > wantintrade > prevowned > fortrade
-        if (status.getAttribute('own') === '1') return '✅';
-        if (status.getAttribute('wanttoplay') === '1') return '🎮';
-        if (status.getAttribute('wanttobuy') === '1') return '🛒';
-        if (status.getAttribute('wantintrade') === '1') return '🔄';
-        if (status.getAttribute('prevowned') === '1') return '⏪';
-        if (status.getAttribute('fortrade') === '1') return '📤';
-        return '';
+        let emojis = [];
+        if (status.getAttribute('own') === '1') emojis.push('✅');
+        if (status.getAttribute('wanttoplay') === '1') emojis.push('🎮');
+        if (status.getAttribute('wanttobuy') === '1') emojis.push('🛒');
+        if (status.getAttribute('wantintrade') === '1') emojis.push('🔄');
+        if (status.getAttribute('prevowned') === '1') emojis.push('⏪');
+        if (status.getAttribute('fortrade') === '1') emojis.push('📤');
+        if (status.getAttribute('wishlist') === '1') emojis.push('⭐');
+        
+        return emojis.join('');
     }
 
     async function fetchCollection(username) {

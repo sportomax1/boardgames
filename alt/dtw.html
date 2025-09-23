@@ -37,6 +37,14 @@
             display: flex;
             flex-direction: row;
             align-items: center;
+            position: relative;
+        }
+        .status-emoji {
+            position: absolute;
+            top: 0.5em;
+            right: 0.5em;
+            font-size: 1.2em;
+            z-index: 1;
         }
         .game-thumb {
             width: 64px;
@@ -80,11 +88,62 @@
     let loadedCount = 0;
     const PAGE_SIZE = 50;
     let loading = false;
+    let userCollection = {};
+
+    // Load user collection for status emojis
+    async function loadUserCollection() {
+        const username = 'sportomax';
+        try {
+            const response = await fetch(`https://boardgamegeek.com/xmlapi2/collection?username=${username}&stats=1`);
+            const text = await response.text();
+            const parser = new DOMParser();
+            const xml = parser.parseFromString(text, 'text/xml');
+            
+            const items = xml.querySelectorAll('item');
+            items.forEach(item => {
+                const objectid = item.getAttribute('objectid');
+                const owned = item.querySelector('status')?.getAttribute('own') === '1';
+                const fortrade = item.querySelector('status')?.getAttribute('fortrade') === '1';
+                const want = item.querySelector('status')?.getAttribute('want') === '1';
+                const wanttoplay = item.querySelector('status')?.getAttribute('wanttoplay') === '1';
+                const wanttobuy = item.querySelector('status')?.getAttribute('wanttobuy') === '1';
+                const prevowned = item.querySelector('status')?.getAttribute('prevowned') === '1';
+                const wishlist = item.querySelector('status')?.getAttribute('wishlist') === '1';
+                
+                userCollection[objectid] = {
+                    owned, fortrade, want, wanttoplay, wanttobuy, prevowned, wishlist
+                };
+            });
+        } catch (error) {
+            console.error('Error loading user collection:', error);
+        }
+    }
+
+    // Get collection status emoji
+    function getStatusEmoji(gameId) {
+        const status = userCollection[gameId];
+        if (!status) return '';
+        
+        let emojis = [];
+        if (status.owned) emojis.push('✅');
+        if (status.wanttoplay) emojis.push('🎮');
+        if (status.wanttobuy) emojis.push('🛒');
+        if (status.want) emojis.push('🔄');
+        if (status.prevowned) emojis.push('⏪');
+        if (status.fortrade) emojis.push('📤');
+        if (status.wishlist) emojis.push('⭐');
+        
+        return emojis.join('');
+    }
 
     async function fetchCollection() {
         const username = 'dtwlibrary';
         const gameList = document.getElementById('gameList');
         gameList.innerHTML = '<div style="text-align:center; color:#888; font-size:1.1em;">Loading...</div>';
+        
+        // Load user collection first for emoji status
+        await loadUserCollection();
+        
         try {
             const resp = await fetch(`https://boardgamegeek.com/xmlapi2/collection?stats=1&username=${encodeURIComponent(username)}`);
             if (!resp.ok) throw new Error('Failed to fetch collection');
@@ -122,9 +181,13 @@
                 label: f.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase()),
                 value: item.getAttribute(f) === '1'
             }));
+            
+            const statusEmoji = getStatusEmoji(gameId);
+            
             const card = document.createElement('div');
             card.className = 'game-card';
             card.innerHTML = `
+                ${statusEmoji ? `<div class="status-emoji">${statusEmoji}</div>` : ''}
                 ${thumbUrl ? `<img src='${thumbUrl}' alt='${name} thumbnail' class='game-thumb'>` : ''}
                 <div class='game-info'>
                     <div class='game-title'>${name}</div>
