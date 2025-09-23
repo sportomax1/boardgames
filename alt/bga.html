@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, viewport-fit=cover">
+    <title>Board Game Arena - Boardgames Hub</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: #f7f7fa;
+            color: #222;
+        }
+        .container {
+            max-width: 430px;
+            margin: 0 auto;
+            padding: 2em 1em 1em 1em;
+            padding-top: calc(2em + env(safe-area-inset-top));
+            padding-bottom: calc(1em + env(safe-area-inset-bottom));
+            box-sizing: border-box;
+            min-height: 100vh;
+        }
+        h1 {
+            font-size: 1.7em;
+            margin-bottom: 1em;
+            text-align: center;
+            color: #1976d2;
+        }
+        .header-info {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px #0001;
+            margin-bottom: 1.5em;
+            padding: 1em 1.2em;
+            text-align: center;
+        }
+        .header-info img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin-bottom: 0.5em;
+        }
+        .search-container {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px #0001;
+            margin-bottom: 1.5em;
+            padding: 1em 1.2em;
+        }
+        .search-input {
+            width: 100%;
+            font-size: 1.1em;
+            padding: 0.8em 1em;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            box-sizing: border-box;
+            min-height: 44px;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+        .game-count {
+            text-align: center;
+            margin: 1em 0;
+            font-size: 1em;
+            color: #666;
+        }
+        .game-list {
+            margin-top: 1em;
+        }
+        .game-card {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px #0001;
+            margin-bottom: 1em;
+            padding: 1em 1.2em;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            position: relative;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+        .game-thumbnail {
+            width: 60px;
+            height: 60px;
+            border-radius: 8px;
+            margin-right: 1em;
+            object-fit: cover;
+            flex-shrink: 0;
+        }
+        .status-emoji {
+            position: absolute;
+            top: 0.5em;
+            right: 0.5em;
+            font-size: 1.2em;
+            z-index: 1;
+        }
+        .game-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px #0002;
+        }
+        .game-info {
+            flex: 1;
+        }
+        .game-title {
+            font-size: 1.1em;
+            font-weight: 600;
+            margin-bottom: 0.3em;
+            color: #222;
+            line-height: 1.3;
+        }
+        .game-details {
+            font-size: 0.9em;
+            color: #666;
+            line-height: 1.4;
+        }
+        .bga-link {
+            background: #ff6b35;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 0.5em 1em;
+            font-size: 0.9em;
+            font-weight: 600;
+            text-decoration: none;
+            display: none;
+            margin-top: 0.5em;
+            min-height: 36px;
+            line-height: 1.2;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+        .loading {
+            text-align: center;
+            padding: 2em;
+            font-size: 1.1em;
+            color: #666;
+        }
+        .error {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px #0001;
+            padding: 1.5em;
+            text-align: center;
+            color: #d32f2f;
+        }
+        .back-button {
+            background: #666;
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            padding: 0.8em 1.5em;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin-bottom: 1em;
+            min-height: 44px;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+        @media (max-width: 480px) {
+            .container {
+                padding: 1.5em 0.8em 0.8em 0.8em;
+                padding-top: calc(1.5em + env(safe-area-inset-top));
+            }
+            h1 {
+                font-size: 1.5em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="index.html" class="back-button">← Back to Hub</a>
+        <h1>🎲 Board Game Arena Games</h1>
+        
+        <div class="header-info" id="familyInfo" style="display:none;">
+            <img id="familyImage" src="" alt="Board Game Arena">
+            <div id="familyDescription"></div>
+        </div>
+
+        <div class="search-container">
+            <input type="text" id="searchInput" class="search-input" placeholder="Search BGA games...">
+        </div>
+
+        <div class="game-count" id="gameCount"></div>
+        
+        <div id="loadingDiv" class="loading">🎯 Loading Board Game Arena games...</div>
+        <div id="errorDiv" class="error" style="display:none;"></div>
+        <div id="gameList" class="game-list"></div>
+    </div>
+
+    <script>
+        let allGames = [];
+        let filteredGames = [];
+        let userCollection = {};
+
+        // Load user collection for status emojis
+        async function loadUserCollection() {
+            const username = localStorage.getItem('bggUsername') || 'sportomax';
+            try {
+                const response = await fetch(`https://boardgamegeek.com/xmlapi2/collection?username=${username}&stats=1`);
+                const text = await response.text();
+                const parser = new DOMParser();
+                const xml = parser.parseFromString(text, 'text/xml');
+                
+                const items = xml.querySelectorAll('item');
+                items.forEach(item => {
+                    const objectid = item.getAttribute('objectid');
+                    const owned = item.querySelector('status')?.getAttribute('own') === '1';
+                    const fortrade = item.querySelector('status')?.getAttribute('fortrade') === '1';
+                    const want = item.querySelector('status')?.getAttribute('want') === '1';
+                    const wanttoplay = item.querySelector('status')?.getAttribute('wanttoplay') === '1';
+                    const wanttobuy = item.querySelector('status')?.getAttribute('wanttobuy') === '1';
+                    const prevowned = item.querySelector('status')?.getAttribute('prevowned') === '1';
+                    const wishlist = item.querySelector('status')?.getAttribute('wishlist') === '1';
+                    
+                    userCollection[objectid] = {
+                        owned, fortrade, want, wanttoplay, wanttobuy, prevowned, wishlist
+                    };
+                });
+            } catch (error) {
+                console.error('Error loading user collection:', error);
+            }
+        }
+
+        // Get collection status emoji
+        function getStatusEmoji(gameId) {
+            const status = userCollection[gameId];
+            if (!status) return '';
+            
+            let emojis = [];
+            if (status.owned) emojis.push('✅');
+            if (status.wanttoplay) emojis.push('🎮');
+            if (status.wanttobuy) emojis.push('🛒');
+            if (status.want) emojis.push('🔄');
+            if (status.prevowned) emojis.push('⏪');
+            if (status.fortrade) emojis.push('📤');
+            if (status.wishlist) emojis.push('⭐');
+            
+            return emojis.join('');
+        }
+
+        // Fetch game details from BGG Thing API
+        async function fetchGameDetails(gameId) {
+            try {
+                const response = await fetch(`https://boardgamegeek.com/xmlapi2/thing?id=${gameId}&stats=1`);
+                const text = await response.text();
+                const parser = new DOMParser();
+                const xml = parser.parseFromString(text, 'text/xml');
+                
+                const item = xml.querySelector('item');
+                const thumbnail = item?.querySelector('thumbnail')?.textContent || '';
+                const rank = item?.querySelector('statistics ranks rank[name="boardgame"]')?.getAttribute('value') || 'Unranked';
+                const rating = item?.querySelector('statistics rating average')?.getAttribute('value') || 'N/A';
+                
+                return {
+                    thumbnail,
+                    rank: rank === 'Not Ranked' ? 'Unranked' : rank,
+                    rating: rating !== 'N/A' ? parseFloat(rating).toFixed(1) : 'N/A'
+                };
+            } catch (error) {
+                console.error(`Error fetching details for game ${gameId}:`, error);
+                return { thumbnail: '', rank: 'Unranked', rating: 'N/A' };
+            }
+        }
+
+        // Load BGA games from BoardGameGeek API
+        async function loadBGAGames() {
+            try {
+                // Load user collection first
+                await loadUserCollection();
+                
+                const response = await fetch('https://boardgamegeek.com/xmlapi2/family?id=70360');
+                const text = await response.text();
+                const parser = new DOMParser();
+                const xml = parser.parseFromString(text, 'text/xml');
+                
+                // Parse family info
+                const familyItem = xml.querySelector('item[type="boardgamefamily"]');
+                if (familyItem) {
+                    const thumbnail = familyItem.querySelector('thumbnail')?.textContent;
+                    const description = familyItem.querySelector('description')?.textContent;
+                    
+                    if (thumbnail) {
+                        document.getElementById('familyImage').src = thumbnail;
+                        document.getElementById('familyInfo').style.display = 'block';
+                    }
+                    
+                    if (description) {
+                        // Clean up description
+                        const cleanDesc = description.replace(/&#10;/g, '\n').replace(/\n\n+/g, '\n\n').trim();
+                        const shortDesc = cleanDesc.split('\n\n')[0]; // Get first paragraph
+                        document.getElementById('familyDescription').textContent = shortDesc;
+                    }
+                }
+                
+                // Parse linked games
+                const links = xml.querySelectorAll('link[type="boardgamefamily"]');
+                allGames = Array.from(links).map(link => {
+                    const id = link.getAttribute('id');
+                    const name = link.getAttribute('value');
+                    return {
+                        id: id,
+                        name: name,
+                        thumbnail: '', // Will be loaded later
+                        rank: 'Loading...', // Will be loaded later
+                        rating: 'Loading...', // Will be loaded later
+                        bgaUrl: `https://boardgamearena.com/gamepanel?game=${name.toLowerCase().replace(/[^a-z0-9]/g, '')}`
+                    };
+                }).filter(game => game.name && game.name !== ''); // Filter out empty names
+                
+                // Sort games alphabetically
+                allGames.sort((a, b) => a.name.localeCompare(b.name));
+                
+                filteredGames = [...allGames];
+                displayGames();
+                updateGameCount();
+                
+                // Load details and thumbnails for visible games
+                loadDetailsForVisibleGames();
+                
+                document.getElementById('loadingDiv').style.display = 'none';
+                
+            } catch (error) {
+                console.error('Error loading BGA games:', error);
+                document.getElementById('loadingDiv').style.display = 'none';
+                document.getElementById('errorDiv').style.display = 'block';
+                document.getElementById('errorDiv').textContent = 'Error loading Board Game Arena games. Please try again later.';
+            }
+        }
+
+        // Load details for the first batch of visible games
+        async function loadDetailsForVisibleGames() {
+            const visibleGames = filteredGames.slice(0, 20); // Load first 20 games' details
+            
+            for (const game of visibleGames) {
+                if (!game.thumbnail || game.rank === 'Loading...') {
+                    const details = await fetchGameDetails(game.id);
+                    game.thumbnail = details.thumbnail;
+                    game.rank = details.rank;
+                    game.rating = details.rating;
+                    
+                    // Update the specific game card
+                    const gameCard = document.querySelector(`[data-game-id="${game.id}"]`);
+                    if (gameCard) {
+                        const img = gameCard.querySelector('.game-thumbnail');
+                        const rankSpan = gameCard.querySelector('.game-rank');
+                        const ratingSpan = gameCard.querySelector('.game-rating');
+                        
+                        if (img && game.thumbnail) {
+                            img.src = game.thumbnail;
+                            img.style.display = 'block';
+                        }
+                        if (rankSpan) {
+                            rankSpan.textContent = `Rank: ${game.rank}`;
+                        }
+                        if (ratingSpan) {
+                            ratingSpan.textContent = `Rating: ${game.rating}`;
+                        }
+                    }
+                }
+                // Small delay to avoid overwhelming the API
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+        }
+
+        function displayGames() {
+            const gameList = document.getElementById('gameList');
+            gameList.innerHTML = '';
+            
+            filteredGames.forEach(game => {
+                const gameCard = document.createElement('div');
+                gameCard.className = 'game-card';
+                gameCard.setAttribute('data-game-id', game.id);
+                
+                // Create a more reliable BGA URL
+                const bgaGameName = game.name.toLowerCase()
+                    .replace(/[^a-z0-9\s]/g, '') // Remove special characters
+                    .replace(/\s+/g, '') // Remove spaces
+                    .substring(0, 20); // Limit length
+                
+                const statusEmoji = getStatusEmoji(game.id);
+                const thumbnailDisplay = game.thumbnail ? 
+                    `<img src="${game.thumbnail}" alt="${game.name}" class="game-thumbnail">` :
+                    `<img src="" alt="${game.name}" class="game-thumbnail" style="display:none;">`;
+                
+                gameCard.innerHTML = `
+                    ${statusEmoji ? `<div class="status-emoji">${statusEmoji}</div>` : ''}
+                    ${thumbnailDisplay}
+                    <div class="game-info">
+                        <div class="game-title">${game.name}</div>
+                        <div class="game-details">
+                            <span class="game-rank">Rank: ${game.rank}</span><br>
+                            <span class="game-rating">Rating: ${game.rating}</span><br>
+                            BGG ID: ${game.id}
+                        </div>
+                    </div>
+                `;
+                
+                // Make card clickable to open BGG page
+                gameCard.addEventListener('click', () => {
+                    window.open(`https://boardgamegeek.com/boardgame/${game.id}`, '_blank');
+                });
+                
+                gameList.appendChild(gameCard);
+            });
+        }
+
+        function updateGameCount() {
+            const count = filteredGames.length;
+            const total = allGames.length;
+            document.getElementById('gameCount').textContent = 
+                `Showing ${count} of ${total} games available on Board Game Arena`;
+        }
+
+        // Search functionality
+        document.getElementById('searchInput').addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase().trim();
+            
+            if (searchTerm === '') {
+                filteredGames = [...allGames];
+            } else {
+                filteredGames = allGames.filter(game => 
+                    game.name.toLowerCase().includes(searchTerm)
+                );
+            }
+            
+            displayGames();
+            updateGameCount();
+            
+            // Load details for newly filtered games
+            if (filteredGames.length <= 20) {
+                loadDetailsForVisibleGames();
+            }
+        });
+
+        // Load games when page loads
+        window.addEventListener('load', loadBGAGames);
+    </script>
+</body>
+</html>
