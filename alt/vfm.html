@@ -23,6 +23,7 @@
         <div style="margin-bottom:1em; text-align:center; display:flex; flex-direction:row; justify-content:center; align-items:center; gap:0.7em; flex-wrap:wrap;">
             <button id="analyticsBtn" style="background:#43a047; color:#fff; border:none; border-radius:10px; padding:0.7em 1.4em; font-size:1em; font-weight:600; cursor:pointer; min-height:44px; -webkit-appearance:none; appearance:none;">Analytics</button>
             <button id="statusFilterBtn" style="background:#1976d2; color:#fff; border:none; border-radius:10px; padding:0.7em 1.4em; font-size:1em; font-weight:600; cursor:pointer; min-height:44px; -webkit-appearance:none; appearance:none;">Filter by Status</button>
+            <button id="geeklistFilterBtn" style="background:#8e24aa; color:#fff; border:none; border-radius:10px; padding:0.7em 1.4em; font-size:1em; font-weight:600; cursor:pointer; min-height:44px; -webkit-appearance:none; appearance:none;">Select Geeklists</button>
             <select id="statusFilterSelect" style="font-size:1em; padding:0.6em 1em; border-radius:10px; border:1px solid #bbb; display:none; min-height:44px; -webkit-appearance:none; appearance:none;">
                 <option value="">All</option>
                 <option value="own">✅ Own</option>
@@ -32,6 +33,15 @@
                 <option value="prevowned">⏪ Previously Owned</option>
                 <option value="tradingaway">📤 Trading Away</option>
             </select>
+        </div>
+        <div id="geeklistFilterPanel" style="display:none; background:#f7f7fa; border-radius:10px; padding:1em; margin-bottom:1em; border:2px solid #8e24aa;">
+            <div style="font-weight:600; margin-bottom:0.7em; color:#8e24aa;">Select Geeklists to Include:</div>
+            <div id="geeklistCheckboxes" style="display:grid; grid-template-columns:1fr; gap:0.5em;"></div>
+            <div style="margin-top:1em; display:flex; gap:0.5em; justify-content:center;">
+                <button id="selectAllGeeklists" style="background:#43a047; color:#fff; border:none; border-radius:8px; padding:0.5em 1em; font-size:0.9em; cursor:pointer;">Select All</button>
+                <button id="deselectAllGeeklists" style="background:#ff4136; color:#fff; border:none; border-radius:8px; padding:0.5em 1em; font-size:0.9em; cursor:pointer;">Deselect All</button>
+                <button id="applyGeeklistFilter" style="background:#8e24aa; color:#fff; border:none; border-radius:8px; padding:0.5em 1em; font-size:0.9em; cursor:pointer; font-weight:600;">Apply Filter</button>
+            </div>
         </div>
         <!-- <div id="emojiDesc" style="background:#f7f7fa; border-radius:8px; padding:0.7em 1em; font-size:1em; color:#333; margin-bottom:1em;">
             <b>Status Emoji Legend:</b><br>
@@ -57,6 +67,7 @@
     </div>
     <script>
     const geeklists = [
+        { id: 363504, name: "BGG.CON VFM 2025" },
         { id: 342440, name: "BGG.CON VFM 2024" },
         { id: 321725, name: "BGG.CON VFM 2023" },
         { id: 349103, name: "DTW VFM 2025" },
@@ -96,6 +107,7 @@
     let loading = false;
     let currentStatusFilter = '';
     let currentFilterMode = 'contains'; // Default to contains
+    let selectedGeeklists = new Set(geeklists.map(g => g.id)); // Start with all selected
     const loadMoreWrapper = document.getElementById('loadMoreWrapper');
     const filterInput = document.getElementById('filterInput');
 
@@ -172,13 +184,20 @@
         loading = true;
         for (let g = 0; g < geeklists.length; g++) {
             const geeklist = geeklists[g];
+            console.log(`Fetching geeklist: ${geeklist.name} (ID: ${geeklist.id})`);
             try {
                 const resp = await fetch(`https://boardgamegeek.com/xmlapi/geeklist/${geeklist.id}`);
-                if (!resp.ok) continue;
+                console.log(`Response status for ${geeklist.name}:`, resp.status);
+                if (!resp.ok) {
+                    console.error(`Failed to fetch ${geeklist.name}: ${resp.status} ${resp.statusText}`);
+                    continue;
+                }
                 const xml = await resp.text();
+                console.log(`XML length for ${geeklist.name}:`, xml.length);
                 const parser = new window.DOMParser();
                 const doc = parser.parseFromString(xml, 'text/xml');
                 const items = Array.from(doc.querySelectorAll('item'));
+                console.log(`Items found in ${geeklist.name}:`, items.length);
                 for (let i = 0; i < items.length; i++) {
                     const item = items[i];
                     allItems.push({
@@ -194,6 +213,7 @@
                     });
                 }
             } catch (e) {
+                console.error(`Error fetching geeklist ${geeklist.name}:`, e);
                 // skip geeklist on error
             }
         }
@@ -203,15 +223,21 @@
             const db = new Date(b.postdate);
             return db - da;
         });
+        console.log(`Total items loaded from all geeklists: ${allItems.length}`);
+        console.log('Items per geeklist:', geeklists.map(g => ({
+            name: g.name,
+            count: allItems.filter(item => item.geeklistId === g.id).length
+        })));
         loading = false;
         renderItems();
     }
 
     function renderItems(filter = '') {
-        let filtered = allItems;
+        let filtered = allItems.filter(item => selectedGeeklists.has(item.geeklistId));
+        
         if (filter) {
             const f = filter.toLowerCase();
-            filtered = allItems.filter(r => {
+            filtered = filtered.filter(r => {
                 const name = r.name.toLowerCase();
                 if (currentFilterMode === 'exact') {
                     return name === f;
@@ -309,8 +335,29 @@
                 else if (userPrevOwned.has(item.objectId)) { statusEmoji = '⏪'; statusTitle = 'Previously Owned'; }
                 else if (userTradingAway.has(item.objectId)) { statusEmoji = '📤'; statusTitle = 'Trading Away'; }
             }
+            
+            // Calculate time since posting (only if within last 24 hours)
+            let timeIndicator = '';
+            if (item.postdate) {
+                const postDate = new Date(item.postdate);
+                const now = new Date();
+                const diffMs = now - postDate;
+                const diffHours = diffMs / (1000 * 60 * 60);
+                
+                if (diffHours <= 24) {
+                    if (diffHours < 1) {
+                        const diffMinutes = Math.floor(diffMs / (1000 * 60));
+                        timeIndicator = `<span style='position:absolute; bottom:8px; right:12px; background:rgba(233,30,99,0.9); color:white; padding:0.2em 0.5em; border-radius:12px; font-size:0.75em; font-weight:600; z-index:2;'>${diffMinutes}m ago</span>`;
+                    } else {
+                        const hours = Math.floor(diffHours);
+                        timeIndicator = `<span style='position:absolute; bottom:8px; right:12px; background:rgba(233,30,99,0.9); color:white; padding:0.2em 0.5em; border-radius:12px; font-size:0.75em; font-weight:600; z-index:2;'>${hours}h ago</span>`;
+                    }
+                }
+            }
+            
             html += `<div class='game-card' id='vfmcard-${idx}' style='border:${borderColor}; position:relative;'>
                 ${statusEmoji ? `<span style='position:absolute; top:8px; right:12px; font-size:1.7em; z-index:2;' title='${statusTitle}'>${statusEmoji}</span>` : ''}
+                ${timeIndicator}
                 <img src='' alt='' class='game-thumb' style='width:64px; height:64px; border-radius:10px; margin-right:1em; object-fit:cover; display:none;'>
                 <div class='game-info'>
                     <div class='game-title'>${item.name}</div>
@@ -566,6 +613,96 @@
     };
     statusFilterSelect.onchange = (e) => {
         currentStatusFilter = e.target.value;
+        loadedCount = 0;
+        renderItems(filterInput.value.trim());
+    };
+    
+    // Geeklist filter logic
+    const geeklistFilterBtn = document.getElementById('geeklistFilterBtn');
+    const geeklistFilterPanel = document.getElementById('geeklistFilterPanel');
+    const geeklistCheckboxes = document.getElementById('geeklistCheckboxes');
+    
+    // Initialize geeklist checkboxes
+    function initializeGeeklistFilter() {
+        geeklistCheckboxes.innerHTML = '';
+        geeklists.forEach(geeklist => {
+            const checkboxDiv = document.createElement('div');
+            checkboxDiv.style.display = 'flex';
+            checkboxDiv.style.alignItems = 'center';
+            checkboxDiv.style.gap = '0.5em';
+            checkboxDiv.style.padding = '0.3em 0';
+            
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = `geeklist-${geeklist.id}`;
+            checkbox.checked = selectedGeeklists.has(geeklist.id);
+            checkbox.style.transform = 'scale(1.2)';
+            
+            const label = document.createElement('label');
+            label.htmlFor = `geeklist-${geeklist.id}`;
+            label.textContent = geeklist.name;
+            label.style.fontSize = '0.95em';
+            label.style.cursor = 'pointer';
+            label.style.flex = '1';
+            
+            // Add item count
+            const count = allItems.filter(item => item.geeklistId === geeklist.id).length;
+            const countSpan = document.createElement('span');
+            countSpan.textContent = `(${count})`;
+            countSpan.style.fontSize = '0.85em';
+            countSpan.style.color = '#666';
+            countSpan.style.marginLeft = '0.3em';
+            
+            checkboxDiv.appendChild(checkbox);
+            checkboxDiv.appendChild(label);
+            checkboxDiv.appendChild(countSpan);
+            geeklistCheckboxes.appendChild(checkboxDiv);
+        });
+    }
+    
+    geeklistFilterBtn.onclick = () => {
+        const isVisible = geeklistFilterPanel.style.display !== 'none';
+        geeklistFilterPanel.style.display = isVisible ? 'none' : 'block';
+        if (!isVisible) {
+            initializeGeeklistFilter();
+        }
+    };
+    
+    document.getElementById('selectAllGeeklists').onclick = () => {
+        geeklists.forEach(geeklist => {
+            const checkbox = document.getElementById(`geeklist-${geeklist.id}`);
+            if (checkbox) checkbox.checked = true;
+        });
+    };
+    
+    document.getElementById('deselectAllGeeklists').onclick = () => {
+        geeklists.forEach(geeklist => {
+            const checkbox = document.getElementById(`geeklist-${geeklist.id}`);
+            if (checkbox) checkbox.checked = false;
+        });
+    };
+    
+    document.getElementById('applyGeeklistFilter').onclick = () => {
+        selectedGeeklists.clear();
+        geeklists.forEach(geeklist => {
+            const checkbox = document.getElementById(`geeklist-${geeklist.id}`);
+            if (checkbox && checkbox.checked) {
+                selectedGeeklists.add(geeklist.id);
+            }
+        });
+        
+        // Update button text to show active filter
+        const selectedCount = selectedGeeklists.size;
+        const totalCount = geeklists.length;
+        if (selectedCount === totalCount) {
+            geeklistFilterBtn.textContent = 'Select Geeklists';
+            geeklistFilterBtn.style.background = '#8e24aa';
+        } else {
+            geeklistFilterBtn.textContent = `Geeklists (${selectedCount}/${totalCount})`;
+            geeklistFilterBtn.style.background = '#f39c12';
+        }
+        
+        geeklistFilterPanel.style.display = 'none';
         loadedCount = 0;
         renderItems(filterInput.value.trim());
     };
