@@ -344,17 +344,25 @@
         }
 
         .touch-area {
-            position: relative;
-            width: 100%;
-            height: min(400px, 50vh);
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
             background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
-            border: 3px solid #374151;
-            border-radius: 20px;
-            margin-bottom: 20px;
+            border: none;
+            border-radius: 0;
+            margin: 0;
             overflow: hidden;
             touch-action: none;
             -webkit-user-select: none;
             user-select: none;
+            z-index: 1000;
+            display: none;
+        }
+
+        .touch-area.active {
+            display: block;
         }
 
         .touch-message {
@@ -362,51 +370,89 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            font-size: 1.2em;
+            font-size: 1.5em;
             color: #6b7280;
             pointer-events: none;
             text-align: center;
+            font-weight: bold;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.8);
         }
 
         .countdown-display {
             position: absolute;
-            top: 20px;
+            top: 30%;
             left: 50%;
             transform: translateX(-50%);
-            font-size: 2em;
+            font-size: 4em;
             font-weight: bold;
             color: #ef4444;
             display: none;
             pointer-events: none;
-            text-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+            text-shadow: 0 0 20px rgba(239, 68, 68, 0.8);
         }
 
         .touch-point {
             position: absolute;
-            width: 60px;
-            height: 60px;
+            width: 80px;
+            height: 80px;
             border-radius: 50%;
-            border: 3px solid white;
+            border: 4px solid white;
             transform: translate(-50%, -50%);
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: bold;
-            font-size: 1.1em;
+            font-size: 1.4em;
             color: white;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
             animation: touchPulse 2s infinite;
             pointer-events: none;
+            box-shadow: 0 0 20px rgba(255,255,255,0.3);
         }
 
         .touch-point.eliminated {
-            animation: fadeOut 1s forwards;
+            animation: eliminationExplosion 1.5s forwards;
         }
 
         .touch-point.winner {
             animation: winnerPulse 2s infinite;
             border-color: #fbbf24;
-            box-shadow: 0 0 20px rgba(251, 191, 36, 0.6);
+            box-shadow: 0 0 30px rgba(251, 191, 36, 0.8);
+        }
+
+        .explosion {
+            position: absolute;
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            animation: explode 1s forwards;
+        }
+
+        .explosion-particle {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ef4444;
+        }
+
+        .close-button {
+            position: absolute;
+            top: env(safe-area-inset-top, 20px);
+            right: env(safe-area-inset-right, 20px);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            font-size: 1.5em;
+            cursor: pointer;
+            z-index: 1001;
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.3);
         }
 
         @keyframes touchPulse {
@@ -414,45 +460,107 @@
             50% { transform: translate(-50%, -50%) scale(1.1); }
         }
 
-        @keyframes fadeOut {
-            0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-            100% { opacity: 0; transform: translate(-50%, -50%) scale(0.3); }
+        @keyframes eliminationExplosion {
+            0% { 
+                opacity: 1; 
+                transform: translate(-50%, -50%) scale(1) rotate(0deg); 
+                filter: brightness(1);
+            }
+            50% { 
+                opacity: 1; 
+                transform: translate(-50%, -50%) scale(1.5) rotate(180deg); 
+                filter: brightness(2) hue-rotate(90deg);
+            }
+            100% { 
+                opacity: 0; 
+                transform: translate(-50%, -50%) scale(0.3) rotate(360deg); 
+                filter: brightness(0);
+            }
+        }
+
+        @keyframes explode {
+            0% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(0);
+            }
+            50% {
+                opacity: 0.8;
+                transform: translate(-50%, -50%) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(2);
+            }
+        }
+
+        @keyframes particleExplode {
+            0% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.3);
+                left: var(--endX);
+                top: var(--endY);
+            }
         }
 
         @keyframes winnerPulse {
-            0%, 100% { transform: translate(-50%, -50%) scale(1); box-shadow: 0 0 20px rgba(251, 191, 36, 0.6); }
-            50% { transform: translate(-50%, -50%) scale(1.2); box-shadow: 0 0 30px rgba(251, 191, 36, 1); }
+            0%, 100% { 
+                transform: translate(-50%, -50%) scale(1); 
+                box-shadow: 0 0 30px rgba(251, 191, 36, 0.8); 
+            }
+            50% { 
+                transform: translate(-50%, -50%) scale(1.3); 
+                box-shadow: 0 0 50px rgba(251, 191, 36, 1); 
+            }
         }
 
         /* Color Picker Method */
         .color-grid {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
             display: grid;
             grid-template-columns: repeat(5, 1fr);
-            gap: 15px;
-            margin-bottom: 25px;
-            max-width: 100%;
+            gap: 20px;
+            padding: env(safe-area-inset-top, 40px) env(safe-area-inset-right, 40px) env(safe-area-inset-bottom, 40px) env(safe-area-inset-left, 40px);
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            z-index: 1000;
+            display: none;
+            align-content: center;
+        }
+
+        .color-grid.active {
+            display: grid;
         }
 
         .color-option {
             aspect-ratio: 1;
-            border-radius: 15px;
-            border: 4px solid transparent;
+            border-radius: 20px;
+            border: 6px solid transparent;
             cursor: pointer;
             transition: all 0.3s ease;
             position: relative;
             overflow: hidden;
-            min-height: 50px;
+            min-height: 80px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            touch-action: manipulation;
         }
 
         .color-option:hover {
             transform: scale(1.05);
             border-color: white;
+            box-shadow: 0 6px 30px rgba(255, 255, 255, 0.2);
         }
 
         .color-option.selected {
             border-color: #fbbf24;
-            transform: scale(1.1);
-            box-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
+            transform: scale(1.15);
+            box-shadow: 0 0 40px rgba(251, 191, 36, 0.8);
         }
 
         .color-option.winner {
@@ -464,12 +572,45 @@
             bottom: 0;
             left: 0;
             right: 0;
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.9);
             color: white;
             text-align: center;
-            padding: 5px;
-            font-size: 0.8em;
+            padding: 8px;
+            font-size: 1em;
             font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+        }
+
+        .color-close-button {
+            position: absolute;
+            top: env(safe-area-inset-top, 20px);
+            right: env(safe-area-inset-right, 20px);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            font-size: 1.8em;
+            cursor: pointer;
+            z-index: 1001;
+            backdrop-filter: blur(10px);
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            touch-action: manipulation;
+        }
+
+        .color-instructions {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: white;
+            font-size: 1.5em;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            z-index: 999;
+            pointer-events: none;
         }
 
         @keyframes colorWinner {
@@ -512,13 +653,24 @@
             }
             
             .touch-area {
-                height: min(350px, 45vh);
+                width: 100vw;
+                height: 100vh;
             }
             
             .touch-point {
-                width: 50px;
-                height: 50px;
-                font-size: 1em;
+                width: 70px;
+                height: 70px;
+                font-size: 1.2em;
+            }
+            
+            .countdown-display {
+                font-size: 3.5em;
+                top: 25%;
+            }
+            
+            .touch-message {
+                font-size: 1.3em;
+                max-width: 80%;
             }
             
             .color-grid {
@@ -557,7 +709,18 @@
             }
             
             .touch-area {
-                height: min(300px, 40vh);
+                width: 100vw;
+                height: 100vh;
+            }
+            
+            .countdown-display {
+                font-size: 3em;
+                top: 20%;
+            }
+            
+            .touch-message {
+                font-size: 1.1em;
+                max-width: 90%;
             }
             
             .touch-instructions h3 {
@@ -572,7 +735,13 @@
 
         @media screen and (max-height: 600px) {
             .touch-area {
-                height: min(250px, 35vh);
+                width: 100vw;
+                height: 100vh;
+            }
+            
+            .countdown-display {
+                font-size: 2.5em;
+                top: 15%;
             }
             
             .prompt-display {
@@ -648,21 +817,34 @@
             <div class="touch-instructions">
                 <h3>🖐️ All players place finger on screen</h3>
                 <p>Each touch will get a different color. Last player remaining wins!</p>
-            </div>
-            <div class="touch-area" id="touchArea">
-                <div class="touch-message">Touch here to begin...</div>
-                <div class="countdown-display" id="countdownDisplay"></div>
+                <p>Game starts automatically when you begin!</p>
             </div>
             <button class="action-button" id="touchStartBtn" onclick="startTouchGame()">👆 START TOUCH GAME</button>
-            <button class="action-button" id="touchResetBtn" onclick="resetTouchGame()" style="display:none;">🔄 RESET</button>
             <div id="touchResult" class="result"></div>
+        </div>
+
+        <!-- Full Screen Touch Area -->
+        <div class="touch-area" id="touchArea">
+            <button class="close-button" onclick="exitTouchGame()">×</button>
+            <div class="touch-message" id="touchMessage">Place all fingers on screen to begin...</div>
+            <div class="countdown-display" id="countdownDisplay"></div>
         </div>
 
         <!-- Color Picker Method -->
         <div id="colorpickerMethod" class="method-content">
-            <div class="color-grid" id="colorGrid"></div>
-            <button class="action-button" onclick="pickRandomColor()">🎨 PICK RANDOM COLOR</button>
+            <div class="touch-instructions">
+                <h3>🎨 Choose your color</h3>
+                <p>Tap any color to select, or pick random for surprise!</p>
+            </div>
+            <button class="action-button" onclick="showColorGrid()">🎨 SHOW COLORS</button>
+            <button class="action-button" onclick="pickRandomColor()">� PICK RANDOM COLOR</button>
             <div id="colorResult" class="result"></div>
+        </div>
+
+        <!-- Full Screen Color Grid -->
+        <div class="color-grid" id="colorGrid">
+            <button class="color-close-button" onclick="hideColorGrid()">×</button>
+            <div class="color-instructions">Tap a color to choose!</div>
         </div>
     </div>
 
@@ -677,8 +859,22 @@
             colors: ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16', '#f97316', '#6366f1'],
             colorIndex: 0,
             eliminationTimer: null,
-            countdownTimer: null
+            countdownTimer: null,
+            eliminationPhase: false,
+            initiationStarted: false
         };
+
+        // Color picker global variables
+        let selectedColors = [];
+        let colorPlayerData = [];
+
+        function showColorGrid() {
+            document.getElementById('colorGrid').style.display = 'flex';
+        }
+
+        function hideColorGrid() {
+            document.getElementById('colorGrid').style.display = 'none';
+        }
 
         // Color picker colors with names
         const colorOptions = [
@@ -800,7 +996,8 @@
             const centerY = containerSize / 2;
             
             for (let i = 0; i < playerCount; i++) {
-                const angle = (i * 360 / playerCount) - 90; // Start at top
+                // Start at bottom (90 degrees) for player 1 (YOU), then go counterclockwise
+                const angle = 90 - (i * 360 / playerCount);
                 const radian = angle * Math.PI / 180;
                 const x = centerX + radius * Math.cos(radian);
                 const y = centerY + radius * Math.sin(radian);
@@ -809,7 +1006,18 @@
                 position.className = 'player-position';
                 position.style.left = x + 'px';
                 position.style.top = y + 'px';
-                position.textContent = i + 1;
+                
+                // Player 1 is "YOU", others are numbered normally
+                if (i === 0) {
+                    position.textContent = 'YOU';
+                    position.style.fontSize = '0.9em';
+                    position.style.fontWeight = 'bold';
+                    position.style.background = '#10b981'; // Different color for YOU
+                    position.style.borderColor = '#059669';
+                } else {
+                    position.textContent = i + 1;
+                }
+                
                 position.dataset.player = i + 1;
                 position.dataset.angle = angle;
                 
@@ -860,14 +1068,14 @@
             setTimeout(() => {
                 // Calculate which player is closest to the arrow
                 const normalizedAngle = (finalAngle % 360 + 360) % 360;
-                const adjustedAngle = (normalizedAngle + 90) % 360; // Adjust for starting position
                 
                 let closestPlayerIndex = 0;
                 let minDistance = Infinity;
                 
                 for (let i = 0; i < playerCount; i++) {
-                    const playerAngle = (i * segmentAngle) % 360;
-                    let distance = Math.abs(adjustedAngle - playerAngle);
+                    // Calculate player angle (inverted: start at bottom, go left/counterclockwise)
+                    const playerAngle = (90 - (i * segmentAngle) + 360) % 360;
+                    let distance = Math.abs(normalizedAngle - playerAngle);
                     if (distance > 180) distance = 360 - distance;
                     
                     if (distance < minDistance) {
@@ -883,7 +1091,11 @@
                 positions[closestPlayerIndex].classList.add('winner');
                 
                 // Show result with celebration
-                result.innerHTML = `🎉 Player ${winnerPlayer} goes first!`;
+                if (closestPlayerIndex === 0) {
+                    result.innerHTML = `🎉 YOU go first!`;
+                } else {
+                    result.innerHTML = `🎉 Player ${winnerPlayer} goes first!`;
+                }
                 result.classList.add('show');
                 
                 // Add haptic feedback on iPhone
@@ -966,42 +1178,31 @@
 
         // Touch Game Functions
         function setupTouchGame() {
-            const touchArea = document.getElementById('touchArea');
-            touchArea.innerHTML = '<div class="touch-message">Touch here to begin...</div><div class="countdown-display" id="countdownDisplay"></div>';
             resetTouchGame();
         }
 
         function startTouchGame() {
             const touchArea = document.getElementById('touchArea');
-            const startBtn = document.getElementById('touchStartBtn');
-            const resetBtn = document.getElementById('touchResetBtn');
             const result = document.getElementById('touchResult');
             
+            // Reset everything
             result.classList.remove('show');
             touchGame.active = true;
             touchGame.touches.clear();
             touchGame.colorIndex = 0;
             
-            startBtn.style.display = 'none';
-            resetBtn.style.display = 'block';
-            
-            touchArea.innerHTML = '<div class="touch-message">All players place fingers on screen now!</div><div class="countdown-display" id="countdownDisplay"></div>';
+            // Show full screen touch area
+            touchArea.classList.add('active');
+            document.getElementById('touchMessage').textContent = 'Place all fingers on screen to begin...';
+            document.getElementById('countdownDisplay').style.display = 'none';
             
             // Add touch event listeners
             touchArea.addEventListener('touchstart', handleTouchStart, { passive: false });
             touchArea.addEventListener('touchmove', handleTouchMove, { passive: false });
             touchArea.addEventListener('touchend', handleTouchEnd, { passive: false });
             
-            // Start elimination countdown after 3 seconds
-            setTimeout(() => {
-                if (touchGame.active && touchGame.touches.size > 1) {
-                    startElimination();
-                } else if (touchGame.active && touchGame.touches.size === 1) {
-                    endTouchGame();
-                } else if (touchGame.active) {
-                    document.querySelector('.touch-message').textContent = 'Need at least 2 players! Touch the screen.';
-                }
-            }, 3000);
+            // Auto-start initiation countdown when first touch detected
+            touchGame.initiationStarted = false;
         }
 
         function handleTouchStart(e) {
@@ -1038,8 +1239,14 @@
                 }
             }
             
+            // Start initiation countdown on first touch
+            if (!touchGame.initiationStarted && touchGame.touches.size > 0) {
+                touchGame.initiationStarted = true;
+                startInitiationCountdown();
+            }
+            
             // Hide the instruction message when touches start
-            const message = document.querySelector('.touch-message');
+            const message = document.getElementById('touchMessage');
             if (message && touchGame.touches.size > 0) {
                 message.style.display = 'none';
             }
@@ -1077,21 +1284,63 @@
             }
             
             // If only one or no touches left during elimination, end the game
-            if (touchGame.touches.size <= 1 && touchGame.eliminationTimer) {
+            if (touchGame.touches.size <= 1 && touchGame.eliminationPhase) {
                 endTouchGame();
             }
         }
 
-        function startElimination() {
+        function startInitiationCountdown() {
+            const countdownDisplay = document.getElementById('countdownDisplay');
+            const message = document.getElementById('touchMessage');
+            
+            countdownDisplay.style.display = 'block';
+            message.textContent = 'Get ready! Elimination starts in...';
+            message.style.display = 'block';
+            
+            let countdown = 5;
+            countdownDisplay.textContent = countdown;
+            
+            touchGame.countdownTimer = setInterval(() => {
+                countdown--;
+                countdownDisplay.textContent = countdown;
+                
+                if (countdown <= 0) {
+                    clearInterval(touchGame.countdownTimer);
+                    countdownDisplay.textContent = 'GO!';
+                    message.textContent = 'Keep your fingers on screen!';
+                    
+                    setTimeout(() => {
+                        startEliminationPhase();
+                    }, 1000);
+                }
+            }, 1000);
+        }
+
+        function startEliminationPhase() {
+            touchGame.eliminationPhase = true;
+            
+            if (touchGame.touches.size <= 1) {
+                endTouchGame();
+                return;
+            }
+            
+            startEliminationCountdown();
+        }
+
+        function startEliminationCountdown() {
             if (touchGame.touches.size <= 1) {
                 endTouchGame();
                 return;
             }
             
             const countdownDisplay = document.getElementById('countdownDisplay');
-            countdownDisplay.style.display = 'block';
+            const message = document.getElementById('touchMessage');
             
-            let countdown = 5;
+            countdownDisplay.style.display = 'block';
+            message.textContent = `${touchGame.touches.size} players remaining...`;
+            message.style.display = 'block';
+            
+            let countdown = 3;
             countdownDisplay.textContent = countdown;
             
             touchGame.countdownTimer = setInterval(() => {
@@ -1116,6 +1365,10 @@
             const randomIndex = Math.floor(Math.random() * activeTouches.length);
             const eliminatedTouch = activeTouches[randomIndex];
             
+            // Create explosion effect
+            createExplosion(eliminatedTouch.x, eliminatedTouch.y, eliminatedTouch.color);
+            
+            // Eliminate the touch point
             eliminatedTouch.element.classList.add('eliminated');
             
             // Remove from active touches
@@ -1128,73 +1381,149 @@
             
             // Add haptic feedback
             if (navigator.vibrate) {
-                navigator.vibrate([100]);
+                navigator.vibrate([200, 100, 200]);
             }
             
-            // Continue elimination after 1.5 seconds
+            // Continue elimination after 2 seconds
             setTimeout(() => {
                 eliminatedTouch.element.remove();
                 
                 if (touchGame.touches.size > 1) {
-                    startElimination();
+                    startEliminationCountdown();
                 } else {
                     endTouchGame();
                 }
-            }, 1500);
+            }, 2000);
+        }
+
+        function createExplosion(x, y, color) {
+            const touchArea = document.getElementById('touchArea');
+            
+            // Create main explosion circle
+            const explosion = document.createElement('div');
+            explosion.className = 'explosion';
+            explosion.style.left = x + 'px';
+            explosion.style.top = y + 'px';
+            explosion.style.background = `radial-gradient(circle, ${color} 0%, transparent 70%)`;
+            touchArea.appendChild(explosion);
+            
+            // Create particle effects
+            for (let i = 0; i < 12; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'explosion-particle';
+                particle.style.backgroundColor = color;
+                particle.style.left = x + 'px';
+                particle.style.top = y + 'px';
+                
+                const angle = (i * 30) * Math.PI / 180;
+                const distance = 60 + Math.random() * 40;
+                const endX = x + Math.cos(angle) * distance;
+                const endY = y + Math.sin(angle) * distance;
+                
+                particle.style.animation = `particleExplode 1s forwards`;
+                particle.style.setProperty('--endX', endX + 'px');
+                particle.style.setProperty('--endY', endY + 'px');
+                
+                touchArea.appendChild(particle);
+                
+                setTimeout(() => particle.remove(), 1000);
+            }
+            
+            setTimeout(() => explosion.remove(), 1000);
         }
 
         function endTouchGame() {
             touchGame.active = false;
+            touchGame.eliminationPhase = false;
+            touchGame.initiationStarted = false;
             clearInterval(touchGame.eliminationTimer);
             clearInterval(touchGame.countdownTimer);
             
             const countdownDisplay = document.getElementById('countdownDisplay');
+            const message = document.getElementById('touchMessage');
             countdownDisplay.style.display = 'none';
             
-            const result = document.getElementById('touchResult');
             const activeTouches = Array.from(touchGame.touches.values());
             
             if (activeTouches.length === 1) {
                 const winner = activeTouches[0];
                 winner.element.classList.add('winner');
-                result.innerHTML = `🎉 Player ${winner.number} (${winner.color}) goes first!`;
-                result.style.color = winner.color;
+                message.textContent = `🎉 Player ${winner.number} WINS!`;
+                message.style.color = winner.color;
+                message.style.display = 'block';
+                
+                // Add haptic feedback for winner
+                if (navigator.vibrate) {
+                    navigator.vibrate([300, 150, 300, 150, 300]);
+                }
+                
+                // Auto-exit after 3 seconds
+                setTimeout(() => {
+                    exitTouchGame();
+                }, 3000);
             } else if (activeTouches.length === 0) {
-                result.innerHTML = `🤷 No players remaining. Try again!`;
-                result.style.color = '#fff';
+                message.textContent = `🤷 No players remaining!`;
+                message.style.color = '#fff';
+                message.style.display = 'block';
+                
+                setTimeout(() => {
+                    exitTouchGame();
+                }, 2000);
             } else {
-                result.innerHTML = `🎉 ${activeTouches.length} players tied!`;
-                result.style.color = '#fff';
-            }
-            
-            result.classList.add('show');
-            
-            // Add haptic feedback for winner
-            if (navigator.vibrate && activeTouches.length === 1) {
-                navigator.vibrate([200, 100, 200]);
+                message.textContent = `🎉 ${activeTouches.length} players tied!`;
+                message.style.color = '#fff';
+                message.style.display = 'block';
+                
+                setTimeout(() => {
+                    exitTouchGame();
+                }, 3000);
             }
         }
 
-        function resetTouchGame() {
-            touchGame.active = false;
-            touchGame.touches.clear();
-            touchGame.colorIndex = 0;
-            clearInterval(touchGame.eliminationTimer);
-            clearInterval(touchGame.countdownTimer);
-            
+        function exitTouchGame() {
             const touchArea = document.getElementById('touchArea');
-            const startBtn = document.getElementById('touchStartBtn');
-            const resetBtn = document.getElementById('touchResetBtn');
             const result = document.getElementById('touchResult');
+            
+            // Hide full screen area
+            touchArea.classList.remove('active');
             
             // Remove event listeners
             touchArea.removeEventListener('touchstart', handleTouchStart);
             touchArea.removeEventListener('touchmove', handleTouchMove);
             touchArea.removeEventListener('touchend', handleTouchEnd);
             
-            touchArea.innerHTML = '<div class="touch-message">Touch here to begin...</div><div class="countdown-display" id="countdownDisplay"></div>';
-            startBtn.style.display = 'block';
-            resetBtn.style.display = 'none';
+            // Clear touches and timers
+            resetTouchGame();
+            
+            // Show result in the method view
+            const activeTouches = Array.from(touchGame.touches.values());
+            if (activeTouches.length === 1) {
+                const winner = activeTouches[0];
+                result.innerHTML = `🎉 Player ${winner.number} (${winner.color}) goes first!`;
+                result.style.color = winner.color;
+                result.classList.add('show');
+            }
+        }
+
+        function resetTouchGame() {
+            touchGame.active = false;
+            touchGame.eliminationPhase = false;
+            touchGame.initiationStarted = false;
+            touchGame.touches.clear();
+            touchGame.colorIndex = 0;
+            clearInterval(touchGame.eliminationTimer);
+            clearInterval(touchGame.countdownTimer);
+            
+            const touchArea = document.getElementById('touchArea');
+            const result = document.getElementById('touchResult');
+            
+            // Clear touch area
+            touchArea.innerHTML = `
+                <button class="close-button" onclick="exitTouchGame()">×</button>
+                <div class="touch-message" id="touchMessage">Place all fingers on screen to begin...</div>
+                <div class="countdown-display" id="countdownDisplay"></div>
+            `;
+            
             result.classList.remove('show');
         }
 
