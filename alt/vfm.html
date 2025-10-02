@@ -78,7 +78,7 @@
     async function fetchThingDetails(objectId) {
         if (!objectId) return {};
         try {
-            const resp = await fetch(`https://boardgamegeek.com/xmlapi2/thing?id=${objectId}`);
+            const resp = await fetch(`https://boardgamegeek.com/xmlapi2/thing?id=${objectId}&stats=1`);
             if (!resp.ok) return {};
             const xml = await resp.text();
             const parser = new window.DOMParser();
@@ -86,10 +86,27 @@
             const thumb = doc.querySelector('thumbnail');
             const year = doc.querySelector('yearpublished');
             const desc = doc.querySelector('description');
+            
+            // Get BGG rank and Bayes average
+            const ranks = doc.querySelectorAll('rank');
+            let bggRank = '';
+            for (const rank of ranks) {
+                if (rank.getAttribute('name') === 'boardgame') {
+                    const rankValue = rank.getAttribute('value');
+                    bggRank = rankValue && rankValue !== 'Not Ranked' ? rankValue : '';
+                    break;
+                }
+            }
+            
+            const bayesAverage = doc.querySelector('bayesaverage');
+            const bayesValue = bayesAverage ? parseFloat(bayesAverage.getAttribute('value')).toFixed(2) : '';
+            
             return {
                 thumbnail: thumb ? thumb.textContent : '',
                 year: year ? year.textContent : '',
-                description: desc ? desc.textContent : ''
+                description: desc ? desc.textContent : '',
+                bggRank: bggRank,
+                bayesAverage: bayesValue
             };
         } catch {
             return {};
@@ -110,6 +127,35 @@
     let selectedGeeklists = new Set(geeklists.map(g => g.id)); // Start with all selected
     const loadMoreWrapper = document.getElementById('loadMoreWrapper');
     const filterInput = document.getElementById('filterInput');
+
+    // Gradient color functions for visual indicators
+    function getRankGradientColor(rank) {
+        if (!rank || rank === 'Not Ranked') return { bg: 'rgba(128,128,128,0.9)', text: 'white' }; // Gray for unranked
+        const rankNum = parseInt(rank);
+        if (rankNum <= 100) return { bg: 'rgba(76,175,80,0.9)', text: 'white' }; // Green for top 100
+        if (rankNum <= 500) return { bg: 'rgba(139,195,74,0.9)', text: 'white' }; // Light green for top 500
+        if (rankNum <= 1000) return { bg: 'rgba(255,235,59,0.9)', text: 'black' }; // Yellow for top 1000
+        if (rankNum <= 5000) return { bg: 'rgba(255,152,0,0.9)', text: 'white' }; // Orange for top 5000
+        return { bg: 'rgba(244,67,54,0.9)', text: 'white' }; // Red for below 5000
+    }
+
+    function getBayesGradientColor(bayes) {
+        if (!bayes) return { bg: 'rgba(128,128,128,0.9)', text: 'white' }; // Gray for no rating
+        const bayesNum = parseFloat(bayes);
+        if (bayesNum >= 8.0) return { bg: 'rgba(76,175,80,0.9)', text: 'white' }; // Green for excellent (8.0+)
+        if (bayesNum >= 7.5) return { bg: 'rgba(139,195,74,0.9)', text: 'white' }; // Light green for very good (7.5+)
+        if (bayesNum >= 7.0) return { bg: 'rgba(255,235,59,0.9)', text: 'black' }; // Yellow for good (7.0+)
+        if (bayesNum >= 6.0) return { bg: 'rgba(255,152,0,0.9)', text: 'white' }; // Orange for average (6.0+)
+        return { bg: 'rgba(244,67,54,0.9)', text: 'white' }; // Red for below average
+    }
+
+    function getTimeGradientColor(diffHours) {
+        if (diffHours < 1) return { bg: 'rgba(76,175,80,0.9)', text: 'white' }; // Green for very recent (< 1 hour)
+        if (diffHours < 6) return { bg: 'rgba(139,195,74,0.9)', text: 'white' }; // Light green for recent (< 6 hours)
+        if (diffHours < 12) return { bg: 'rgba(255,235,59,0.9)', text: 'black' }; // Yellow for somewhat recent (< 12 hours)
+        if (diffHours < 24) return { bg: 'rgba(255,152,0,0.9)', text: 'white' }; // Orange for within day (< 24 hours)
+        return { bg: 'rgba(233,30,99,0.9)', text: 'white' }; // Default pink for older posts
+    }
 
     async function fetchAllGeeklists() {
         // Fetch user's want to play
@@ -441,20 +487,23 @@
                 const diffHours = diffMs / (1000 * 60 * 60);
                 
                 if (diffHours <= 24) {
+                    const timeColors = getTimeGradientColor(diffHours);
                     if (diffHours < 1) {
                         const diffMinutes = Math.floor(diffMs / (1000 * 60));
-                        timeIndicator = `<span style='position:absolute; bottom:8px; right:12px; background:rgba(233,30,99,0.9); color:white; padding:0.2em 0.5em; border-radius:12px; font-size:0.75em; font-weight:600; z-index:2;'>${diffMinutes}m ago</span>`;
+                        timeIndicator = `<span style='position:absolute; bottom:8px; right:12px; background:${timeColors.bg}; color:${timeColors.text}; padding:0.2em 0.5em; border-radius:12px; font-size:0.75em; font-weight:600; z-index:2;'>${diffMinutes}m ago</span>`;
                     } else {
                         const hours = Math.floor(diffHours);
-                        timeIndicator = `<span style='position:absolute; bottom:8px; right:12px; background:rgba(233,30,99,0.9); color:white; padding:0.2em 0.5em; border-radius:12px; font-size:0.75em; font-weight:600; z-index:2;'>${hours}h ago</span>`;
+                        timeIndicator = `<span style='position:absolute; bottom:8px; right:12px; background:${timeColors.bg}; color:${timeColors.text}; padding:0.2em 0.5em; border-radius:12px; font-size:0.75em; font-weight:600; z-index:2;'>${hours}h ago</span>`;
                     }
                 }
             }
             
             html += `<div class='game-card' id='vfmcard-${idx}' style='border:${borderColor}; position:relative;'>
                 ${statusEmoji ? `<span style='position:absolute; top:8px; right:12px; font-size:1.4em; z-index:2; line-height:1; letter-spacing:-2px;' title='${statusTitle}'>${statusEmoji}</span>` : ''}
+                <span id='bggRank-${idx}' style='position:absolute; top:8px; left:12px; background:rgba(128,128,128,0.9); color:white; padding:0.2em 0.5em; border-radius:8px; font-size:0.75em; font-weight:600; z-index:2; display:none;'></span>
                 ${timeIndicator}
                 <img src='' alt='' class='game-thumb' style='width:64px; height:64px; border-radius:10px; margin-right:1em; object-fit:cover; display:none;'>
+                <span id='bayesAvg-${idx}' style='position:absolute; bottom:8px; left:12px; background:rgba(128,128,128,0.9); color:white; padding:0.2em 0.5em; border-radius:8px; font-size:0.75em; font-weight:600; z-index:2; display:none;'></span>
                 <div class='game-info'>
                     <div class='game-title'>${item.name}</div>
                     <div class='geeklist-label'>${item.geeklistName}</div>
@@ -501,6 +550,28 @@
                         const info = card.querySelector('.game-details');
                         if (info) {
                             info.innerHTML += `<b>Year:</b> ${details.year}<br>`;
+                        }
+                    }
+                    // Update BGG rank display
+                    if (card && details.bggRank) {
+                        const rankSpan = card.querySelector(`#bggRank-${idx}`);
+                        if (rankSpan) {
+                            const rankColors = getRankGradientColor(details.bggRank);
+                            rankSpan.textContent = `#${details.bggRank}`;
+                            rankSpan.style.background = rankColors.bg;
+                            rankSpan.style.color = rankColors.text;
+                            rankSpan.style.display = 'block';
+                        }
+                    }
+                    // Update Bayes average display
+                    if (card && details.bayesAverage) {
+                        const bayesSpan = card.querySelector(`#bayesAvg-${idx}`);
+                        if (bayesSpan) {
+                            const bayesColors = getBayesGradientColor(details.bayesAverage);
+                            bayesSpan.textContent = `${details.bayesAverage}`;
+                            bayesSpan.style.background = bayesColors.bg;
+                            bayesSpan.style.color = bayesColors.text;
+                            bayesSpan.style.display = 'block';
                         }
                     }
                 });
@@ -570,6 +641,8 @@
                         <b>Price:</b> ${price || 'N/A'}<br>
                         ${attrHtml}
                         <b>Year:</b> ${details.year || 'N/A'}<br>
+                        ${details.bggRank ? `<b>BGG Rank:</b> #${details.bggRank}<br>` : ''}
+                        ${details.bayesAverage ? `<b>Bayes Average:</b> ${details.bayesAverage}<br>` : ''}
                         ${item.objectId ? `<a href='https://boardgamegeek.com/boardgame/${item.objectId}' target='_blank' style='color:#1976d2;'>View on BGG</a><br>` : ''}
                         <a href='https://boardgamegeek.com/geeklist/${item.geeklistId}?itemid=${item.item.getAttribute('id')}' target='_blank' style='color:#1976d2;'>View Geeklisting</a>
                     </div>
