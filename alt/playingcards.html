@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Playing Cards - Boardgames Hub</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: #1a1a1a;
+            color: #fff;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            position: fixed;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+        .container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        
+        /* Login/Sort Selection Screen */
+        .sort-selection {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .sort-title {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin-bottom: 30px;
+            text-align: center;
+            color: #1e40af;
+        }
+        .sort-subtitle {
+            font-size: 1.2em;
+            color: #ccc;
+            text-align: center;
+            margin-bottom: 50px;
+            line-height: 1.4;
+        }
+        .sort-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            width: 100%;
+            max-width: 300px;
+        }
+        .sort-button {
+            background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+            color: #fff;
+            border: none;
+            border-radius: 15px;
+            padding: 20px;
+            font-size: 1.3em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(25, 118, 210, 0.3);
+        }
+        .sort-button:hover, .sort-button:active {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(25, 118, 210, 0.4);
+        }
+        .sort-button.random {
+            background: linear-gradient(135deg, #374151 0%, #1f2937 100%);
+            box-shadow: 0 4px 15px rgba(55, 65, 81, 0.3);
+        }
+        .sort-button.random:hover, .sort-button.random:active {
+            box-shadow: 0 6px 20px rgba(55, 65, 81, 0.4);
+        }
+        .sort-button.active {
+            background: linear-gradient(135deg, #1e40af 0%, #1d4ed8 100%);
+            box-shadow: 0 4px 15px rgba(30, 64, 175, 0.3);
+            transform: translateY(-2px);
+        }
+        
+        /* Card Viewing Screen */
+        .card-viewer {
+            width: 100%;
+            height: 100%;
+            display: none;
+            position: relative;
+            overflow: hidden;
+        }
+        .cards-stack {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .game-card {
+            width: 90vw;
+            max-width: 350px;
+            height: 80vh;
+            background: linear-gradient(135deg, #2c2c2c 0%, #1a1a1a 100%);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            text-align: center;
+            padding: 30px 20px;
+            box-sizing: border-box;
+            position: absolute;
+            cursor: grab;
+            transition: transform 0.3s ease;
+            transform-origin: center;
+        }
+        .game-card.dragging {
+            cursor: grabbing;
+            transition: none;
+        }
+        .game-card.swipe-left {
+            transform: translateX(-100vw) rotate(-30deg);
+            opacity: 0;
+        }
+        .game-card.swipe-right {
+            transform: translateX(100vw) rotate(30deg);
+            opacity: 0;
+        }
+        .player-count {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #ff6b35;
+            margin-bottom: 15px;
+            min-height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 auto;
+        }
+        .player-numbers {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            padding: 0 10px;
+            margin-bottom: 15px;
+        }
+        .player-number {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            border: 2px solid #374151;
+            color: #9ca3af;
+            background: transparent;
+            flex-shrink: 0;
+        }
+        .player-number.active {
+            background: #1e40af;
+            color: white;
+            border-color: #1d4ed8;
+        }
+        .game-title {
+            font-size: 1.6em;
+            font-weight: 700;
+            margin-bottom: 20px;
+            line-height: 1.2;
+            color: #fff;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            flex: 0 0 auto;
+        }
+        .game-thumbnail {
+            width: 150px;
+            height: 150px;
+            border-radius: 15px;
+            object-fit: contain;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            flex: 1;
+            max-height: 200px;
+            background: #333;
+        }
+        .game-info {
+            font-size: 0.9em;
+            color: #ccc;
+            line-height: 1.4;
+            flex: 0 0 auto;
+            width: 100%;
+            max-height: 180px;
+            overflow-y: auto;
+        }
+        .game-info div {
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .info-label {
+            color: #888;
+            font-size: 0.85em;
+            min-width: 100px;
+            text-align: left;
+        }
+        .info-value {
+            color: #fff;
+            font-weight: 500;
+            text-align: right;
+            flex: 1;
+        }
+        .year {
+            color: #81c784;
+        }
+        .users-rated {
+            color: #64b5f6;
+        }
+        .rank {
+            color: #ffb74d;
+            font-weight: 600;
+        }
+        .my-rating {
+            color: #1e40af;
+            font-weight: 600;
+        }
+        .plays {
+            color: #e57373;
+        }
+        .weight {
+            color: #ba68c8;
+        }
+        
+        /* Back button for card view */
+        .back-to-sort {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            font-size: 20px;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+        .back-to-sort:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        /* Progress indicator */
+        .progress-indicator {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.2);
+            padding: 10px 20px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            font-size: 0.9em;
+            color: #fff;
+            z-index: 100;
+        }
+        
+        /* Loading indicator */
+        .loading-indicator {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(17, 24, 39, 0.95);
+            color: #1e40af;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-size: 0.9em;
+            font-weight: 600;
+            border: 1px solid #374151;
+            z-index: 1000;
+            display: none;
+            backdrop-filter: blur(10px);
+        }
+        
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            font-size: 1.5em;
+            color: #666;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .error {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            font-size: 1.2em;
+            color: #f44336;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        /* iPhone specific optimizations */
+        @media screen and (max-device-width: 414px) {
+            .game-card {
+                width: 95vw;
+                height: 75vh;
+                padding: 20px 15px;
+            }
+            .game-title {
+                font-size: 1.4em;
+            }
+            .player-count {
+                font-size: 1.8em;
+                min-height: 35px;
+            }
+            .game-thumbnail {
+                width: 120px;
+                height: 120px;
+            }
+            .game-info {
+                font-size: 1em;
+            }
+            .sort-title {
+                font-size: 2em;
+            }
+            .sort-button {
+                padding: 18px;
+                font-size: 1.2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sort Selection Screen -->
+        <div id="sortSelection" class="sort-selection">
+            <div class="sort-title">🎲 Playing Cards</div>
+            <div class="sort-subtitle">Choose your sorting order, then view cards</div>
+            <div class="sort-buttons">
+                <button class="sort-button random active" onclick="selectSort('random')">🎲 Random Order</button>
+                <button class="sort-button" onclick="selectSort('rating')">⭐ BGG Average</button>
+                <button class="sort-button" onclick="selectSort('rank')">🏆 BGG Rank</button>
+                <button class="sort-button" onclick="selectSort('year')">📅 Year Published</button>
+                <button class="sort-button" onclick="selectSort('alpha')">🔤 Alphabetical</button>
+            </div>
+            <div style="margin-top: 30px;">
+                <button class="sort-button" onclick="loadAndViewCards()" style="background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%); font-size: 1.4em; padding: 25px;">
+                    🚀 Load & View Cards
+                </button>
+            </div>
+        </div>
+
+        <!-- Loading Screen -->
+        <div id="loadingDiv" class="loading" style="display:none;">
+            <div>🎯 Loading your owned games...</div>
+            <div style="font-size: 0.8em; color: #888;">This may take a moment</div>
+        </div>
+        
+        <!-- Error Screen -->
+        <div id="errorDiv" class="error" style="display:none;"></div>
+        
+        <!-- Card Viewer Screen -->
+        <div id="cardViewer" class="card-viewer">
+            <div class="loading-indicator" id="loadingIndicator">Loading more games...</div>
+            <button class="back-to-sort" onclick="backToSort()">←</button>
+            <div class="cards-stack" id="cardsStack">
+                <!-- Cards will be dynamically inserted here -->
+            </div>
+            <div class="progress-indicator" id="progressIndicator">
+                <span id="currentCard">1</span> / <span id="totalCards">0</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allGames = [];
+        let currentCardIndex = 0;
+        let selectedSortOrder = 'random';
+        let isCardViewActive = false;
+        let isDataLoaded = false;
+        let totalGamesToLoad = 0;
+        let gamesLoadedSoFar = 0;
+
+        // Select sorting order (doesn't load data yet)
+        function selectSort(sortOrder) {
+            selectedSortOrder = sortOrder;
+            
+            // Update active button
+            document.querySelectorAll('.sort-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            console.log(`Selected sort order: ${sortOrder}`);
+        }
+
+        // Load data and start card view
+        async function loadAndViewCards() {
+            if (!isDataLoaded) {
+                // Reset allGames array for fresh load
+                allGames = [];
+                await loadUserCollection();
+            } else {
+                // Data already loaded, just start card view
+                startCardView();
+            }
+        }
+
+        // Load user collection (owned games only)
+        async function loadUserCollection() {
+            const username = 'sportomax';
+            try {
+                document.getElementById('sortSelection').style.display = 'none';
+                document.getElementById('loadingDiv').style.display = 'flex';
+                
+                const response = await fetch(`https://boardgamegeek.com/xmlapi2/collection?username=${username}&stats=1&own=1`);
+                const text = await response.text();
+                const parser = new DOMParser();
+                const xml = parser.parseFromString(text, 'text/xml');
+                
+                const items = xml.querySelectorAll('item');
+                
+                // Initialize progress tracking
+                totalGamesToLoad = items.length;
+                gamesLoadedSoFar = 0;
+                
+                // Collect all game IDs first
+                const gameIds = Array.from(items).map(item => item.getAttribute('objectid'));
+                
+                // Process games in batches of 20 for Thing API calls
+                const batchSize = 20;
+                const batchDelay = 3000; // 3 seconds between batches
+                let isFirstBatch = true;
+                
+                // Start loading batches asynchronously
+                loadBatchesAsync(items, gameIds, batchSize, batchDelay, isFirstBatch);
+                
+            } catch (error) {
+                console.error('Error loading collection:', error);
+                document.getElementById('loadingDiv').style.display = 'none';
+                document.getElementById('errorDiv').style.display = 'flex';
+                document.getElementById('errorDiv').textContent = 'Error loading your collection. Please try again later.';
+            }
+        }
+
+        // Load batches asynchronously - start card view after first batch
+        async function loadBatchesAsync(items, gameIds, batchSize, batchDelay, isFirstBatch) {
+            try {
+                for (let i = 0; i < items.length; i += batchSize) {
+                    const batch = Array.from(items).slice(i, i + batchSize);
+                    const batchIds = gameIds.slice(i, i + batchSize);
+                    
+                    // Update loading message with progress (only if still loading)
+                    if (document.getElementById('loadingDiv').style.display !== 'none') {
+                        const loadingDiv = document.getElementById('loadingDiv');
+                        const progress = Math.round(((i + batch.length) / items.length) * 100);
+                        loadingDiv.innerHTML = `
+                            <div>🎯 Loading your owned games...</div>
+                            <div style="font-size: 0.8em; color: #888;">Processing batch ${Math.floor(i/batchSize) + 1} of ${Math.ceil(items.length/batchSize)} (${progress}%)</div>
+                            <div style="font-size: 0.7em; color: #666;">Fetching ${batch.length} games in this batch...</div>
+                        `;
+                    }
+                    
+                    // Get detailed info for entire batch in one API call
+                    const batchDetails = await fetchGameDetailsBatch(batchIds);
+                    
+                    // Process current batch with the fetched details
+                    const batchGames = [];
+                    for (let j = 0; j < batch.length; j++) {
+                        const item = batch[j];
+                        const objectid = item.getAttribute('objectid');
+                        const name = item.querySelector('name')?.textContent;
+                        const thumbnail = item.querySelector('thumbnail')?.textContent;
+                        const yearpublished = item.querySelector('yearpublished')?.textContent;
+                        
+                        const stats = item.querySelector('stats');
+                        const rating = stats?.querySelector('rating')?.getAttribute('value');
+                        const usersrated = stats?.querySelector('usersrated')?.getAttribute('value');
+                        const rank = stats?.querySelector('ranks rank[name="boardgame"]')?.getAttribute('value');
+                        
+                        // Additional collection data
+                        const myrating = item.querySelector('rating')?.getAttribute('value');
+                        const numplays = parseInt(item.querySelector('numplays')?.textContent || '0');
+                        
+                        // Get player count and additional details from batch details
+                        const gameDetails = batchDetails[objectid] || { 
+                            minplayers: 0, 
+                            maxplayers: 0,
+                            minage: 0,
+                            playingtime: 0,
+                            minplaytime: 0,
+                            maxplaytime: 0,
+                            averageweight: 0,
+                            average: 0,
+                            numweights: 0
+                        };
+                        
+                        batchGames.push({
+                            id: objectid,
+                            name: name,
+                            thumbnail: thumbnail,
+                            year: yearpublished,
+                            rating: parseFloat(rating) || 0,
+                            usersrated: parseInt(usersrated) || 0,
+                            rank: rank === 'Not Ranked' ? 999999 : parseInt(rank) || 999999,
+                            minplayers: gameDetails.minplayers,
+                            maxplayers: gameDetails.maxplayers,
+                            myrating: parseFloat(myrating) || 0,
+                            numplays: numplays,
+                            minage: gameDetails.minage,
+                            playingtime: gameDetails.playingtime,
+                            minplaytime: gameDetails.minplaytime,
+                            maxplaytime: gameDetails.maxplaytime,
+                            averageweight: gameDetails.averageweight,
+                            average: gameDetails.average,
+                            numweights: gameDetails.numweights
+                        });
+                    }
+                    
+                    // Add batch games to main array
+                    allGames.push(...batchGames.filter(game => game.name));
+                    
+                    // Update progress counter
+                    gamesLoadedSoFar = Math.min(i + batchSize, items.length);
+                    
+                    // After first batch, start showing cards!
+                    if (isFirstBatch && allGames.length > 0) {
+                        isFirstBatch = false;
+                        isDataLoaded = true;
+                        
+                        console.log(`First batch loaded with ${allGames.length} games - starting card view!`);
+                        
+                        // Hide loading and start card view
+                        document.getElementById('loadingDiv').style.display = 'none';
+                        startCardView();
+                        
+                        // Continue loading remaining batches in background
+                        if (i + batchSize < items.length) {
+                            console.log('Continuing to load remaining batches in background...');
+                            // Show subtle indicator that more games are loading
+                            showBackgroundLoadingIndicator();
+                        }
+                    }
+                    
+                    // If not first batch, re-sort games with new additions
+                    if (!isFirstBatch && allGames.length > 0) {
+                        // Re-sort with new games added
+                        sortGames();
+                        // Update total count in progress indicator
+                        updateProgressIndicator();
+                        // Update loading progress
+                        updateLoadingProgress();
+                    }
+                    
+                    // Delay between batches (except for the last batch)
+                    if (i + batchSize < items.length) {
+                        await new Promise(resolve => setTimeout(resolve, batchDelay));
+                    } else {
+                        // All batches complete
+                        hideBackgroundLoadingIndicator();
+                        console.log(`All batches complete! Total games loaded: ${allGames.length}`);
+                    }
+                }
+                
+            } catch (error) {
+                console.error('Error in batch loading:', error);
+                if (allGames.length === 0) {
+                    document.getElementById('loadingDiv').style.display = 'none';
+                    document.getElementById('errorDiv').style.display = 'flex';
+                    document.getElementById('errorDiv').textContent = 'Error loading your collection. Please try again later.';
+                }
+            }
+        }
+
+        // Show subtle indicator that background loading is happening
+        function showBackgroundLoadingIndicator() {
+            const indicator = document.getElementById('loadingIndicator');
+            indicator.style.display = 'block';
+            updateLoadingProgress();
+        }
+
+        // Update loading progress indicator
+        function updateLoadingProgress() {
+            const indicator = document.getElementById('loadingIndicator');
+            if (totalGamesToLoad > 0) {
+                const percentage = Math.round((gamesLoadedSoFar / totalGamesToLoad) * 100);
+                indicator.textContent = `Loading more games... ${percentage}% (${gamesLoadedSoFar}/${totalGamesToLoad})`;
+            }
+        }
+
+        // Hide background loading indicator
+        function hideBackgroundLoadingIndicator() {
+            const indicator = document.getElementById('loadingIndicator');
+            if (indicator) {
+                indicator.style.display = 'none';
+            }
+            // Also remove any old background indicator if it exists
+            const oldIndicator = document.getElementById('backgroundLoading');
+            if (oldIndicator) {
+                oldIndicator.remove();
+            }
+        }
+
+        // Fetch detailed game info for multiple games in one API call
+        async function fetchGameDetailsBatch(gameIds, maxRetries = 3) {
+            const idsString = gameIds.join(',');
+            
+            for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                try {
+                    console.log(`Fetching batch of ${gameIds.length} games: ${idsString.substring(0, 50)}...`);
+                    const response = await fetch(`https://boardgamegeek.com/xmlapi2/thing?id=${idsString}`);
+                    
+                    if (response.status === 429) {
+                        // Rate limited - wait longer before retry
+                        const waitTime = attempt * 2000; // 2s, 4s, 6s
+                        console.log(`Rate limited for batch, waiting ${waitTime}ms before retry ${attempt}/${maxRetries}`);
+                        await new Promise(resolve => setTimeout(resolve, waitTime));
+                        continue;
+                    }
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                    
+                    const text = await response.text();
+                    const parser = new DOMParser();
+                    const xml = parser.parseFromString(text, 'text/xml');
+                    
+                    const items = xml.querySelectorAll('item');
+                    const results = {};
+                    
+                    items.forEach(item => {
+                        const id = item.getAttribute('id');
+                        const minplayers = parseInt(item.querySelector('minplayers')?.getAttribute('value')) || 0;
+                        const maxplayers = parseInt(item.querySelector('maxplayers')?.getAttribute('value')) || 0;
+                        const minage = parseInt(item.querySelector('minage')?.getAttribute('value')) || 0;
+                        const playingtime = parseInt(item.querySelector('playingtime')?.getAttribute('value')) || 0;
+                        const minplaytime = parseInt(item.querySelector('minplaytime')?.getAttribute('value')) || 0;
+                        const maxplaytime = parseInt(item.querySelector('maxplaytime')?.getAttribute('value')) || 0;
+                        
+                        const statistics = item.querySelector('statistics');
+                        const averageweight = parseFloat(statistics?.querySelector('averageweight')?.getAttribute('value')) || 0;
+                        const average = parseFloat(statistics?.querySelector('average')?.getAttribute('value')) || 0;
+                        const numweights = parseInt(statistics?.querySelector('numweights')?.getAttribute('value')) || 0;
+                        
+                        results[id] = { 
+                            minplayers, 
+                            maxplayers,
+                            minage,
+                            playingtime,
+                            minplaytime,
+                            maxplaytime,
+                            averageweight,
+                            average,
+                            numweights
+                        };
+                    });
+                    
+                    // Fill in missing games with defaults
+                    gameIds.forEach(id => {
+                        if (!results[id]) {
+                            results[id] = { 
+                                minplayers: 0, 
+                                maxplayers: 0,
+                                minage: 0,
+                                playingtime: 0,
+                                minplaytime: 0,
+                                maxplaytime: 0,
+                                averageweight: 0,
+                                average: 0,
+                                numweights: 0
+                            };
+                        }
+                    });
+                    
+                    console.log(`Successfully fetched ${Object.keys(results).length} games in batch`);
+                    return results;
+                    
+                } catch (error) {
+                    console.error(`Attempt ${attempt} failed for batch:`, error);
+                    
+                    if (attempt === maxRetries) {
+                        console.error(`All ${maxRetries} attempts failed for batch, using defaults`);
+                        const results = {};
+                        gameIds.forEach(id => {
+                            results[id] = { 
+                                minplayers: 0, 
+                                maxplayers: 0,
+                                minage: 0,
+                                playingtime: 0,
+                                minplaytime: 0,
+                                maxplaytime: 0,
+                                averageweight: 0,
+                                average: 0,
+                                numweights: 0
+                            };
+                        });
+                        return results;
+                    }
+                    
+                    // Wait before retry
+                    await new Promise(resolve => setTimeout(resolve, attempt * 1000));
+                }
+            }
+        }
+
+        // Fetch detailed game info for player count with retry logic (legacy - for single games)
+        async function fetchGameDetailsWithRetry(gameId, maxRetries = 3) {
+            const batchResult = await fetchGameDetailsBatch([gameId], maxRetries);
+            return batchResult[gameId] || { 
+                minplayers: 0, 
+                maxplayers: 0,
+                minage: 0,
+                playingtime: 0,
+                minplaytime: 0,
+                maxplaytime: 0,
+                averageweight: 0,
+                average: 0,
+                numweights: 0
+            };
+        }
+
+        // Fetch detailed game info for player count (legacy function for compatibility)
+        async function fetchGameDetails(gameId) {
+            return await fetchGameDetailsWithRetry(gameId);
+        }
+
+        // Start card view with pre-selected sort order
+        function startCardView() {
+            sortGames();
+            currentCardIndex = 0;
+            isCardViewActive = true;
+            
+            document.getElementById('sortSelection').style.display = 'none';
+            document.getElementById('errorDiv').style.display = 'none';
+            document.getElementById('cardViewer').style.display = 'block';
+            
+            createCardStack();
+            updateProgressIndicator();
+        }
+
+        // Go back to sort selection
+        function backToSort() {
+            isCardViewActive = false;
+            document.getElementById('cardViewer').style.display = 'none';
+            document.getElementById('sortSelection').style.display = 'flex';
+            clearCardStack();
+        }
+
+        // Sort games based on selected sort order
+        function sortGames() {
+            console.log(`Sorting games by: ${selectedSortOrder}`);
+            switch(selectedSortOrder) {
+                case 'random':
+                    shuffleArray(allGames);
+                    break;
+                case 'rating':
+                    allGames.sort((a, b) => b.rating - a.rating);
+                    break;
+                case 'rank':
+                    allGames.sort((a, b) => a.rank - b.rank);
+                    break;
+                case 'year':
+                    allGames.sort((a, b) => b.year - a.year);
+                    break;
+                case 'alpha':
+                    allGames.sort((a, b) => a.name.localeCompare(b.name));
+                    break;
+            }
+        }
+
+        // Shuffle array for random order
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        // Create card stack (show current and next card)
+        function createCardStack() {
+            const cardsStack = document.getElementById('cardsStack');
+            clearCardStack();
+            
+            // Create current card
+            if (currentCardIndex < allGames.length) {
+                const currentCard = createGameCard(allGames[currentCardIndex], 0);
+                cardsStack.appendChild(currentCard);
+                
+                // Create next card (if exists) behind current card
+                if (currentCardIndex + 1 < allGames.length) {
+                    const nextCard = createGameCard(allGames[currentCardIndex + 1], 1);
+                    nextCard.style.transform = 'scale(0.95) translateY(10px)';
+                    nextCard.style.zIndex = -1;
+                    cardsStack.appendChild(nextCard);
+                }
+            }
+        }
+
+        // Create individual game card element
+        function createGameCard(game, index) {
+            const card = document.createElement('div');
+            card.className = 'game-card';
+            card.dataset.gameIndex = currentCardIndex + index;
+            
+            // Create player count display with individual numbered circles
+            let playerCountHtml = '';
+            if (game.minplayers > 0 && game.maxplayers > 0) {
+                playerCountHtml = '<div class="player-numbers">';
+                // Create circles for players 1-8 (reserved positions)
+                for (let i = 1; i <= 8; i++) {
+                    const isActive = i >= game.minplayers && i <= game.maxplayers;
+                    const activeClass = isActive ? ' active' : '';
+                    playerCountHtml += `<div class="player-number${activeClass}">${i}</div>`;
+                }
+                // Handle 8+ display
+                if (game.maxplayers > 8) {
+                    playerCountHtml = playerCountHtml.replace(
+                        '<div class="player-number active">8</div>',
+                        '<div class="player-number active">8+</div>'
+                    );
+                }
+                playerCountHtml += '</div>';
+            }
+            
+            const thumbnailDisplay = game.thumbnail ? 
+                `<img src="${game.thumbnail}" class="game-thumbnail" alt="${game.name}">` :
+                `<div class="game-thumbnail" style="background: #333; display: flex; align-items: center; justify-content: center; color: #666;">No Image</div>`;
+            
+            // Format play time display
+            let playTimeText = '';
+            if (game.minplaytime > 0 && game.maxplaytime > 0) {
+                if (game.minplaytime === game.maxplaytime) {
+                    playTimeText = `${game.minplaytime} min`;
+                } else {
+                    playTimeText = `${game.minplaytime}-${game.maxplaytime} min`;
+                }
+            } else if (game.playingtime > 0) {
+                playTimeText = `${game.playingtime} min`;
+            }
+            
+            // Format weight display (complexity)
+            const weightText = game.averageweight > 0 ? 
+                `Weight: ${game.averageweight.toFixed(2)}/5 (${game.numweights} votes)` : '';
+            
+            // Format BGG average rating
+            const bggRatingText = game.average > 0 ? 
+                `BGG Avg: ${game.average.toFixed(2)}` : '';
+            
+            // Format my rating
+            const myRatingText = game.myrating > 0 ? 
+                `My Rating: ${game.myrating}/10` : '';
+            
+            // Format play count
+            const playCountText = game.numplays > 0 ? 
+                `Plays: ${game.numplays}` : 'Never played';
+            
+            // Format rank
+            const rankText = game.rank < 999999 ? `Rank: ${game.rank.toLocaleString()}` : 'Unranked';
+            
+            // Format age recommendation
+            const ageText = game.minage > 0 ? `Age: ${game.minage}+` : '';
+            
+            card.innerHTML = `
+                ${playerCountHtml}
+                <div class="game-title">${game.name}</div>
+                ${thumbnailDisplay}
+                <div class="game-info">
+                    <div class="info-row">
+                        <span class="info-label">Published:</span>
+                        <span class="info-value">${game.year || 'Unknown'}</span>
+                    </div>
+                    ${myRatingText ? `
+                    <div class="info-row">
+                        <span class="info-label">My Rating:</span>
+                        <span class="info-value">${game.myrating}/10</span>
+                    </div>` : ''}
+                    <div class="info-row">
+                        <span class="info-label">Plays:</span>
+                        <span class="info-value">${game.numplays || 0}</span>
+                    </div>
+                    ${bggRatingText ? `
+                    <div class="info-row">
+                        <span class="info-label">BGG Rating:</span>
+                        <span class="info-value">${game.average.toFixed(2)}</span>
+                    </div>` : ''}
+                    <div class="info-row">
+                        <span class="info-label">Users Rated:</span>
+                        <span class="info-value">${game.usersrated.toLocaleString()}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Rank:</span>
+                        <span class="info-value">${game.rank < 999999 ? game.rank.toLocaleString() : 'Unranked'}</span>
+                    </div>
+                    ${ageText ? `
+                    <div class="info-row">
+                        <span class="info-label">Age:</span>
+                        <span class="info-value">${game.minage}+</span>
+                    </div>` : ''}
+                    ${playTimeText ? `
+                    <div class="info-row">
+                        <span class="info-label">Play Time:</span>
+                        <span class="info-value">${playTimeText}</span>
+                    </div>` : ''}
+                    ${weightText ? `
+                    <div class="info-row">
+                        <span class="info-label">Complexity:</span>
+                        <span class="info-value">${game.averageweight.toFixed(2)}/5</span>
+                    </div>` : ''}
+                </div>
+            `;
+            
+            // Add swipe functionality to current card only
+            if (index === 0) {
+                addSwipeListeners(card);
+            }
+            
+            return card;
+        }
+
+        // Clear card stack
+        function clearCardStack() {
+            document.getElementById('cardsStack').innerHTML = '';
+        }
+
+        // Add swipe/drag listeners to a card
+        function addSwipeListeners(card) {
+            let startX = 0;
+            let startY = 0;
+            let currentX = 0;
+            let currentY = 0;
+            let isDragging = false;
+
+            // Mouse events
+            card.addEventListener('mousedown', handleStart);
+            document.addEventListener('mousemove', handleMove);
+            document.addEventListener('mouseup', handleEnd);
+
+            // Touch events
+            card.addEventListener('touchstart', handleStart, { passive: false });
+            document.addEventListener('touchmove', handleMove, { passive: false });
+            document.addEventListener('touchend', handleEnd);
+
+            function handleStart(e) {
+                e.preventDefault();
+                isDragging = true;
+                card.classList.add('dragging');
+                
+                const clientX = e.clientX || e.touches[0].clientX;
+                const clientY = e.clientY || e.touches[0].clientY;
+                
+                startX = clientX;
+                startY = clientY;
+                currentX = clientX;
+                currentY = clientY;
+            }
+
+            function handleMove(e) {
+                if (!isDragging) return;
+                e.preventDefault();
+                
+                const clientX = e.clientX || e.touches[0].clientX;
+                const clientY = e.clientY || e.touches[0].clientY;
+                
+                currentX = clientX;
+                currentY = clientY;
+                
+                const deltaX = currentX - startX;
+                const deltaY = currentY - startY;
+                const rotation = deltaX * 0.1;
+                
+                card.style.transform = `translateX(${deltaX}px) translateY(${deltaY}px) rotate(${rotation}deg)`;
+                card.style.opacity = Math.max(0.5, 1 - Math.abs(deltaX) / 300);
+            }
+
+            function handleEnd(e) {
+                if (!isDragging) return;
+                isDragging = false;
+                card.classList.remove('dragging');
+                
+                const deltaX = currentX - startX;
+                const threshold = 100;
+                
+                if (Math.abs(deltaX) > threshold) {
+                    // Swipe detected
+                    if (deltaX > 0) {
+                        // Swipe right - next card
+                        card.classList.add('swipe-right');
+                    } else {
+                        // Swipe left - next card  
+                        card.classList.add('swipe-left');
+                    }
+                    
+                    setTimeout(() => {
+                        nextCard();
+                    }, 300);
+                } else {
+                    // Snap back to center
+                    card.style.transform = '';
+                    card.style.opacity = '';
+                }
+            }
+        }
+
+        // Move to next card
+        function nextCard() {
+            if (currentCardIndex < allGames.length - 1) {
+                currentCardIndex++;
+                createCardStack();
+                updateProgressIndicator();
+            } else {
+                // End of deck - go back to sort selection
+                backToSort();
+            }
+        }
+
+        // Update progress indicator
+        function updateProgressIndicator() {
+            document.getElementById('currentCard').textContent = currentCardIndex + 1;
+            document.getElementById('totalCards').textContent = allGames.length;
+        }
+
+        // Keyboard navigation (for testing)
+        document.addEventListener('keydown', function(e) {
+            if (!isCardViewActive) return;
+            
+            if (e.key === 'ArrowRight' || e.key === ' ') {
+                e.preventDefault();
+                nextCard();
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                backToSort();
+            }
+        });
+
+        // Don't auto-load anything on page load
+        window.addEventListener('load', function() {
+            console.log('Playing Cards app ready - select sort order and click "Load & View Cards"');
+        });
+    </script>
+</body>
+</html>
