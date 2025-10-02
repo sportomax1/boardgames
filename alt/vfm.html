@@ -178,27 +178,92 @@
                 userCollection = new Set(items.map(i => i.getAttribute('objectid')));
             }
         } catch {}
-        gamesCardWrapper.innerHTML = '<div style="text-align:center; color:#888; font-size:1.1em;">Loading VFM Geeklists...</div>';
+        gamesCardWrapper.innerHTML = '<div style="text-align:center; color:#888; font-size:1.1em;" id="loadingStatus">Loading VFM Geeklists...</div>';
         allItems = [];
         loadedCount = 0;
         loading = true;
+        
+        const loadingStatus = document.getElementById('loadingStatus');
+        
         for (let g = 0; g < geeklists.length; g++) {
             const geeklist = geeklists[g];
+            loadingStatus.innerHTML = `Loading ${geeklist.name}...`;
             console.log(`Fetching geeklist: ${geeklist.name} (ID: ${geeklist.id})`);
-            try {
-                const resp = await fetch(`https://boardgamegeek.com/xmlapi/geeklist/${geeklist.id}`);
-                console.log(`Response status for ${geeklist.name}:`, resp.status);
-                if (!resp.ok) {
-                    console.error(`Failed to fetch ${geeklist.name}: ${resp.status} ${resp.statusText}`);
-                    continue;
-                }
-                const xml = await resp.text();
-                console.log(`XML length for ${geeklist.name}:`, xml.length);
-                const parser = new window.DOMParser();
-                const doc = parser.parseFromString(xml, 'text/xml');
-                const items = Array.from(doc.querySelectorAll('item'));
-                console.log(`Items found in ${geeklist.name}:`, items.length);
-                for (let i = 0; i < items.length; i++) {
+            
+            let retryCount = 0;
+            // BGG Con VFM 25 needs more retries due to smaller volume but frequent issues
+            const maxRetries = geeklist.name.includes('BGG.CON VFM 2025') ? 5 : 3;
+            let success = false;
+            
+            while (retryCount < maxRetries && !success) {
+                try {
+                    const resp = await fetch(`https://boardgamegeek.com/xmlapi/geeklist/${geeklist.id}`);
+                    console.log(`Response status for ${geeklist.name}:`, resp.status);
+                    
+                    if (resp.status === 202) {
+                        const waitTime = geeklist.name.includes('BGG.CON VFM 2025') ? 5000 : 3000; // Extra wait for BGG Con
+                        console.log(`BGG still processing ${geeklist.name}, waiting ${waitTime/1000} seconds... (attempt ${retryCount + 1}/${maxRetries})`);
+                        loadingStatus.innerHTML = `${geeklist.name}: BGG processing, waiting... (${retryCount + 1}/${maxRetries})`;
+                        retryCount++;
+                        if (retryCount < maxRetries) {
+                            await new Promise(resolve => setTimeout(resolve, waitTime));
+                            continue;
+                        } else {
+                            console.error(`Failed to fetch ${geeklist.name}: BGG processing timeout after ${maxRetries} attempts`);
+                            loadingStatus.innerHTML = `${geeklist.name}: Timeout, skipping...`;
+                            await new Promise(resolve => setTimeout(resolve, 1000));
+                            break;
+                        }
+                    }
+                    
+                    if (!resp.ok) {
+                        console.error(`Failed to fetch ${geeklist.name}: ${resp.status} ${resp.statusText}`);
+                        break;
+                    }
+                    
+                    const xml = await resp.text();
+                    console.log(`XML length for ${geeklist.name}:`, xml.length);
+                    
+                    // Check if XML contains actual data
+                    if (xml.length < 100) {
+                        console.warn(`${geeklist.name}: XML too short, might be empty response`);
+                        loadingStatus.innerHTML = `${geeklist.name}: Empty response, retrying... (${retryCount + 1}/${maxRetries})`;
+                        retryCount++;
+                        if (retryCount < maxRetries) {
+                            const retryWait = geeklist.name.includes('BGG.CON VFM 2025') ? 4000 : 2000;
+                            await new Promise(resolve => setTimeout(resolve, retryWait));
+                            continue;
+                        } else {
+                            loadingStatus.innerHTML = `${geeklist.name}: Failed, skipping...`;
+                            await new Promise(resolve => setTimeout(resolve, 1000));
+                            break;
+                        }
+                    }
+                    
+                    const parser = new window.DOMParser();
+                    const doc = parser.parseFromString(xml, 'text/xml');
+                    
+                    // Check for XML parsing errors
+                    const parseError = doc.querySelector('parsererror');
+                    if (parseError) {
+                        console.error(`XML parse error for ${geeklist.name}:`, parseError.textContent);
+                        loadingStatus.innerHTML = `${geeklist.name}: Parse error, retrying... (${retryCount + 1}/${maxRetries})`;
+                        retryCount++;
+                        if (retryCount < maxRetries) {
+                            const retryWait = geeklist.name.includes('BGG.CON VFM 2025') ? 4000 : 2000;
+                            await new Promise(resolve => setTimeout(resolve, retryWait));
+                            continue;
+                        } else {
+                            loadingStatus.innerHTML = `${geeklist.name}: Parse failed, skipping...`;
+                            await new Promise(resolve => setTimeout(resolve, 1000));
+                            break;
+                        }
+                    }
+                    
+                    const items = Array.from(doc.querySelectorAll('item'));
+                    console.log(`Items found in ${geeklist.name}:`, items.length);
+                    
+                    for (let i = 0; i < items.length; i++) {
                     const item = items[i];
                     allItems.push({
                         geeklistName: geeklist.name,
@@ -212,10 +277,19 @@
                         item
                     });
                 }
+                success = true; // Mark as successful
             } catch (e) {
-                console.error(`Error fetching geeklist ${geeklist.name}:`, e);
-                // skip geeklist on error
+                console.error(`Error fetching geeklist ${geeklist.name} (attempt ${retryCount + 1}):`, e);
+                retryCount++;
+                if (retryCount < maxRetries) {
+                    const retryWait = geeklist.name.includes('BGG.CON VFM 2025') ? 4000 : 2000;
+                    console.log(`Retrying ${geeklist.name} in ${retryWait/1000} seconds...`);
+                    await new Promise(resolve => setTimeout(resolve, retryWait));
+                } else {
+                    console.error(`Failed to fetch ${geeklist.name} after ${maxRetries} attempts`);
+                }
             }
+            } // End retry loop
         }
         // Sort by postdate descending
         allItems.sort((a, b) => {
@@ -324,17 +398,39 @@
             } else {
                 borderColor = '3px solid #ff4136'; // default to red
             }
-            // Determine emoji for top right
-            let statusEmoji = '';
-            let statusTitle = '';
+            // Determine all applicable collection status emojis
+            let statusEmojis = [];
+            let statusTitles = [];
             if (item.objectId) {
-                if (userCollection.has(item.objectId)) { statusEmoji = '✅'; statusTitle = 'Own'; }
-                else if (userWantToPlay.has(item.objectId)) { statusEmoji = '🎮'; statusTitle = 'Want to Play'; }
-                else if (userWantToBuy.has(item.objectId)) { statusEmoji = '🛒'; statusTitle = 'Want to Buy'; }
-                else if (userWantInTrade.has(item.objectId)) { statusEmoji = '🔄'; statusTitle = 'Want in Trade'; }
-                else if (userPrevOwned.has(item.objectId)) { statusEmoji = '⏪'; statusTitle = 'Previously Owned'; }
-                else if (userTradingAway.has(item.objectId)) { statusEmoji = '📤'; statusTitle = 'Trading Away'; }
+                if (userCollection.has(item.objectId)) { 
+                    statusEmojis.push('✅'); 
+                    statusTitles.push('Own'); 
+                }
+                if (userWantToPlay.has(item.objectId)) { 
+                    statusEmojis.push('🎮'); 
+                    statusTitles.push('Want to Play'); 
+                }
+                if (userWantToBuy.has(item.objectId)) { 
+                    statusEmojis.push('🛒'); 
+                    statusTitles.push('Want to Buy'); 
+                }
+                if (userWantInTrade.has(item.objectId)) { 
+                    statusEmojis.push('🔄'); 
+                    statusTitles.push('Want in Trade'); 
+                }
+                if (userPrevOwned.has(item.objectId)) { 
+                    statusEmojis.push('⏪'); 
+                    statusTitles.push('Previously Owned'); 
+                }
+                if (userTradingAway.has(item.objectId)) { 
+                    statusEmojis.push('📤'); 
+                    statusTitles.push('Trading Away'); 
+                }
             }
+            
+            // Create combined emoji string and title
+            const statusEmoji = statusEmojis.join('');
+            const statusTitle = statusTitles.join(', ');
             
             // Calculate time since posting (only if within last 24 hours)
             let timeIndicator = '';
@@ -356,7 +452,7 @@
             }
             
             html += `<div class='game-card' id='vfmcard-${idx}' style='border:${borderColor}; position:relative;'>
-                ${statusEmoji ? `<span style='position:absolute; top:8px; right:12px; font-size:1.7em; z-index:2;' title='${statusTitle}'>${statusEmoji}</span>` : ''}
+                ${statusEmoji ? `<span style='position:absolute; top:8px; right:12px; font-size:1.4em; z-index:2; line-height:1; letter-spacing:-2px;' title='${statusTitle}'>${statusEmoji}</span>` : ''}
                 ${timeIndicator}
                 <img src='' alt='' class='game-thumb' style='width:64px; height:64px; border-radius:10px; margin-right:1em; object-fit:cover; display:none;'>
                 <div class='game-info'>
