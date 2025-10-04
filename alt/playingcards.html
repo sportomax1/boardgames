@@ -114,7 +114,7 @@
         .game-card {
             width: 90vw;
             max-width: 350px;
-            height: 80vh;
+            height: 88vh;
             background: linear-gradient(135deg, #2c2c2c 0%, #1a1a1a 100%);
             border-radius: 20px;
             box-shadow: 0 20px 60px rgba(0,0,0,0.5);
@@ -123,7 +123,7 @@
             align-items: center;
             justify-content: space-between;
             text-align: center;
-            padding: 30px 20px;
+            padding: 20px 15px;
             box-sizing: border-box;
             position: absolute;
             cursor: grab;
@@ -143,11 +143,11 @@
             opacity: 0;
         }
         .player-count {
-            font-size: 1.8em;
+            font-size: 1.5em;
             font-weight: bold;
             color: #ff6b35;
-            margin-bottom: 15px;
-            min-height: 40px;
+            margin-bottom: 8px;
+            min-height: 30px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -155,13 +155,13 @@
         }
         .player-numbers {
             display: flex;
-            gap: 4px;
+            gap: 3px;
             align-items: center;
             justify-content: center;
             flex-wrap: nowrap;
             overflow-x: auto;
             padding: 0 10px;
-            margin-bottom: 15px;
+            margin-bottom: 8px;
         }
         .player-number {
             width: 28px;
@@ -178,56 +178,123 @@
             flex-shrink: 0;
         }
         .player-number.active {
-            background: #1e40af;
+            background: transparent;
+            color: #9ca3af;
+            border-color: #374151;
+        }
+        .player-number.best {
+            background: #22c55e;
             color: white;
-            border-color: #1d4ed8;
+            border-color: #16a34a;
+        }
+        .player-number.recommended {
+            background: #eab308;
+            color: white;
+            border-color: #ca8a04;
+        }
+        .player-number.hidden {
+            display: none;
         }
         .game-title {
-            font-size: 1.6em;
+            font-size: 1.4em;
             font-weight: 700;
-            margin-bottom: 20px;
-            line-height: 1.2;
+            margin-bottom: 12px;
+            line-height: 1.1;
             color: #fff;
             text-shadow: 0 2px 10px rgba(0,0,0,0.3);
             flex: 0 0 auto;
         }
         .game-thumbnail {
-            width: 150px;
-            height: 150px;
-            border-radius: 15px;
+            width: 140px;
+            height: 140px;
+            border-radius: 12px;
             object-fit: contain;
-            margin-bottom: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            margin-bottom: 12px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
             flex: 1;
-            max-height: 200px;
+            max-height: 180px;
             background: #333;
         }
+        
+        /* Thumbnail container with rating/rank circles */
+        .thumbnail-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 12px;
+        }
+        
+        /* BGG Rating circle (left edge of card) */
+        .rating-circle {
+            position: absolute;
+            left: 15px;
+            top: 45%;
+            transform: translateY(-50%);
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75em;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+            border: 2px solid rgba(255,255,255,0.3);
+            backdrop-filter: blur(5px);
+            z-index: 10;
+        }
+        
+        /* BGG Rank circle (right edge of card) */
+        .rank-circle {
+            position: absolute;
+            right: 15px;
+            top: 45%;
+            transform: translateY(-50%);
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.65em;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+            border: 2px solid rgba(255,255,255,0.3);
+            backdrop-filter: blur(5px);
+            z-index: 10;
+        }
         .game-info {
-            font-size: 0.9em;
+            font-size: 0.85em;
             color: #ccc;
-            line-height: 1.4;
+            line-height: 1.3;
             flex: 0 0 auto;
             width: 100%;
-            max-height: 180px;
+            max-height: 260px;
             overflow-y: auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 4px 6px;
         }
-        .game-info div {
-            margin-bottom: 6px;
+        .game-info .info-row {
+            margin-bottom: 4px;
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            flex-direction: column;
+            align-items: flex-start;
         }
         .info-label {
             color: #888;
-            font-size: 0.85em;
-            min-width: 100px;
+            font-size: 0.8em;
             text-align: left;
+            margin-bottom: 1px;
         }
         .info-value {
             color: #fff;
             font-weight: 500;
-            text-align: right;
-            flex: 1;
+            text-align: left;
+            font-size: 0.9em;
         }
         .year {
             color: #81c784;
@@ -250,58 +317,141 @@
             color: #ba68c8;
         }
         
-        /* Back button for card view */
+        /* Back button for card view - now at bottom */
         .back-to-sort {
             position: absolute;
-            top: 20px;
+            bottom: 15px;
             left: 20px;
             z-index: 1000;
             background: rgba(255, 255, 255, 0.2);
             color: #fff;
             border: none;
             border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            font-size: 20px;
+            width: 32px;
+            height: 32px;
+            font-size: 14px;
             cursor: pointer;
             backdrop-filter: blur(10px);
             transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         .back-to-sort:hover {
             background: rgba(255, 255, 255, 0.3);
         }
         
-        /* Progress indicator */
+        /* Info button */
+        .info-button {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            font-size: 14px;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        .info-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.8);
+            backdrop-filter: blur(5px);
+        }
+        .modal-content {
+            background: linear-gradient(135deg, #2c2c2c 0%, #1a1a1a 100%);
+            margin: 10% auto;
+            padding: 20px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 70vh;
+            overflow-y: auto;
+            color: #fff;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #444;
+        }
+        .modal-title {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #fff;
+        }
+        .close {
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+        .close:hover {
+            color: #fff;
+        }
+        .modal-section {
+            margin-bottom: 20px;
+        }
+        .modal-section h3 {
+            color: #ff6b35;
+            font-size: 1.1em;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 5px;
+        }
+        .modal-list {
+            color: #ccc;
+            line-height: 1.5;
+        }
+        .modal-list-item {
+            margin-bottom: 5px;
+            padding: 3px 0;
+        }
+        
+        /* Progress indicator - adjusted for back button */
         .progress-indicator {
             position: absolute;
-            bottom: 20px;
+            bottom: 15px;
             left: 50%;
             transform: translateX(-50%);
             background: rgba(255, 255, 255, 0.2);
-            padding: 10px 20px;
-            border-radius: 20px;
+            padding: 8px 16px;
+            border-radius: 15px;
             backdrop-filter: blur(10px);
-            font-size: 0.9em;
+            font-size: 0.8em;
             color: #fff;
             z-index: 100;
+            text-align: center;
+            min-width: 120px;
         }
         
-        /* Loading indicator */
+        /* Loading indicator - hidden, combined with progress */
         .loading-indicator {
-            position: absolute;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(17, 24, 39, 0.95);
-            color: #1e40af;
-            padding: 12px 24px;
-            border-radius: 25px;
-            font-size: 0.9em;
-            font-weight: 600;
-            border: 1px solid #374151;
-            z-index: 1000;
-            display: none;
-            backdrop-filter: blur(10px);
+            display: none !important;
         }
         
         .loading {
@@ -329,22 +479,43 @@
         @media screen and (max-device-width: 414px) {
             .game-card {
                 width: 95vw;
-                height: 75vh;
-                padding: 20px 15px;
+                height: 85vh;
+                padding: 15px 12px;
             }
             .game-title {
-                font-size: 1.4em;
+                font-size: 1.2em;
             }
             .player-count {
-                font-size: 1.8em;
-                min-height: 35px;
+                font-size: 1.4em;
+                min-height: 25px;
             }
             .game-thumbnail {
                 width: 120px;
                 height: 120px;
+                max-height: 140px;
+            }
+            .rating-circle, .rank-circle {
+                width: 35px;
+                height: 35px;
+                font-size: 0.7em;
+            }
+            .rating-circle {
+                left: 12px;
+            }
+            .rank-circle {
+                right: 12px;
             }
             .game-info {
-                font-size: 1em;
+                font-size: 0.8em;
+                max-height: 240px;
+                gap: 3px 4px;
+                grid-template-columns: 1fr 1fr 1fr;
+            }
+            .info-label {
+                font-size: 0.75em;
+            }
+            .info-value {
+                font-size: 0.85em;
             }
             .sort-title {
                 font-size: 2em;
@@ -387,13 +558,26 @@
         
         <!-- Card Viewer Screen -->
         <div id="cardViewer" class="card-viewer">
-            <div class="loading-indicator" id="loadingIndicator">Loading more games...</div>
             <button class="back-to-sort" onclick="backToSort()">←</button>
+            <button class="info-button" onclick="showGameInfo()">i</button>
             <div class="cards-stack" id="cardsStack">
                 <!-- Cards will be dynamically inserted here -->
             </div>
             <div class="progress-indicator" id="progressIndicator">
-                <span id="currentCard">1</span> / <span id="totalCards">0</span>
+                1 / 0
+            </div>
+        </div>
+        
+        <!-- Game Info Modal -->
+        <div id="gameInfoModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title" id="modalGameTitle">Game Information</h2>
+                    <span class="close" onclick="closeGameInfo()">&times;</span>
+                </div>
+                <div id="modalGameContent">
+                    <!-- Content will be populated by JavaScript -->
+                </div>
             </div>
         </div>
     </div>
@@ -518,7 +702,16 @@
                             maxplaytime: 0,
                             averageweight: 0,
                             average: 0,
-                            numweights: 0
+                            numweights: 0,
+                            playerRecommendations: {},
+                            designer: '',
+                            publisher: '',
+                            category: '',
+                            mechanic: '',
+                            owned: 0,
+                            wanting: 0,
+                            wishing: 0,
+                            trading: 0
                         };
                         
                         batchGames.push({
@@ -539,7 +732,20 @@
                             maxplaytime: gameDetails.maxplaytime,
                             averageweight: gameDetails.averageweight,
                             average: gameDetails.average,
-                            numweights: gameDetails.numweights
+                            numweights: gameDetails.numweights,
+                            playerRecommendations: gameDetails.playerRecommendations,
+                            designer: gameDetails.designer,
+                            publisher: gameDetails.publisher,
+                            category: gameDetails.category,
+                            mechanic: gameDetails.mechanic,
+                            allDesigners: gameDetails.allDesigners,
+                            allPublishers: gameDetails.allPublishers,
+                            allCategories: gameDetails.allCategories,
+                            allMechanics: gameDetails.allMechanics,
+                            owned: gameDetails.owned,
+                            wanting: gameDetails.wanting,
+                            wishing: gameDetails.wishing,
+                            trading: gameDetails.trading
                         });
                     }
                     
@@ -600,31 +806,27 @@
 
         // Show subtle indicator that background loading is happening
         function showBackgroundLoadingIndicator() {
-            const indicator = document.getElementById('loadingIndicator');
-            indicator.style.display = 'block';
+            // Use the progress indicator to show loading info
             updateLoadingProgress();
         }
 
         // Update loading progress indicator
         function updateLoadingProgress() {
-            const indicator = document.getElementById('loadingIndicator');
-            if (totalGamesToLoad > 0) {
+            const progressIndicator = document.getElementById('progressIndicator');
+            if (totalGamesToLoad > 0 && gamesLoadedSoFar < totalGamesToLoad) {
                 const percentage = Math.round((gamesLoadedSoFar / totalGamesToLoad) * 100);
-                indicator.textContent = `Loading more games... ${percentage}% (${gamesLoadedSoFar}/${totalGamesToLoad})`;
+                const cardInfo = allGames.length > 0 ? `${currentCardIndex + 1} / ${allGames.length} • ` : '';
+                progressIndicator.innerHTML = `${cardInfo}Loading ${percentage}% (${gamesLoadedSoFar}/${totalGamesToLoad})`;
+            } else if (allGames.length > 0) {
+                // Show normal progress when not loading
+                updateProgressIndicator();
             }
         }
 
         // Hide background loading indicator
         function hideBackgroundLoadingIndicator() {
-            const indicator = document.getElementById('loadingIndicator');
-            if (indicator) {
-                indicator.style.display = 'none';
-            }
-            // Also remove any old background indicator if it exists
-            const oldIndicator = document.getElementById('backgroundLoading');
-            if (oldIndicator) {
-                oldIndicator.remove();
-            }
+            // Just update to show normal progress
+            updateProgressIndicator();
         }
 
         // Fetch detailed game info for multiple games in one API call
@@ -634,7 +836,7 @@
             for (let attempt = 1; attempt <= maxRetries; attempt++) {
                 try {
                     console.log(`Fetching batch of ${gameIds.length} games: ${idsString.substring(0, 50)}...`);
-                    const response = await fetch(`https://boardgamegeek.com/xmlapi2/thing?id=${idsString}`);
+                    const response = await fetch(`https://boardgamegeek.com/xmlapi2/thing?id=${idsString}&stats=1`);
                     
                     if (response.status === 429) {
                         // Rate limited - wait longer before retry
@@ -664,10 +866,52 @@
                         const minplaytime = parseInt(item.querySelector('minplaytime')?.getAttribute('value')) || 0;
                         const maxplaytime = parseInt(item.querySelector('maxplaytime')?.getAttribute('value')) || 0;
                         
+                        // Parse player count recommendations
+                        const playerPoll = item.querySelector('poll[name="suggested_numplayers"]');
+                        const playerRecommendations = {};
+                        if (playerPoll) {
+                            const results = playerPoll.querySelectorAll('results');
+                            results.forEach(result => {
+                                const numplayers = result.getAttribute('numplayers');
+                                const best = parseInt(result.querySelector('result[value="Best"]')?.getAttribute('numvotes')) || 0;
+                                const recommended = parseInt(result.querySelector('result[value="Recommended"]')?.getAttribute('numvotes')) || 0;
+                                const notRecommended = parseInt(result.querySelector('result[value="Not Recommended"]')?.getAttribute('numvotes')) || 0;
+                                
+                                // Determine recommendation level based on votes
+                                let recommendation = 'none';
+                                if (best > recommended && best > notRecommended) {
+                                    recommendation = 'best';
+                                } else if (recommended > notRecommended && (best + recommended) > notRecommended) {
+                                    recommendation = 'recommended';
+                                }
+                                
+                                playerRecommendations[numplayers] = recommendation;
+                            });
+                        }
+                        
+                        // Parse designer, publisher, category, and mechanic
+                        const designer = item.querySelector('link[type="boardgamedesigner"]')?.getAttribute('value') || '';
+                        const publisher = item.querySelector('link[type="boardgamepublisher"]')?.getAttribute('value') || '';
+                        const category = item.querySelector('link[type="boardgamecategory"]')?.getAttribute('value') || '';
+                        const mechanic = item.querySelector('link[type="boardgamemechanic"]')?.getAttribute('value') || '';
+                        
+                        // Collect ALL designers, publishers, categories, and mechanics
+                        const allDesigners = Array.from(item.querySelectorAll('link[type="boardgamedesigner"]')).map(link => link.getAttribute('value')).filter(v => v);
+                        const allPublishers = Array.from(item.querySelectorAll('link[type="boardgamepublisher"]')).map(link => link.getAttribute('value')).filter(v => v);
+                        const allCategories = Array.from(item.querySelectorAll('link[type="boardgamecategory"]')).map(link => link.getAttribute('value')).filter(v => v);
+                        const allMechanics = Array.from(item.querySelectorAll('link[type="boardgamemechanic"]')).map(link => link.getAttribute('value')).filter(v => v);
+                        
                         const statistics = item.querySelector('statistics');
-                        const averageweight = parseFloat(statistics?.querySelector('averageweight')?.getAttribute('value')) || 0;
-                        const average = parseFloat(statistics?.querySelector('average')?.getAttribute('value')) || 0;
-                        const numweights = parseInt(statistics?.querySelector('numweights')?.getAttribute('value')) || 0;
+                        const ratings = statistics?.querySelector('ratings');
+                        const averageweight = parseFloat(ratings?.querySelector('averageweight')?.getAttribute('value')) || 0;
+                        const average = parseFloat(ratings?.querySelector('average')?.getAttribute('value')) || 0;
+                        const numweights = parseInt(ratings?.querySelector('numweights')?.getAttribute('value')) || 0;
+                        
+                        // Parse community engagement stats
+                        const owned = parseInt(ratings?.querySelector('owned')?.getAttribute('value')) || 0;
+                        const wanting = parseInt(ratings?.querySelector('wanting')?.getAttribute('value')) || 0;
+                        const wishing = parseInt(ratings?.querySelector('wishing')?.getAttribute('value')) || 0;
+                        const trading = parseInt(ratings?.querySelector('trading')?.getAttribute('value')) || 0;
                         
                         results[id] = { 
                             minplayers, 
@@ -678,7 +922,20 @@
                             maxplaytime,
                             averageweight,
                             average,
-                            numweights
+                            numweights,
+                            playerRecommendations,
+                            designer,
+                            publisher,
+                            category,
+                            mechanic,
+                            allDesigners,
+                            allPublishers,
+                            allCategories,
+                            allMechanics,
+                            owned,
+                            wanting,
+                            wishing,
+                            trading
                         };
                     });
                     
@@ -694,7 +951,20 @@
                                 maxplaytime: 0,
                                 averageweight: 0,
                                 average: 0,
-                                numweights: 0
+                                numweights: 0,
+                                playerRecommendations: {},
+                                designer: '',
+                                publisher: '',
+                                category: '',
+                                mechanic: '',
+                                allDesigners: [],
+                                allPublishers: [],
+                                allCategories: [],
+                                allMechanics: [],
+                                owned: 0,
+                                wanting: 0,
+                                wishing: 0,
+                                trading: 0
                             };
                         }
                     });
@@ -718,7 +988,20 @@
                                 maxplaytime: 0,
                                 averageweight: 0,
                                 average: 0,
-                                numweights: 0
+                                numweights: 0,
+                                playerRecommendations: {},
+                                designer: '',
+                                publisher: '',
+                                category: '',
+                                mechanic: '',
+                                allDesigners: [],
+                                allPublishers: [],
+                                allCategories: [],
+                                allMechanics: [],
+                                owned: 0,
+                                wanting: 0,
+                                wishing: 0,
+                                trading: 0
                             };
                         });
                         return results;
@@ -742,7 +1025,20 @@
                 maxplaytime: 0,
                 averageweight: 0,
                 average: 0,
-                numweights: 0
+                numweights: 0,
+                playerRecommendations: {},
+                designer: '',
+                publisher: '',
+                category: '',
+                mechanic: '',
+                allDesigners: [],
+                allPublishers: [],
+                allCategories: [],
+                allMechanics: [],
+                owned: 0,
+                wanting: 0,
+                wishing: 0,
+                trading: 0
             };
         }
 
@@ -829,6 +1125,37 @@
             card.className = 'game-card';
             card.dataset.gameIndex = currentCardIndex + index;
             
+            // Get rating color (matches VFM getBayesGradientColor)
+            function getRatingColor(rating) {
+                if (rating <= 0) return 'linear-gradient(135deg, rgba(128,128,128,0.9) 0%, rgba(100,100,100,0.9) 100%)'; // Gray for no rating
+                
+                const ratingNum = parseFloat(rating);
+                if (ratingNum >= 8.0) return 'linear-gradient(135deg, rgba(76,175,80,0.9) 0%, rgba(56,142,60,0.9) 100%)'; // Green for excellent (8.0+)
+                if (ratingNum >= 7.5) return 'linear-gradient(135deg, rgba(139,195,74,0.9) 0%, rgba(104,159,56,0.9) 100%)'; // Light green for very good (7.5+)
+                if (ratingNum >= 7.0) return 'linear-gradient(135deg, rgba(255,235,59,0.9) 0%, rgba(251,192,45,0.9) 100%)'; // Yellow for good (7.0+)
+                if (ratingNum >= 6.0) return 'linear-gradient(135deg, rgba(255,152,0,0.9) 0%, rgba(230,81,0,0.9) 100%)'; // Orange for average (6.0+)
+                return 'linear-gradient(135deg, rgba(244,67,54,0.9) 0%, rgba(198,40,40,0.9) 100%)'; // Red for below average
+            }
+            
+            // Get rank color (matches VFM getRankGradientColor)
+            function getRankColor(rank) {
+                if (!rank || rank >= 999999) return 'linear-gradient(135deg, rgba(128,128,128,0.9) 0%, rgba(100,100,100,0.9) 100%)'; // Gray for unranked
+                
+                const rankNum = parseInt(rank);
+                if (rankNum <= 100) return 'linear-gradient(135deg, rgba(76,175,80,0.9) 0%, rgba(56,142,60,0.9) 100%)'; // Green for top 100
+                if (rankNum <= 500) return 'linear-gradient(135deg, rgba(139,195,74,0.9) 0%, rgba(104,159,56,0.9) 100%)'; // Light green for top 500
+                if (rankNum <= 1000) return 'linear-gradient(135deg, rgba(255,235,59,0.9) 0%, rgba(251,192,45,0.9) 100%)'; // Yellow for top 1000
+                if (rankNum <= 5000) return 'linear-gradient(135deg, rgba(255,152,0,0.9) 0%, rgba(230,81,0,0.9) 100%)'; // Orange for top 5000
+                return 'linear-gradient(135deg, rgba(244,67,54,0.9) 0%, rgba(198,40,40,0.9) 100%)'; // Red for below 5000
+            }
+            
+            // Format rank for display
+            function formatRank(rank) {
+                if (rank >= 999999) return 'NR';
+                if (rank >= 1000) return `${Math.round(rank/1000)}k`;
+                return rank.toString();
+            }
+            
             // Create player count display with individual numbered circles
             let playerCountHtml = '';
             if (game.minplayers > 0 && game.maxplayers > 0) {
@@ -836,15 +1163,46 @@
                 // Create circles for players 1-8 (reserved positions)
                 for (let i = 1; i <= 8; i++) {
                     const isActive = i >= game.minplayers && i <= game.maxplayers;
-                    const activeClass = isActive ? ' active' : '';
-                    playerCountHtml += `<div class="player-number${activeClass}">${i}</div>`;
+                    
+                    if (!isActive) {
+                        // Hide unsupported player counts
+                        playerCountHtml += `<div class="player-number hidden">${i}</div>`;
+                        continue;
+                    }
+                    
+                    // Determine recommendation class for supported player counts
+                    let recommendationClass = ' active'; // Default: clear/transparent
+                    if (game.playerRecommendations) {
+                        const recommendation = game.playerRecommendations[i.toString()];
+                        if (recommendation === 'best') {
+                            recommendationClass = ' best';
+                        } else if (recommendation === 'recommended') {
+                            recommendationClass = ' recommended';
+                        }
+                    }
+                    
+                    playerCountHtml += `<div class="player-number${recommendationClass}">${i}</div>`;
                 }
                 // Handle 8+ display
                 if (game.maxplayers > 8) {
-                    playerCountHtml = playerCountHtml.replace(
-                        '<div class="player-number active">8</div>',
-                        '<div class="player-number active">8+</div>'
-                    );
+                    // Check if 8+ has a recommendation
+                    let recommendation8Plus = ' active'; // Default: clear/transparent
+                    if (game.playerRecommendations && game.playerRecommendations['8+']) {
+                        const rec = game.playerRecommendations['8+'];
+                        if (rec === 'best') {
+                            recommendation8Plus = ' best';
+                        } else if (rec === 'recommended') {
+                            recommendation8Plus = ' recommended';
+                        }
+                    }
+                    
+                    // Replace the last active 8 with 8+
+                    const lastActiveIndex = playerCountHtml.lastIndexOf('<div class="player-number active">8</div>');
+                    if (lastActiveIndex !== -1) {
+                        playerCountHtml = playerCountHtml.substring(0, lastActiveIndex) + 
+                                        `<div class="player-number${recommendation8Plus}">8+</div>` +
+                                        playerCountHtml.substring(lastActiveIndex + '<div class="player-number active">8</div>'.length);
+                    }
                 }
                 playerCountHtml += '</div>';
             }
@@ -852,6 +1210,27 @@
             const thumbnailDisplay = game.thumbnail ? 
                 `<img src="${game.thumbnail}" class="game-thumbnail" alt="${game.name}">` :
                 `<div class="game-thumbnail" style="background: #333; display: flex; align-items: center; justify-content: center; color: #666;">No Image</div>`;
+            
+            // Create rating and rank circles
+            const ratingValue = game.average || game.rating || 0;
+            const ratingDisplay = ratingValue > 0 ? ratingValue.toFixed(1) : 'NR';
+            const ratingColor = getRatingColor(ratingValue);
+            
+            const rankValue = game.rank < 999999 ? game.rank : 999999;
+            const rankDisplay = formatRank(rankValue);
+            const rankColor = getRankColor(rankValue);
+            
+            const thumbnailWithCircles = `
+                <div class="thumbnail-container">
+                    ${thumbnailDisplay}
+                </div>
+                <div class="rating-circle" style="background: ${ratingColor}">
+                    ${ratingDisplay}
+                </div>
+                <div class="rank-circle" style="background: ${rankColor}">
+                    ${rankDisplay}
+                </div>
+            `;
             
             // Format play time display
             let playTimeText = '';
@@ -867,7 +1246,11 @@
             
             // Format weight display (complexity)
             const weightText = game.averageweight > 0 ? 
-                `Weight: ${game.averageweight.toFixed(2)}/5 (${game.numweights} votes)` : '';
+                `${game.averageweight.toFixed(2)}/5` : '';
+            
+            // Format weight vote count
+            const weightVotesText = game.numweights > 0 ? 
+                `${game.numweights.toLocaleString()} votes` : '';
             
             // Format BGG average rating
             const bggRatingText = game.average > 0 ? 
@@ -890,7 +1273,7 @@
             card.innerHTML = `
                 ${playerCountHtml}
                 <div class="game-title">${game.name}</div>
-                ${thumbnailDisplay}
+                ${thumbnailWithCircles}
                 <div class="game-info">
                     <div class="info-row">
                         <span class="info-label">Published:</span>
@@ -931,7 +1314,52 @@
                     ${weightText ? `
                     <div class="info-row">
                         <span class="info-label">Complexity:</span>
-                        <span class="info-value">${game.averageweight.toFixed(2)}/5</span>
+                        <span class="info-value">${weightText}</span>
+                    </div>` : ''}
+                    ${weightVotesText ? `
+                    <div class="info-row">
+                        <span class="info-label">Weight Votes:</span>
+                        <span class="info-value">${weightVotesText}</span>
+                    </div>` : ''}
+                    ${game.designer ? `
+                    <div class="info-row">
+                        <span class="info-label">Designer:</span>
+                        <span class="info-value">${game.designer}</span>
+                    </div>` : ''}
+                    ${game.publisher ? `
+                    <div class="info-row">
+                        <span class="info-label">Publisher:</span>
+                        <span class="info-value">${game.publisher}</span>
+                    </div>` : ''}
+                    ${game.category ? `
+                    <div class="info-row">
+                        <span class="info-label">Category:</span>
+                        <span class="info-value">${game.category}</span>
+                    </div>` : ''}
+                    ${game.mechanic ? `
+                    <div class="info-row">
+                        <span class="info-label">Mechanic:</span>
+                        <span class="info-value">${game.mechanic}</span>
+                    </div>` : ''}
+                    ${game.owned > 0 ? `
+                    <div class="info-row">
+                        <span class="info-label">Owned:</span>
+                        <span class="info-value">${game.owned.toLocaleString()}</span>
+                    </div>` : ''}
+                    ${game.wanting > 0 ? `
+                    <div class="info-row">
+                        <span class="info-label">Wanting:</span>
+                        <span class="info-value">${game.wanting.toLocaleString()}</span>
+                    </div>` : ''}
+                    ${game.wishing > 0 ? `
+                    <div class="info-row">
+                        <span class="info-label">Wishing:</span>
+                        <span class="info-value">${game.wishing.toLocaleString()}</span>
+                    </div>` : ''}
+                    ${game.trading > 0 ? `
+                    <div class="info-row">
+                        <span class="info-label">Trading:</span>
+                        <span class="info-value">${game.trading.toLocaleString()}</span>
                     </div>` : ''}
                 </div>
             `;
@@ -1042,8 +1470,14 @@
 
         // Update progress indicator
         function updateProgressIndicator() {
-            document.getElementById('currentCard').textContent = currentCardIndex + 1;
-            document.getElementById('totalCards').textContent = allGames.length;
+            const progressIndicator = document.getElementById('progressIndicator');
+            if (gamesLoadedSoFar < totalGamesToLoad && totalGamesToLoad > 0) {
+                // Still loading - show loading progress
+                updateLoadingProgress();
+            } else {
+                // Show normal card progress
+                progressIndicator.innerHTML = `<span id="currentCard">${currentCardIndex + 1}</span> / <span id="totalCards">${allGames.length}</span>`;
+            }
         }
 
         // Keyboard navigation (for testing)
@@ -1063,6 +1497,87 @@
         window.addEventListener('load', function() {
             console.log('Playing Cards app ready - select sort order and click "Load & View Cards"');
         });
+
+        // Show game info modal
+        function showGameInfo(gameId = null) {
+            let game;
+            
+            if (gameId) {
+                // Find game by ID when called from info button
+                game = allGames.find(g => g.id.toString() === gameId.toString());
+            } else {
+                // Use current card when called from main info button
+                if (currentCardIndex < allGames.length) {
+                    game = allGames[currentCardIndex];
+                }
+            }
+            
+            if (!game) return;
+            
+            const modal = document.getElementById('gameInfoModal');
+            const modalTitle = document.getElementById('modalGameTitle');
+            const modalContent = document.getElementById('modalGameContent');
+            
+            modalTitle.textContent = game.name;
+            
+            let content = '';
+            
+            // Designers
+            if (game.allDesigners && game.allDesigners.length > 0) {
+                content += '<div class="modal-section"><h3>Designers</h3><div class="modal-list">';
+                game.allDesigners.forEach(designer => {
+                    content += `<div class="modal-list-item">${designer}</div>`;
+                });
+                content += '</div></div>';
+            }
+            
+            // Publishers
+            if (game.allPublishers && game.allPublishers.length > 0) {
+                content += '<div class="modal-section"><h3>Publishers</h3><div class="modal-list">';
+                game.allPublishers.forEach(publisher => {
+                    content += `<div class="modal-list-item">${publisher}</div>`;
+                });
+                content += '</div></div>';
+            
+            // Categories
+            if (game.allCategories && game.allCategories.length > 0) {
+                content += '<div class="modal-section"><h3>Categories</h3><div class="modal-list">';
+                game.allCategories.forEach(category => {
+                    content += `<div class="modal-list-item">${category}</div>`;
+                });
+                content += '</div></div>';
+            }
+            
+            // Mechanics
+            if (game.allMechanics && game.allMechanics.length > 0) {
+                content += '<div class="modal-section"><h3>Mechanics</h3><div class="modal-list">';
+                game.allMechanics.forEach(mechanic => {
+                    content += `<div class="modal-list-item">${mechanic}</div>`;
+                });
+                content += '</div></div>';
+            }
+            
+            if (content === '') {
+                content = '<div class="modal-section">No additional information available.</div>';
+            }
+            
+            modalContent.innerHTML = content;
+            modal.style.display = 'block';
+        }
+        }
+
+        // Close game info modal
+        function closeGameInfo() {
+            document.getElementById('gameInfoModal').style.display = 'none';
+        }
+
+        // Close modal when clicking outside of it
+        window.onclick = function(event) {
+            const modal = document.getElementById('gameInfoModal');
+            if (event.target == modal) {
+                closeGameInfo();
+            }
+        }
     </script>
 </body>
 </html>
