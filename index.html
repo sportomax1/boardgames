@@ -31,6 +31,7 @@
                 </div>
             </div>
             <button id="openWelcomeBtn" style="margin-left:1em; background:#d32f2f; color:#fff; border:none; border-radius:6px; padding:10px 20px; font-size:1rem; font-weight:600; box-shadow:0 2px 8px rgba(0,0,0,0.08); cursor:pointer; transition:background 0.2s, box-shadow 0.2s, transform 0.1s;" aria-label="Open Welcome Page">Open Welcome Page</button>
+            <button id="openGeeklistBtn" style="margin-left:1em; background:#1976d2; color:#fff; border:none; border-radius:6px; padding:10px 20px; font-size:1rem; font-weight:600; box-shadow:0 2px 8px rgba(0,0,0,0.08); cursor:pointer; transition:background 0.2s, box-shadow 0.2s, transform 0.1s;" aria-label="Open Geeklist Tab">Open Geeklist Tab</button>
         </div>
         <div style="min-width:340px; text-align:right; font-size:1em;">
             <div style="font-weight:600; margin-bottom:0.2em;">API Timing & Collection Summary</div>
@@ -148,6 +149,12 @@
         if (openWelcomeBtn) {
             openWelcomeBtn.onclick = function() {
                 window.open('welcome.html', '_blank');
+            };
+        }
+        var openGeeklistBtn = document.getElementById('openGeeklistBtn');
+        if (openGeeklistBtn) {
+            openGeeklistBtn.onclick = function() {
+                window.open('alt/geeklist.html', '_blank');
             };
         }
     });

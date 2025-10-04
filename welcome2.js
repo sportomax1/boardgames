@@ -1,4 +1,52 @@
+// Make filterRecords globally available
+function filterRecords(records, fields, term) {
+    if (!term) return records;
+    const lc = term.toLowerCase();
+    let searchFields = fields;
+    const searchNameOnly = document.getElementById('searchNameOnly');
+    if (searchNameOnly && searchNameOnly.checked) {
+        searchFields = fields.filter(f => /name.*primary|name$/i.test(f));
+        if (searchFields.length === 0) searchFields = fields.filter(f => /name/i.test(f));
+    }
+    return records.filter(rec => searchFields.some(f => (rec[f] + '').toLowerCase().includes(lc)));
+}
+// Ensure search event handler is always attached at the end
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    const searchNameOnly = document.getElementById('searchNameOnly');
+    function robustLiveSearch() {
+        const term = searchInput ? searchInput.value.trim() : '';
+        let arr = window.lastRecords || [];
+        let fields = window.lastFields || [];
+        let displayFields = window.lastDisplayFields || fields;
+        console.log('Robust live search fired. Term:', term);
+        console.log('Fields being searched:', displayFields);
+        if (arr.length === 0 || displayFields.length === 0) {
+            const resultDiv = document.getElementById('apiResult');
+            if (resultDiv) resultDiv.innerHTML = '<span style="color:#888;">No records loaded.</span>';
+            if (typeof renderPagination === 'function') renderPagination();
+            return;
+        }
+        lastFilteredArr = filterRecords(arr, displayFields, term);
+        console.log('Filtered records count:', lastFilteredArr.length);
+        // Force reset to first page for filtered results
+        currentPage = 1;
+        const resultDiv = document.getElementById('apiResult');
+        if (resultDiv && typeof renderTable === 'function') {
+            resultDiv.innerHTML = renderTable(lastFilteredArr, fields, displayFields);
+        }
+        if (typeof renderPagination === 'function') renderPagination();
+    }
+    if (searchInput) {
+        searchInput.oninput = robustLiveSearch;
+        if (searchNameOnly) searchNameOnly.onchange = robustLiveSearch;
+    } else {
+        console.log('Search input not found.');
+    }
+});
+    console.log('--- TOP OF welcome2.js loaded ---');
     // Collage button logic (in share dropdown, grid size in popup)
+console.log('--- BOTTOM OF welcome2.js executed ---');
     const collageBtn = document.getElementById('collageBtn');
     if (collageBtn) {
         collageBtn.onclick = function() {
@@ -541,13 +589,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const searchNameOnly = document.getElementById('searchNameOnly');
     // Helper to render the table from records and fields
     function renderTable(records, fields, displayFields) {
-    // Pagination logic
-    const localTotalPages = Math.max(1, Math.ceil(records.length / pageSize));
+    // Always use lastFilteredArr for rendering
+    const filteredRecords = (Array.isArray(lastFilteredArr) && lastFilteredArr.length > 0) ? lastFilteredArr : records;
+    const localTotalPages = Math.max(1, Math.ceil(filteredRecords.length / pageSize));
     if (currentPage > localTotalPages) currentPage = localTotalPages;
     const startIdx = (currentPage - 1) * pageSize;
     const endIdx = startIdx + pageSize;
-    const pagedRecords = records.slice(startIdx, endIdx);
-        let html = `<div style='overflow-x:auto;'><table border='1' cellpadding='6' style='border-collapse:collapse; margin:auto; background:#fff; min-width:1200px;'><thead><tr>`;
+    const pagedRecords = filteredRecords.slice(startIdx, endIdx);
+    let html = `<div style='overflow-x:auto;'><table border='1' cellpadding='6' style='border-collapse:collapse; margin:auto; background:#fff; min-width:1200px; border: 4px solid #a020f0;'><thead><tr>`;
         displayFields.forEach(f => {
             let bg = f === 'idx' ? '#333' : (f.startsWith('collection_') ? '#b71c1c' : (f.startsWith('t_') ? '#008080' : '#1976d2'));
             html += `<th style='background:${bg}; color:#fff; font-weight:600; position:sticky; top:0; z-index:2;'>${f}</th>`;
@@ -603,9 +652,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Pagination controls rendering
     function renderPagination() {
         if (!paginationTop || !paginationBottom) return;
-        // Always compute totalPages from the filtered array
-        const arr = lastFilteredArr && Array.isArray(lastFilteredArr) && lastFilteredArr.length > 0 ? lastFilteredArr : (window.lastRecords || []);
-        const localTotalPages = Math.max(1, Math.ceil(arr.length / pageSize));
+    // Always compute totalPages from the filtered array
+    const arr = (Array.isArray(lastFilteredArr) && lastFilteredArr.length > 0) ? lastFilteredArr : (window.lastRecords || []);
+    const localTotalPages = Math.max(1, Math.ceil(arr.length / pageSize));
         const makeControls = (pos) => {
             return `
                 <div style="display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:0.7em; width:100%; max-width:100vw;">
@@ -690,6 +739,29 @@ document.addEventListener('DOMContentLoaded', function() {
     const settingsColumnsDiv = document.getElementById('settingsColumns');
     const selectAllBtn = document.getElementById('selectAllBtn');
     const selectNoneBtn = document.getElementById('selectNoneBtn');
+    const selectBasicBtn = document.getElementById('selectBasicBtn');
+    if (selectBasicBtn && settingsColumnsDiv) {
+        selectBasicBtn.onclick = function() {
+            // Basic columns to select
+            const basicCols = ['idx', 'collection_thumbnail', 'collection_rating_bayesaverage'];
+            // Deselect all first
+            Array.from(settingsColumnsDiv.querySelectorAll('input[type="checkbox"]')).forEach(cb => {
+                cb.checked = false;
+            });
+            // Select only basic columns
+            Array.from(settingsColumnsDiv.querySelectorAll('input[type="checkbox"]')).forEach(cb => {
+                if (basicCols.includes(cb.value)) {
+                    cb.checked = true;
+                }
+            });
+            // Hide all t_ columns
+            Array.from(settingsColumnsDiv.querySelectorAll('input[type="checkbox"]')).forEach(cb => {
+                if (/^t_/.test(cb.value)) {
+                    cb.checked = false;
+                }
+            });
+        };
+    }
     const saveSettingsBtn = document.getElementById('saveSettingsBtn');
     const closeSettingsBtn = document.getElementById('closeSettingsBtn');
     let allColumns = [];
@@ -726,6 +798,17 @@ document.addEventListener('DOMContentLoaded', function() {
     selectedColumns = Array.from(document.querySelectorAll('.colCheckbox')).filter(cb => cb.checked).map(cb => cb.value);
     sessionStorage.setItem('selectedColumns', JSON.stringify(selectedColumns));
     settingsModal.style.display = 'none';
+    // Re-render table and pagination with new columns immediately
+    if (window.lastRecords && selectedColumns.length > 0) {
+        window.lastDisplayFields = selectedColumns;
+        lastFilteredArr = filterRecords(window.lastRecords, selectedColumns, searchInput ? searchInput.value.trim() : '');
+        currentPage = 1;
+        const resultDiv = document.getElementById('apiResult');
+        if (resultDiv && typeof renderTable === 'function') {
+            resultDiv.innerHTML = renderTable(lastFilteredArr, window.lastFields, selectedColumns);
+        }
+        if (typeof renderPagination === 'function') renderPagination();
+    }
     };
     // const runBtn = document.getElementById('runApiBtn'); // Removed duplicate declaration
     const resultDiv = document.getElementById('apiResult');
@@ -1144,21 +1227,60 @@ document.addEventListener('DOMContentLoaded', function() {
                 currentPage = 1;
                 renderPagination();
                 // Live search: update table as user types
-                if (searchInput) {
-                    function doLiveSearch() {
-                        if (window.lastRecords && window.lastFields && window.lastDisplayFields) {
-                            lastFilteredArr = filterRecords(window.lastRecords, window.lastDisplayFields, searchInput.value.trim());
-                            currentPage = 1;
-                            updateTable();
-                        }
+                // Robust real-time search feature
+                function robustLiveSearch() {
+                    const term = searchInput.value.trim();
+                    let arr = window.lastRecords || [];
+                    let fields = window.lastFields || [];
+                    let displayFields = window.lastDisplayFields || fields;
+                    console.log('Robust live search fired. Term:', term);
+                    console.log('Fields being searched:', displayFields);
+                    if (arr.length === 0 || displayFields.length === 0) {
+                        resultDiv.innerHTML = '<span style="color:#888;">No records loaded.</span>';
+                        renderPagination();
+                        return;
                     }
-                    searchInput.oninput = doLiveSearch;
-                    if (searchNameOnly) searchNameOnly.onchange = doLiveSearch;
+                    lastFilteredArr = filterRecords(arr, displayFields, term);
+                    console.log('Filtered records count:', lastFilteredArr.length);
+                    currentPage = 1;
+                    resultDiv.innerHTML = renderTable(lastFilteredArr, fields, displayFields);
+                    renderPagination();
+                }
+                if (searchInput) {
+                    searchInput.oninput = robustLiveSearch;
+                    if (searchNameOnly) searchNameOnly.onchange = robustLiveSearch;
                 }
             } catch (e) {
                 resultDiv.innerHTML = `<span style='color:#c00;'>Error: ${e.message}</span>`;
                 renderPagination();
             }
         };
+        // Ensure search event handler is always attached
+        const searchInput = document.getElementById('searchInput');
+        const searchNameOnly = document.getElementById('searchNameOnly');
+        function robustLiveSearch() {
+            const term = searchInput ? searchInput.value.trim() : '';
+            let arr = window.lastRecords || [];
+            let fields = window.lastFields || [];
+            let displayFields = window.lastDisplayFields || fields;
+            console.log('Robust live search fired. Term:', term);
+            console.log('Fields being searched:', displayFields);
+            if (arr.length === 0 || displayFields.length === 0) {
+                resultDiv.innerHTML = '<span style="color:#888;">No records loaded.</span>';
+                renderPagination();
+                return;
+            }
+            lastFilteredArr = filterRecords(arr, displayFields, term);
+            console.log('Filtered records count:', lastFilteredArr.length);
+            currentPage = 1;
+            resultDiv.innerHTML = renderTable(lastFilteredArr, fields, displayFields);
+            renderPagination();
+        }
+        if (searchInput) {
+            searchInput.oninput = robustLiveSearch;
+            if (searchNameOnly) searchNameOnly.onchange = robustLiveSearch;
+        } else {
+            console.log('Search input not found.');
+        }
     }
 });
