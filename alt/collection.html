@@ -98,7 +98,7 @@
         .full-card-image {
             width: 100%;
             height: 60%;
-            object-fit: cover;
+            object-fit: contain;
             background: #f0f0f0;
         }
         .full-card-info {
@@ -290,6 +290,7 @@
         <div id="cardDeckView" class="card-deck-view">
             <div class="card-counter" id="cardCounter">1 / 1</div>
             <div class="full-card" id="fullCard">
+                <div class="full-card-player-count" id="fullCardPlayerCount" style="position:absolute; top:1em; left:1em; background:rgba(255,255,255,0.9); padding:0.5em 1em; border-radius:20px; font-weight:600; font-size:0.9em; box-shadow:0 2px 8px rgba(0,0,0,0.15);">Loading...</div>
                 <div class="full-card-emoji" id="fullCardEmoji"></div>
                 <img class="full-card-image" id="fullCardImage" src="" alt="">
                 <div class="full-card-info">
@@ -338,6 +339,67 @@
     let loading = false;
     let currentDisplayMode = 'list'; // 'list' or 'cards'
     let currentCardIndex = 0;
+    let gameDetailsCache = {}; // Cache for Thing API data
+
+    // Fetch game details from BGG Thing API
+    async function fetchGameThingDetails(gameId) {
+        if (gameDetailsCache[gameId]) {
+            return gameDetailsCache[gameId];
+        }
+        
+        try {
+            const response = await fetch(`https://boardgamegeek.com/xmlapi2/thing?id=${gameId}&stats=1`);
+            const text = await response.text();
+            const parser = new DOMParser();
+            const xml = parser.parseFromString(text, 'text/xml');
+            
+            const item = xml.querySelector('item');
+            const rank = item?.querySelector('statistics ranks rank[name="boardgame"]')?.getAttribute('value') || 'Unranked';
+            const avgRating = item?.querySelector('statistics rating average')?.getAttribute('value') || '0';
+            
+            // Get best player count
+            const playerCountPolls = item?.querySelectorAll('poll[name="suggested_numplayers"] results');
+            let bestPlayerCount = 'Unknown';
+            
+            if (playerCountPolls && playerCountPolls.length > 0) {
+                let maxVotes = 0;
+                let bestCount = '';
+                
+                Array.from(playerCountPolls).forEach(result => {
+                    const numPlayers = result.getAttribute('numplayers');
+                    const bestVotes = parseInt(result.querySelector('result[value="Best"]')?.getAttribute('numvotes') || '0');
+                    
+                    if (bestVotes > maxVotes) {
+                        maxVotes = bestVotes;
+                        bestCount = numPlayers;
+                    }
+                });
+                
+                if (bestCount) {
+                    bestPlayerCount = bestCount === '1' ? '1 Player' : 
+                                     bestCount === '2' ? '2 Players' :
+                                     bestCount === '3' ? '3 Players' :
+                                     bestCount === '4' ? '4 Players' :
+                                     bestCount === '5' ? '5 Players' :
+                                     bestCount === '6' ? '6 Players' :
+                                     bestCount.includes('+') ? `${bestCount}` :
+                                     `${bestCount} Players`;
+                }
+            }
+            
+            const details = {
+                rank: rank === 'Not Ranked' ? 'Unranked' : rank,
+                avgRating: parseFloat(avgRating).toFixed(1),
+                bestPlayerCount
+            };
+            
+            gameDetailsCache[gameId] = details;
+            return details;
+        } catch (error) {
+            console.error(`Error fetching Thing API data for game ${gameId}:`, error);
+            return { rank: 'Unranked', avgRating: 'N/A', bestPlayerCount: 'Unknown' };
+        }
+    }
 
     function getStatusEmoji(item) {
         const status = item.querySelector('status');
@@ -580,30 +642,63 @@
         updateCurrentCard();
     }
     
-    function updateCurrentCard() {
+    async function updateCurrentCard() {
         if (currentCardIndex < 0) currentCardIndex = 0;
         if (currentCardIndex >= filteredItems.length) currentCardIndex = filteredItems.length - 1;
         
         const item = filteredItems[currentCardIndex];
         const name = item.querySelector('name')?.textContent || 'Unknown';
+        const gameId = item.getAttribute('objectid') || '';
         const thumbUrl = item.querySelector('thumbnail')?.textContent || '';
         const imageUrl = item.querySelector('image')?.textContent || thumbUrl;
         const year = item.querySelector('yearpublished')?.textContent || '';
         const plays = item.querySelector('numplays')?.textContent || '0';
-        const rating = item.querySelector('stats rating')?.getAttribute('value') || '';
+        const collectionRating = item.querySelector('stats rating')?.getAttribute('value') || '';
         const statusEmoji = getStatusEmoji(item);
         
+        // Update basic info immediately
         document.getElementById('fullCardTitle').textContent = name;
         document.getElementById('fullCardImage').src = imageUrl || thumbUrl || '';
         document.getElementById('fullCardImage').alt = `${name} image`;
         document.getElementById('fullCardEmoji').textContent = statusEmoji;
         document.getElementById('fullCardEmoji').style.display = statusEmoji ? 'flex' : 'none';
+        document.getElementById('cardCounter').textContent = `${currentCardIndex + 1} / ${filteredItems.length}`;
+        
+        // Show loading state for player count
+        document.getElementById('fullCardPlayerCount').textContent = 'Loading...';
+        
+        // Update details with collection data first
         document.getElementById('fullCardDetails').innerHTML = `
             <b>Year:</b> ${year}<br>
             <b>Plays:</b> ${plays}<br>
-            <b>Rating:</b> ${rating || 'N/A'}
+            <b>My Rating:</b> ${collectionRating || 'N/A'}<br>
+            <b>BGG Rating:</b> Loading...<br>
+            <b>BGG Rank:</b> Loading...
         `;
-        document.getElementById('cardCounter').textContent = `${currentCardIndex + 1} / ${filteredItems.length}`;
+        
+        // Fetch and update Thing API data
+        if (gameId) {
+            try {
+                const thingDetails = await fetchGameThingDetails(gameId);
+                
+                // Update player count
+                document.getElementById('fullCardPlayerCount').textContent = `Best: ${thingDetails.bestPlayerCount}`;
+                
+                // Update details with Thing API data
+                document.getElementById('fullCardDetails').innerHTML = `
+                    <b>Year:</b> ${year}<br>
+                    <b>Plays:</b> ${plays}<br>
+                    <b>My Rating:</b> ${collectionRating || 'N/A'}<br>
+                    <b>BGG Rating:</b> ${thingDetails.avgRating}<br>
+                    <b>BGG Rank:</b> ${thingDetails.rank}
+                `;
+            } catch (error) {
+                console.error('Error updating card with Thing API data:', error);
+                document.getElementById('fullCardPlayerCount').textContent = 'Best: Unknown';
+            }
+        } else {
+            document.getElementById('fullCardPlayerCount').textContent = 'Best: Unknown';
+        }
     }
     
     // Card navigation

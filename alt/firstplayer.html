@@ -391,6 +391,50 @@
             text-shadow: 0 0 20px rgba(239, 68, 68, 0.8);
         }
 
+        .start-flag {
+            position: absolute;
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 5em;
+            font-weight: bold;
+            color: #10b981;
+            display: none;
+            pointer-events: none;
+            text-shadow: 0 0 30px rgba(16, 185, 129, 0.8);
+            animation: startFlag 2s ease-in-out;
+            z-index: 1000;
+        }
+
+        @keyframes startFlag {
+            0% { 
+                opacity: 0; 
+                transform: translate(-50%, -50%) scale(0.5); 
+                color: #ef4444;
+            }
+            25% { 
+                opacity: 1; 
+                transform: translate(-50%, -50%) scale(1.2); 
+                color: #f59e0b;
+            }
+            50% { 
+                opacity: 1; 
+                transform: translate(-50%, -50%) scale(1); 
+                color: #10b981;
+            }
+            75% { 
+                opacity: 1; 
+                transform: translate(-50%, -50%) scale(1.1); 
+                color: #10b981;
+                text-shadow: 0 0 40px rgba(16, 185, 129, 1);
+            }
+            100% { 
+                opacity: 0; 
+                transform: translate(-50%, -50%) scale(0.8); 
+                color: #10b981;
+            }
+        }
+
         .touch-point {
             position: absolute;
             width: 80px;
@@ -828,6 +872,7 @@
             <button class="close-button" onclick="exitTouchGame()">×</button>
             <div class="touch-message" id="touchMessage">Place all fingers on screen to begin...</div>
             <div class="countdown-display" id="countdownDisplay"></div>
+            <div class="start-flag" id="startFlag">🏁 START!</div>
         </div>
 
         <!-- Color Picker Method -->
@@ -963,6 +1008,8 @@
                 setupSpinner();
             } else if (method === 'touch') {
                 setupTouchGame();
+                // Auto-start touch game immediately
+                startTouchGame();
             } else if (method === 'colorpicker') {
                 setupColorPicker();
             }
@@ -1213,6 +1260,11 @@
             
             for (let touch of e.changedTouches) {
                 if (!touchGame.touches.has(touch.identifier)) {
+                    // Prevent new fingers from joining during elimination phase
+                    if (touchGame.eliminationPhase) {
+                        return;
+                    }
+                    
                     const x = touch.clientX - rect.left;
                     const y = touch.clientY - rect.top;
                     const color = touchGame.colors[touchGame.colorIndex % touchGame.colors.length];
@@ -1236,6 +1288,12 @@
                     });
                     
                     touchGame.colorIndex++;
+                    
+                    // Reset countdown when new finger is added (only during initiation phase)
+                    if (touchGame.initiationStarted && !touchGame.eliminationPhase) {
+                        clearInterval(touchGame.countdownTimer);
+                        startInitiationCountdown();
+                    }
                 }
             }
             
@@ -1297,7 +1355,7 @@
             message.textContent = 'Get ready! Elimination starts in...';
             message.style.display = 'block';
             
-            let countdown = 5;
+            let countdown = 3;
             countdownDisplay.textContent = countdown;
             
             touchGame.countdownTimer = setInterval(() => {
@@ -1319,12 +1377,28 @@
         function startEliminationPhase() {
             touchGame.eliminationPhase = true;
             
-            if (touchGame.touches.size <= 1) {
-                endTouchGame();
-                return;
-            }
+            // Show start flag animation
+            const startFlag = document.getElementById('startFlag');
+            const countdownDisplay = document.getElementById('countdownDisplay');
+            const message = document.getElementById('touchMessage');
             
-            startEliminationCountdown();
+            startFlag.style.display = 'block';
+            countdownDisplay.style.display = 'none';
+            message.style.display = 'none';
+            
+            // Hide start flag after animation completes
+            setTimeout(() => {
+                startFlag.style.display = 'none';
+                message.textContent = 'Elimination phase! Stay on screen!';
+                message.style.display = 'block';
+                
+                if (touchGame.touches.size <= 1) {
+                    endTouchGame();
+                    return;
+                }
+                
+                startEliminationCountdown();
+            }, 2000);
         }
 
         function startEliminationCountdown() {
@@ -1340,7 +1414,7 @@
             message.textContent = `${touchGame.touches.size} players remaining...`;
             message.style.display = 'block';
             
-            let countdown = 3;
+            let countdown = 1;
             countdownDisplay.textContent = countdown;
             
             touchGame.countdownTimer = setInterval(() => {
@@ -1384,7 +1458,7 @@
                 navigator.vibrate([200, 100, 200]);
             }
             
-            // Continue elimination after 2 seconds
+            // Continue elimination after 1.5 seconds
             setTimeout(() => {
                 eliminatedTouch.element.remove();
                 
@@ -1393,7 +1467,7 @@
                 } else {
                     endTouchGame();
                 }
-            }, 2000);
+            }, 1500);
         }
 
         function createExplosion(x, y, color) {
@@ -1522,6 +1596,7 @@
                 <button class="close-button" onclick="exitTouchGame()">×</button>
                 <div class="touch-message" id="touchMessage">Place all fingers on screen to begin...</div>
                 <div class="countdown-display" id="countdownDisplay"></div>
+                <div class="start-flag" id="startFlag">🏁 START!</div>
             `;
             
             result.classList.remove('show');

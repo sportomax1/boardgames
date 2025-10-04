@@ -176,6 +176,8 @@
             const year = item.querySelector('yearpublished')?.textContent || '';
             const plays = item.querySelector('numplays')?.textContent || '0';
             const rating = item.querySelector('stats rating')?.getAttribute('value') || '';
+            const comment = item.querySelector('comment')?.textContent || '';
+            const privateinfo = item.querySelector('privateinfo')?.textContent || '';
             const bggLink = gameId ? `https://boardgamegeek.com/boardgame/${gameId}` : '';
             const statuses = ['own','fortrade','want','wanttoplay','wanttobuy','prevowned','wishlist'].map(f => ({
                 label: f.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase()),
@@ -195,12 +197,14 @@
                         <b>Year:</b> ${year}<br>
                         <b>Plays:</b> ${plays}<br>
                         <b>Rating:</b> ${rating}<br>
+                        ${comment ? `<b>Comment:</b> ${comment.substring(0, 100)}${comment.length > 100 ? '...' : ''}<br>` : ''}
                         ${bggLink ? `<a href='${bggLink}' target='_blank' style='color:#1976d2;'>View on BGG</a>` : ''}
+                        <button onclick="showGameModal({name: '${name.replace(/'/g, "\\'")}', thumbUrl: '${thumbUrl}', year: '${year}', plays: '${plays}', rating: '${rating}', comment: '${comment.replace(/'/g, "\\'")}', privateinfo: '${privateinfo.replace(/'/g, "\\'")}', bggLink: '${bggLink}', statuses: ${JSON.stringify(statuses).replace(/'/g, "\\'")}}, this); event.stopPropagation();" style='background:#1976d2; color:#fff; border:none; border-radius:6px; padding:0.4em 0.8em; font-size:0.85em; margin-top:0.5em; cursor:pointer;'>📋 View All Info</button>
                     </div>
                 </div>
             `;
             card.onclick = () => {
-                showGameModal({name, thumbUrl, year, plays, rating, bggLink, statuses});
+                showGameModal({name, thumbUrl, year, plays, rating, comment, privateinfo, bggLink, statuses});
             };
             gameList.appendChild(card);
         }
@@ -208,35 +212,66 @@
         loading = false;
     }
 
-    function showGameModal(data) {
+    function showGameModal(data, buttonElement) {
         const modal = document.createElement('div');
         modal.className = 'modal';
         modal.style.display = 'flex';
+        modal.style.position = 'fixed';
+        modal.style.left = '0';
+        modal.style.top = '0';
+        modal.style.width = '100vw';
+        modal.style.height = '100vh';
+        modal.style.background = 'rgba(0,0,0,0.25)';
+        modal.style.alignItems = 'center';
+        modal.style.justifyContent = 'center';
+        modal.style.zIndex = '9999';
+        modal.style.padding = 'env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)';
+        modal.style.boxSizing = 'border-box';
+        
         const content = document.createElement('div');
-        content.className = 'modal-content';
-        content.style.maxWidth = '430px';
-        content.style.width = '96vw';
-        content.style.boxSizing = 'border-box';
+        content.style.background = '#fff';
+        content.style.borderRadius = '16px';
+        content.style.boxShadow = '0 4px 20px rgba(0,0,0,0.15)';
+        content.style.maxHeight = '85vh';
+        content.style.overflowY = 'auto';
+        content.style.maxWidth = '390px';
+        content.style.width = '90vw';
+        content.style.margin = '1em';
+        content.style.position = 'relative';
         content.style.padding = '1.2em 0.7em 1em 0.7em';
+        content.style.boxSizing = 'border-box';
+        
         content.innerHTML = `
             <h2 style='font-size:1.2em; margin-bottom:0.7em;'>${data.name}</h2>
             ${data.thumbUrl ? `<img src='${data.thumbUrl}' alt='${data.name} thumbnail' style='width:80px; height:80px; border-radius:12px; margin-bottom:1em; object-fit:cover;'>` : ''}
             <div style='font-size:1em; text-align:left; background:#f7f7fa; padding:1em; border-radius:8px; margin-bottom:1em;'>
+                <b>Basic Info:</b><br>
                 <b>Year:</b> ${data.year}<br>
                 <b>Plays:</b> ${data.plays}<br>
                 <b>Rating:</b> ${data.rating}<br>
-                ${data.bggLink ? `<a href='${data.bggLink}' target='_blank' style='color:#1976d2;'>View on BGG</a><br>` : ''}
-                <b>Status:</b><br>
+                ${data.bggLink ? `<a href='${data.bggLink}' target='_blank' style='color:#1976d2;'>View on BGG</a><br><br>` : '<br>'}
+                
+                ${data.comment ? `<b>Comment:</b><br><div style='background:#fff; padding:0.5em; border-radius:6px; margin:0.5em 0; border-left:3px solid #1976d2; font-style:italic;'>${data.comment}</div>` : ''}
+                
+                ${data.privateinfo ? `<b>Private Info:</b><br><div style='background:#fff; padding:0.5em; border-radius:6px; margin:0.5em 0; border-left:3px solid #ff9800;'>${data.privateinfo}</div>` : ''}
+                
+                <b>Collection Status:</b><br>
                 <ul style='margin:0.3em 0 0.7em 1em; padding:0;'>
-                    ${data.statuses.map(s => `<li>${s.label}: <b style='color:${s.value ? "#1976d2" : "#888"};'>${s.value ? "Yes" : "No"}</b></li>`).join('')}
+                    ${data.statuses ? data.statuses.map(s => `<li>${s.label}: <b style='color:${s.value ? "#1976d2" : "#888"};'>${s.value ? "Yes" : "No"}</b></li>`).join('') : ''}
                 </ul>
             </div>
-            <button id='closeGameModalBtn' style='margin-top:1em; background:#1976d2; color:#fff; font-size:1em; padding:0.6em 2em; border-radius:8px; border:none;'>Close</button>
+            <button id='closeGameModalBtn' style='margin-top:1em; background:#1976d2; color:#fff; font-size:1em; padding:0.6em 2em; border-radius:8px; border:none; cursor:pointer; width:100%;'>Close</button>
         `;
         modal.appendChild(content);
         document.body.appendChild(modal);
+        
         document.getElementById('closeGameModalBtn').onclick = () => {
             document.body.removeChild(modal);
+        };
+        modal.onclick = (e) => {
+            if (e.target === modal) {
+                document.body.removeChild(modal);
+            }
         };
     }
 

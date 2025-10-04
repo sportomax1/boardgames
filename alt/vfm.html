@@ -20,10 +20,11 @@
 <body>
     <div class="container">
         <h1>Virtual Flea Market (VFM)</h1>
-        <div style="margin-bottom:1em; text-align:center; display:flex; flex-direction:row; justify-content:center; align-items:center; gap:0.7em; flex-wrap:wrap;">
-            <button id="analyticsBtn" style="background:#43a047; color:#fff; border:none; border-radius:10px; padding:0.7em 1.4em; font-size:1em; font-weight:600; cursor:pointer; min-height:44px; -webkit-appearance:none; appearance:none;">Analytics</button>
-            <button id="statusFilterBtn" style="background:#1976d2; color:#fff; border:none; border-radius:10px; padding:0.7em 1.4em; font-size:1em; font-weight:600; cursor:pointer; min-height:44px; -webkit-appearance:none; appearance:none;">Filter by Status</button>
-            <button id="geeklistFilterBtn" style="background:#8e24aa; color:#fff; border:none; border-radius:10px; padding:0.7em 1.4em; font-size:1em; font-weight:600; cursor:pointer; min-height:44px; -webkit-appearance:none; appearance:none;">Select Geeklists</button>
+        <div style="margin-bottom:1em; text-align:center; display:flex; flex-direction:row; justify-content:center; align-items:center; gap:0.5em; flex-wrap:wrap;">
+            <button id="analyticsBtn" style="background:#1976d2; color:#fff; border:none; border-radius:8px; padding:0.5em 0.8em; font-size:0.9em; font-weight:600; cursor:pointer; min-height:36px; -webkit-appearance:none; appearance:none; flex:1;">📊 Stats</button>
+            <button id="statusFilterBtn" style="background:#1976d2; color:#fff; border:none; border-radius:8px; padding:0.5em 0.8em; font-size:0.9em; font-weight:600; cursor:pointer; min-height:36px; -webkit-appearance:none; appearance:none; flex:1;">🔍 Status</button>
+            <button id="sellerFilterBtn" style="background:#1976d2; color:#fff; border:none; border-radius:8px; padding:0.5em 0.8em; font-size:0.9em; font-weight:600; cursor:pointer; min-height:36px; -webkit-appearance:none; appearance:none; flex:1;">👤 Seller</button>
+            <button id="geeklistFilterBtn" style="background:#1976d2; color:#fff; border:none; border-radius:8px; padding:0.5em 0.8em; font-size:0.9em; font-weight:600; cursor:pointer; min-height:36px; -webkit-appearance:none; appearance:none; flex:1;">📋 Lists</button>
             <select id="statusFilterSelect" style="font-size:1em; padding:0.6em 1em; border-radius:10px; border:1px solid #bbb; display:none; min-height:44px; -webkit-appearance:none; appearance:none;">
                 <option value="">All</option>
                 <option value="own">✅ Own</option>
@@ -33,6 +34,10 @@
                 <option value="prevowned">⏪ Previously Owned</option>
                 <option value="tradingaway">📤 Trading Away</option>
             </select>
+            <div id="sellerFilterContainer" style="display:none; position:relative; max-width:250px;">
+                <input id="sellerFilterInput" type="text" placeholder="Search sellers..." style="font-size:1em; padding:0.6em 1em; border-radius:10px; border:1px solid #bbb; width:100%; min-height:44px; -webkit-appearance:none; appearance:none; box-sizing:border-box;">
+                <div id="sellerSuggestions" style="position:absolute; top:100%; left:0; right:0; background:#fff; border:1px solid #bbb; border-top:none; border-radius:0 0 10px 10px; max-height:200px; overflow-y:auto; z-index:1000; display:none; box-shadow:0 4px 8px rgba(0,0,0,0.1);"></div>
+            </div>
         </div>
         <div id="geeklistFilterPanel" style="display:none; background:#f7f7fa; border-radius:10px; padding:1em; margin-bottom:1em; border:2px solid #8e24aa;">
             <div style="font-weight:600; margin-bottom:0.7em; color:#8e24aa;">Select Geeklists to Include:</div>
@@ -55,8 +60,8 @@
         <div id="filterBar" style="margin-bottom:1em; text-align:center;">
             <input id="filterInput" type="text" placeholder="Filter by name..." style="font-size:1.1em; padding:0.6em 1em; border-radius:10px; border:1px solid #bbb; width:70%; max-width:200px; margin-bottom:0.7em; -webkit-appearance:none; appearance:none;">
             <div style="display:flex; justify-content:center; gap:0.4em; flex-wrap:wrap;">
-                <button id="exactMatchBtn" data-mode="exact" style="background:#ccc; color:#333; border:none; border-radius:8px; padding:0.5em 1em; font-size:0.9em; min-height:36px; cursor:pointer; font-weight:500; -webkit-appearance:none; appearance:none;">Exact Match</button>
-                <button id="startsWithBtn" data-mode="startswith" style="background:#ccc; color:#333; border:none; border-radius:8px; padding:0.5em 1em; font-size:0.9em; min-height:36px; cursor:pointer; font-weight:500; -webkit-appearance:none; appearance:none;">Starts With</button>
+                <button id="exactMatchBtn" data-mode="exact" style="background:#666; color:#fff; border:none; border-radius:8px; padding:0.5em 1em; font-size:0.9em; min-height:36px; cursor:pointer; font-weight:500; -webkit-appearance:none; appearance:none;">Exact Match</button>
+                <button id="startsWithBtn" data-mode="startswith" style="background:#666; color:#fff; border:none; border-radius:8px; padding:0.5em 1em; font-size:0.9em; min-height:36px; cursor:pointer; font-weight:500; -webkit-appearance:none; appearance:none;">Starts With</button>
                 <button id="containsBtn" data-mode="contains" style="background:#1976d2; color:#fff; border:none; border-radius:8px; padding:0.5em 1em; font-size:0.9em; min-height:36px; cursor:pointer; font-weight:500; -webkit-appearance:none; appearance:none;">Contains</button>
             </div>
         </div>
@@ -123,6 +128,7 @@
     const PAGE_SIZE = 50;
     let loading = false;
     let currentStatusFilter = '';
+    let currentSellerFilter = '';
     let currentFilterMode = 'contains'; // Default to contains
     let selectedGeeklists = new Set(geeklists.map(g => g.id)); // Start with all selected
     const loadMoreWrapper = document.getElementById('loadMoreWrapper');
@@ -158,70 +164,57 @@
     }
 
     async function fetchAllGeeklists() {
-        // Fetch user's want to play
-        try {
-            const resp = await fetch('https://boardgamegeek.com/xmlapi2/collection?username=sportomax&wanttoplay=1');
-            if (resp.ok) {
-                const xml = await resp.text();
-                const parser = new window.DOMParser();
-                const doc = parser.parseFromString(xml, 'text/xml');
-                const items = Array.from(doc.querySelectorAll('item'));
-                userWantToPlay = new Set(items.map(i => i.getAttribute('objectid')));
-            }
-        } catch {}
-        // Fetch user's want to buy
-        try {
-            const resp = await fetch('https://boardgamegeek.com/xmlapi2/collection?username=sportomax&wanttobuy=1');
-            if (resp.ok) {
-                const xml = await resp.text();
-                const parser = new window.DOMParser();
-                const doc = parser.parseFromString(xml, 'text/xml');
-                const items = Array.from(doc.querySelectorAll('item'));
-                userWantToBuy = new Set(items.map(i => i.getAttribute('objectid')));
-            }
-        } catch {}
-        // Fetch user's want in trade
-        try {
-            const resp = await fetch('https://boardgamegeek.com/xmlapi2/collection?username=sportomax&want=trade');
-            if (resp.ok) {
-                const xml = await resp.text();
-                const parser = new window.DOMParser();
-                const doc = parser.parseFromString(xml, 'text/xml');
-                const items = Array.from(doc.querySelectorAll('item'));
-                userWantInTrade = new Set(items.map(i => i.getAttribute('objectid')));
-            }
-        } catch {}
-        // Fetch user's previously owned
-        try {
-            const resp = await fetch('https://boardgamegeek.com/xmlapi2/collection?username=sportomax&prevowned=1');
-            if (resp.ok) {
-                const xml = await resp.text();
-                const parser = new window.DOMParser();
-                const doc = parser.parseFromString(xml, 'text/xml');
-                const items = Array.from(doc.querySelectorAll('item'));
-                userPrevOwned = new Set(items.map(i => i.getAttribute('objectid')));
-            }
-        } catch {}
-        // Fetch user's trading away
-        try {
-            const resp = await fetch('https://boardgamegeek.com/xmlapi2/collection?username=sportomax&fortrade=1');
-            if (resp.ok) {
-                const xml = await resp.text();
-                const parser = new window.DOMParser();
-                const doc = parser.parseFromString(xml, 'text/xml');
-                const items = Array.from(doc.querySelectorAll('item'));
-                userTradingAway = new Set(items.map(i => i.getAttribute('objectid')));
-            }
-        } catch {}
         // Fetch user's collection first
         try {
-            const resp = await fetch('https://boardgamegeek.com/xmlapi2/collection?username=sportomax&own=1');
+            const resp = await fetch('https://boardgamegeek.com/xmlapi2/collection?username=sportomax');
             if (resp.ok) {
                 const xml = await resp.text();
                 const parser = new window.DOMParser();
                 const doc = parser.parseFromString(xml, 'text/xml');
                 const items = Array.from(doc.querySelectorAll('item'));
-                userCollection = new Set(items.map(i => i.getAttribute('objectid')));
+                
+                // Extract all status information from the full collection
+                userCollection = new Set();
+                const tempWantToPlay = new Set();
+                const tempWantToBuy = new Set();
+                const tempWantInTrade = new Set();
+                const tempPrevOwned = new Set();
+                const tempTradingAway = new Set();
+                
+                items.forEach(item => {
+                    const objectId = item.getAttribute('objectid');
+                    const status = item.querySelector('status');
+                    
+                    if (status) {
+                        if (status.getAttribute('own') === '1') {
+                            userCollection.add(objectId);
+                        }
+                        if (status.getAttribute('wanttoplay') === '1') {
+                            tempWantToPlay.add(objectId);
+                        }
+                        if (status.getAttribute('wanttobuy') === '1') {
+                            tempWantToBuy.add(objectId);
+                        }
+                        if (status.getAttribute('wantintrade') === '1') {
+                            tempWantInTrade.add(objectId);
+                        }
+                        if (status.getAttribute('prevowned') === '1') {
+                            tempPrevOwned.add(objectId);
+                        }
+                        // Check for trade flag > 0
+                        const fortrade = status.getAttribute('fortrade') || '0';
+                        if (parseInt(fortrade) > 0) {
+                            tempTradingAway.add(objectId);
+                        }
+                    }
+                });
+                
+                // Update the global sets with the more comprehensive data
+                userWantToPlay = tempWantToPlay;
+                userWantToBuy = tempWantToBuy;
+                userWantInTrade = tempWantInTrade;
+                userPrevOwned = tempPrevOwned;
+                userTradingAway = tempTradingAway;
             }
         } catch {}
         gamesCardWrapper.innerHTML = '<div style="text-align:center; color:#888; font-size:1.1em;" id="loadingStatus">Loading VFM Geeklists...</div>';
@@ -323,6 +316,17 @@
                         item
                     });
                 }
+                
+                // Sort by postdate descending after adding new items
+                allItems.sort((a, b) => {
+                    const da = new Date(a.postdate);
+                    const db = new Date(b.postdate);
+                    return db - da;
+                });
+                
+                // Render items progressively after each geeklist is loaded
+                renderItems();
+                
                 success = true; // Mark as successful
             } catch (e) {
                 console.error(`Error fetching geeklist ${geeklist.name} (attempt ${retryCount + 1}):`, e);
@@ -337,19 +341,118 @@
             }
             } // End retry loop
         }
-        // Sort by postdate descending
-        allItems.sort((a, b) => {
-            const da = new Date(a.postdate);
-            const db = new Date(b.postdate);
-            return db - da;
-        });
+        
         console.log(`Total items loaded from all geeklists: ${allItems.length}`);
         console.log('Items per geeklist:', geeklists.map(g => ({
             name: g.name,
             count: allItems.filter(item => item.geeklistId === g.id).length
         })));
         loading = false;
+        
+        // Initialize seller suggestions (but don't show them yet)
+        updateSellerSuggestions();
+        
+        // Remove loading status after all geeklists are processed
+        const finalLoadingStatus = document.getElementById('loadingStatus');
+        if (finalLoadingStatus) {
+            finalLoadingStatus.remove();
+        }
+        
         renderItems();
+    }
+
+    // Function to populate seller suggestions
+    function updateSellerSuggestions(searchTerm = '') {
+        const sellers = new Set();
+        
+        // Collect all unique sellers from current items
+        allItems.forEach(item => {
+            const seller = item.item.getAttribute('username');
+            if (seller && seller.trim()) {
+                sellers.add(seller.trim());
+            }
+        });
+        
+        // Filter sellers based on search term and sort alphabetically
+        const filteredSellers = Array.from(sellers)
+            .filter(seller => searchTerm === '' || seller.toLowerCase().includes(searchTerm.toLowerCase()))
+            .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+        
+        return filteredSellers;
+    }
+
+    function showSellerSuggestions(searchTerm = '') {
+        const suggestionsDiv = document.getElementById('sellerSuggestions');
+        const filteredSellers = updateSellerSuggestions(searchTerm);
+        
+        if (filteredSellers.length === 0 || (searchTerm === '' && filteredSellers.length > 20)) {
+            suggestionsDiv.style.display = 'none';
+            return;
+        }
+        
+        // Limit to first 10 suggestions for performance
+        const sellersToShow = filteredSellers.slice(0, 10);
+        
+        suggestionsDiv.innerHTML = '';
+        
+        // Add "Clear Filter" option if there's a current filter
+        if (currentSellerFilter) {
+            const clearOption = document.createElement('div');
+            clearOption.style.padding = '0.5em 1em';
+            clearOption.style.cursor = 'pointer';
+            clearOption.style.borderBottom = '1px solid #eee';
+            clearOption.style.fontStyle = 'italic';
+            clearOption.style.color = '#666';
+            clearOption.textContent = 'Clear seller filter';
+            clearOption.onclick = () => {
+                document.getElementById('sellerFilterInput').value = '';
+                currentSellerFilter = '';
+                suggestionsDiv.style.display = 'none';
+                loadedCount = 0;
+                renderItems(filterInput.value.trim());
+            };
+            suggestionsDiv.appendChild(clearOption);
+        }
+        
+        sellersToShow.forEach(seller => {
+            const option = document.createElement('div');
+            option.style.padding = '0.5em 1em';
+            option.style.cursor = 'pointer';
+            option.style.borderBottom = '1px solid #eee';
+            option.textContent = seller;
+            
+            // Add count of listings for this seller
+            const count = allItems.filter(item => {
+                const itemSeller = item.item.getAttribute('username') || '';
+                return itemSeller.trim() === seller;
+            }).length;
+            
+            const countSpan = document.createElement('span');
+            countSpan.style.float = 'right';
+            countSpan.style.color = '#666';
+            countSpan.style.fontSize = '0.9em';
+            countSpan.textContent = `(${count})`;
+            option.appendChild(countSpan);
+            
+            option.onmouseenter = () => {
+                option.style.backgroundColor = '#f0f0f0';
+            };
+            option.onmouseleave = () => {
+                option.style.backgroundColor = '';
+            };
+            
+            option.onclick = () => {
+                document.getElementById('sellerFilterInput').value = seller;
+                currentSellerFilter = seller;
+                suggestionsDiv.style.display = 'none';
+                loadedCount = 0;
+                renderItems(filterInput.value.trim());
+            };
+            
+            suggestionsDiv.appendChild(option);
+        });
+        
+        suggestionsDiv.style.display = 'block';
     }
 
     function renderItems(filter = '') {
@@ -379,6 +482,14 @@
                 if (currentStatusFilter === 'prevowned') return userPrevOwned.has(item.objectId);
                 if (currentStatusFilter === 'tradingaway') return userTradingAway.has(item.objectId);
                 return false;
+            });
+        }
+        
+        // Filter by seller if set
+        if (currentSellerFilter) {
+            filtered = filtered.filter(item => {
+                const seller = item.item.getAttribute('username') || '';
+                return seller.trim() === currentSellerFilter;
             });
         }
         const toShow = filtered.slice(0, loadedCount + PAGE_SIZE);
@@ -498,18 +609,31 @@
                 }
             }
             
-            html += `<div class='game-card' id='vfmcard-${idx}' style='border:${borderColor}; position:relative;'>
+            // Get rank and bayes colors if details are available
+            let rankStyle = 'background:rgba(128,128,128,0.9); color:white;';
+            let bayesStyle = 'background:rgba(128,128,128,0.9); color:white;';
+            if (item.details?.bggRank) {
+                const rankColors = getRankGradientColor(item.details.bggRank);
+                rankStyle = `background:${rankColors.bg}; color:${rankColors.text};`;
+            }
+            if (item.details?.bayesAverage) {
+                const bayesColors = getBayesGradientColor(item.details.bayesAverage);
+                bayesStyle = `background:${bayesColors.bg}; color:${bayesColors.text};`;
+            }
+            
+            html += `<div class='game-card' id='vfmcard-${idx}' data-object-id='${item.objectId}' style='border:${borderColor}; position:relative;'>
                 ${statusEmoji ? `<span style='position:absolute; top:8px; right:12px; font-size:1.4em; z-index:2; line-height:1; letter-spacing:-2px;' title='${statusTitle}'>${statusEmoji}</span>` : ''}
-                <span id='bggRank-${idx}' style='position:absolute; top:8px; left:12px; background:rgba(128,128,128,0.9); color:white; padding:0.2em 0.5em; border-radius:8px; font-size:0.75em; font-weight:600; z-index:2; display:none;'></span>
+                <span class='bgg-rank-indicator' style='position:absolute; top:8px; left:12px; ${rankStyle} padding:0.2em 0.5em; border-radius:8px; font-size:0.75em; font-weight:600; z-index:2; ${item.details?.bggRank ? 'display:block;' : 'display:none;'}'>${item.details?.bggRank ? `#${item.details.bggRank}` : ''}</span>
                 ${timeIndicator}
-                <img src='' alt='' class='game-thumb' style='width:64px; height:64px; border-radius:10px; margin-right:1em; object-fit:cover; display:none;'>
-                <span id='bayesAvg-${idx}' style='position:absolute; bottom:8px; left:12px; background:rgba(128,128,128,0.9); color:white; padding:0.2em 0.5em; border-radius:8px; font-size:0.75em; font-weight:600; z-index:2; display:none;'></span>
+                <img src='${item.details?.thumbnail || ''}' alt='${item.name} thumbnail' class='game-thumb' style='width:64px; height:64px; border-radius:10px; margin-right:1em; object-fit:cover; ${item.details?.thumbnail ? 'display:block;' : 'display:none;'}'>
+                <span class='bayes-avg-indicator' style='position:absolute; bottom:8px; left:12px; ${bayesStyle} padding:0.2em 0.5em; border-radius:8px; font-size:0.75em; font-weight:600; z-index:2; ${item.details?.bayesAverage ? 'display:block;' : 'display:none;'}'>${item.details?.bayesAverage || ''}</span>
                 <div class='game-info'>
                     <div class='game-title'>${item.name}</div>
                     <div class='geeklist-label'>${item.geeklistName}</div>
                     <div class='game-details'>
                         <b>Seller:</b> ${seller}<br>
                         <b>Price:</b> ${price || 'N/A'}${priceType ? ` <span style='font-size:0.95em; color:#1976d2;'>(${priceType})</span>` : ''}<br>
+                        ${item.details?.year ? `<b>Year:</b> ${item.details.year}<br>` : ''}
                         <b>Post Date:</b> ${item.postdate ? new Date(item.postdate).toLocaleString() : 'N/A'}
                         ${item.comments ? ` (<b>${item.comments}</b> comments)` : ''}<br>
                         ${item.objectId ? `<a href='https://boardgamegeek.com/boardgame/${item.objectId}' target='_blank' style='color:#1976d2;'>View on BGG</a>` : ''}<br>
@@ -522,7 +646,14 @@
         gamesCardWrapper.innerHTML = html;
         // Show loading indicator if still loading
         if (loading) {
-            loadMoreWrapper.innerHTML = '<div style="text-align:center; color:#888; font-size:1.1em;">Loading...</div>';
+            const loadingStatusEl = document.getElementById('loadingStatus');
+            if (loadingStatusEl) {
+                // If we have items to show, move the loading status to the top
+                if (html) {
+                    gamesCardWrapper.innerHTML = `<div style="text-align:center; color:#888; font-size:0.9em; background:#f0f0f0; padding:0.5em; border-radius:8px; margin-bottom:1em;" id="loadingStatus">${loadingStatusEl.innerHTML}</div>` + html;
+                }
+            }
+            loadMoreWrapper.innerHTML = '';
         } else if (toShow.length < filtered.length) {
             loadMoreWrapper.innerHTML = `<button id='loadMoreBtn' style='background:#1976d2; color:#fff; border:none; border-radius:8px; padding:0.7em 2em; font-size:1.1em; font-weight:600; cursor:pointer;'>Load More</button>`;
             document.getElementById('loadMoreBtn').onclick = () => {
@@ -537,7 +668,8 @@
             if (item.objectType === 'thing' && item.objectId && !item.details) {
                 fetchThingDetails(item.objectId).then(details => {
                     item.details = details;
-                    const card = document.getElementById(`vfmcard-${idx}`);
+                    // Find the card using the objectId data attribute for more reliable matching
+                    const card = document.querySelector(`[data-object-id="${item.objectId}"]`);
                     if (card && details.thumbnail) {
                         const img = card.querySelector('.game-thumb');
                         if (img) {
@@ -548,13 +680,13 @@
                     }
                     if (card && details.year) {
                         const info = card.querySelector('.game-details');
-                        if (info) {
+                        if (info && !info.textContent.includes('Year:')) {
                             info.innerHTML += `<b>Year:</b> ${details.year}<br>`;
                         }
                     }
                     // Update BGG rank display
                     if (card && details.bggRank) {
-                        const rankSpan = card.querySelector(`#bggRank-${idx}`);
+                        const rankSpan = card.querySelector('.bgg-rank-indicator');
                         if (rankSpan) {
                             const rankColors = getRankGradientColor(details.bggRank);
                             rankSpan.textContent = `#${details.bggRank}`;
@@ -565,7 +697,7 @@
                     }
                     // Update Bayes average display
                     if (card && details.bayesAverage) {
-                        const bayesSpan = card.querySelector(`#bayesAvg-${idx}`);
+                        const bayesSpan = card.querySelector('.bayes-avg-indicator');
                         if (bayesSpan) {
                             const bayesColors = getBayesGradientColor(details.bayesAverage);
                             bayesSpan.textContent = `${details.bayesAverage}`;
@@ -699,6 +831,13 @@
             const n = item.name;
             mostListedGamesOverall[n] = (mostListedGamesOverall[n]||0)+1;
         });
+        
+        // 5. Most active sellers
+        const mostActiveSellers = {};
+        allItems.forEach(item => {
+            const seller = item.item.getAttribute('username') || 'Unknown';
+            mostActiveSellers[seller] = (mostActiveSellers[seller]||0)+1;
+        });
         // Modal UI
         const modal = document.createElement('div');
         modal.className = 'modal';
@@ -733,6 +872,7 @@
                 <button id='tabRecordsMonth' style='background:#1976d2; color:#fff; border:none; border-radius:10px; padding:0.6em 0.8em; font-size:0.9em; min-height:40px; flex:1; min-width:80px; font-weight:600; cursor:pointer; -webkit-appearance:none;'>Records per Month</button>
                 <button id='tabMostListedGeeklist' style='background:#f7b731; color:#222; border:none; border-radius:10px; padding:0.6em 0.8em; font-size:0.9em; min-height:40px; flex:1; min-width:80px; font-weight:600; cursor:pointer; -webkit-appearance:none;'>Most Listed per Geeklist</button>
                 <button id='tabMostListedOverall' style='background:#ff4136; color:#fff; border:none; border-radius:10px; padding:0.6em 0.8em; font-size:0.9em; min-height:40px; flex:1; min-width:80px; font-weight:600; cursor:pointer; -webkit-appearance:none;'>Most Listed Overall</button>
+                <button id='tabMostActiveSellers' style='background:#ff9800; color:#fff; border:none; border-radius:10px; padding:0.6em 0.8em; font-size:0.9em; min-height:40px; flex:1; min-width:80px; font-weight:600; cursor:pointer; -webkit-appearance:none;'>Most Active Sellers</button>
             </div>
             <div id='analyticsContent' style='font-size:1em; line-height:1.5;'></div>
             <button id='closeAnalyticsBtn' style='margin-top:1.5em; background:#1976d2; color:#fff; font-size:1.1em; padding:0.8em 2em; border-radius:12px; border:none; width:100%; min-height:44px; font-weight:600; cursor:pointer; -webkit-appearance:none;'>Close</button>
@@ -763,12 +903,18 @@
                 ac.innerHTML = `<b>Most Listed Games Overall (Top 25):</b><br><ul style='margin-top:0.5em;'>` +
                     sorted.map(([n,c]) => `<li>${n} (${c})</li>`).join('') +
                     `</ul>`;
+            } else if (tab === 'sellers') {
+                const sorted = Object.entries(mostActiveSellers).sort((a,b)=>b[1]-a[1]).slice(0,25);
+                ac.innerHTML = `<b>Most Active Sellers (Top 25):</b><br><ul style='margin-top:0.5em;'>` +
+                    sorted.map(([seller,count]) => `<li><b>${seller}:</b> ${count} listings</li>`).join('') +
+                    `</ul>`;
             }
         }
         content.querySelector('#tabRecordsGeeklist').onclick = () => showTab('geeklist');
         content.querySelector('#tabRecordsMonth').onclick = () => showTab('month');
         content.querySelector('#tabMostListedGeeklist').onclick = () => showTab('mostgeeklist');
         content.querySelector('#tabMostListedOverall').onclick = () => showTab('mostoverall');
+        content.querySelector('#tabMostActiveSellers').onclick = () => showTab('sellers');
         content.querySelector('#closeAnalyticsBtn').onclick = () => {
             document.body.removeChild(modal);
         };
@@ -779,12 +925,72 @@
     const statusFilterSelect = document.getElementById('statusFilterSelect');
     statusFilterBtn.onclick = () => {
         statusFilterSelect.style.display = statusFilterSelect.style.display === 'none' ? 'inline-block' : 'none';
+        // Hide seller filter if it's open
+        document.getElementById('sellerFilterContainer').style.display = 'none';
+        document.getElementById('sellerSuggestions').style.display = 'none';
     };
     statusFilterSelect.onchange = (e) => {
         currentStatusFilter = e.target.value;
         loadedCount = 0;
         renderItems(filterInput.value.trim());
     };
+    
+    // Seller filter button logic
+    const sellerFilterBtn = document.getElementById('sellerFilterBtn');
+    const sellerFilterContainer = document.getElementById('sellerFilterContainer');
+    const sellerFilterInput = document.getElementById('sellerFilterInput');
+    const sellerSuggestions = document.getElementById('sellerSuggestions');
+    
+    sellerFilterBtn.onclick = () => {
+        const isVisible = sellerFilterContainer.style.display !== 'none';
+        sellerFilterContainer.style.display = isVisible ? 'none' : 'block';
+        // Hide status filter if it's open
+        document.getElementById('statusFilterSelect').style.display = 'none';
+        
+        if (!isVisible) {
+            sellerFilterInput.focus();
+            if (sellerFilterInput.value === '') {
+                showSellerSuggestions('');
+            }
+        } else {
+            sellerSuggestions.style.display = 'none';
+        }
+    };
+    
+    sellerFilterInput.addEventListener('input', (e) => {
+        const searchTerm = e.target.value.trim();
+        showSellerSuggestions(searchTerm);
+        
+        // If input is cleared, clear the filter
+        if (searchTerm === '') {
+            currentSellerFilter = '';
+            loadedCount = 0;
+            renderItems(filterInput.value.trim());
+        }
+    });
+    
+    sellerFilterInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            const searchTerm = e.target.value.trim();
+            if (searchTerm) {
+                // Use exact match for entered text
+                currentSellerFilter = searchTerm;
+                sellerSuggestions.style.display = 'none';
+                loadedCount = 0;
+                renderItems(filterInput.value.trim());
+            }
+        } else if (e.key === 'Escape') {
+            sellerSuggestions.style.display = 'none';
+            sellerFilterContainer.style.display = 'none';
+        }
+    });
+    
+    // Hide suggestions when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!sellerFilterContainer.contains(e.target) && !sellerFilterBtn.contains(e.target)) {
+            sellerSuggestions.style.display = 'none';
+        }
+    });
     
     // Geeklist filter logic
     const geeklistFilterBtn = document.getElementById('geeklistFilterBtn');
@@ -864,10 +1070,10 @@
         const selectedCount = selectedGeeklists.size;
         const totalCount = geeklists.length;
         if (selectedCount === totalCount) {
-            geeklistFilterBtn.textContent = 'Select Geeklists';
+            geeklistFilterBtn.textContent = '📋 Lists';
             geeklistFilterBtn.style.background = '#8e24aa';
         } else {
-            geeklistFilterBtn.textContent = `Geeklists (${selectedCount}/${totalCount})`;
+            geeklistFilterBtn.textContent = `📋 Lists (${selectedCount})`;
             geeklistFilterBtn.style.background = '#f39c12';
         }
         
@@ -887,8 +1093,8 @@
         btn.onclick = () => {
             // Update active button styling
             filterModeButtons.forEach(b => {
-                b.style.background = '#ccc';
-                b.style.color = '#333';
+                b.style.background = '#666';
+                b.style.color = '#fff';
             });
             btn.style.background = '#1976d2';
             btn.style.color = '#fff';

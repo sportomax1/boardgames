@@ -372,121 +372,17 @@
     let isLoading = false;
     let bggImageCache = {};
     let allGamesCache = null; // Cache for all games data
-    let bggCollectionCache = null; // Cache for sportomax BGG collection data
     
     // Search state
     let currentSearchTerm = '';
     let filteredGames = [];
     let isSearchMode = false;
 
-    // Function to fetch sportomax's BGG collection
-    async function fetchBGGCollection() {
-        if (bggCollectionCache) {
-            return bggCollectionCache;
-        }
-        
-        try {
-            console.log('Fetching sportomax BGG collection...');
-            // BGG collection API for sportomax
-            const bggUsername = 'sportomax';
-            const bggCollectionUrl = `https://boardgamegeek.com/xmlapi2/collection?username=${bggUsername}&stats=1`;
-            
-            // Use CORS proxy to fetch BGG collection data
-            const corsProxy = `https://api.allorigins.win/get?url=${encodeURIComponent(bggCollectionUrl)}`;
-            
-            const response = await fetch(corsProxy);
-            const data = await response.json();
-            
-            if (data.contents) {
-                const parser = new DOMParser();
-                const xmlDoc = parser.parseFromString(data.contents, 'text/xml');
-                const items = xmlDoc.querySelectorAll('item');
-                
-                const collection = {};
-                items.forEach(item => {
-                    const objectid = item.getAttribute('objectid');
-                    const status = item.querySelector('status');
-                    
-                    if (objectid && status) {
-                        collection[objectid] = {
-                            bggId: objectid,
-                            name: item.querySelector('name')?.textContent || '',
-                            own: status.getAttribute('own') === '1',
-                            prevowned: status.getAttribute('prevowned') === '1',
-                            fortrade: status.getAttribute('fortrade') === '1',
-                            want: status.getAttribute('want') === '1',
-                            wanttoplay: status.getAttribute('wanttoplay') === '1',
-                            wanttobuy: status.getAttribute('wanttobuy') === '1',
-                            wishlist: status.getAttribute('wishlist') === '1',
-                            wishlistpriority: status.getAttribute('wishlistpriority') || '0',
-                            preordered: status.getAttribute('preordered') === '1'
-                        };
-                    }
-                });
-                
-                bggCollectionCache = collection;
-                console.log(`Loaded ${Object.keys(collection).length} games from sportomax BGG collection`);
-                return collection;
-            }
-        } catch (error) {
-            console.warn('Failed to fetch BGG collection:', error);
-            return {};
-        }
-        
-        return {};
-    }
-
     // Function to get collection emojis for sportomax
-    function getCollectionEmojis(game, bggCollection = null) {
+    function getCollectionEmojis(game) {
         const collections = [];
         
-        // First, try to get status from actual BGG collection data if available
-        let bggGameData = null;
-        
-        // Look for BGG ID in various fields
-        let bggId = null;
-        if (game.bgg_id) {
-            bggId = String(game.bgg_id);
-        } else if (game.custom_fields) {
-            // Check common BGG ID field names
-            const bggFields = ['BGG_ID', 'bgg_id', 'BGG ID', 'BoardGameGeek ID', 'BGG'];
-            for (const field of bggFields) {
-                if (game.custom_fields[field]) {
-                    bggId = String(game.custom_fields[field]);
-                    break;
-                }
-            }
-        }
-        
-        // If we have a BGG ID and collection data, use the actual BGG status
-        if (bggId && bggCollection && bggCollection[bggId]) {
-            bggGameData = bggCollection[bggId];
-            
-            // Map BGG collection statuses to our VFM emojis
-            if (bggGameData.own) {
-                collections.push('✅'); // Own
-            }
-            if (bggGameData.wanttoplay) {
-                collections.push('🎮'); // Want to Play
-            }
-            if (bggGameData.wanttobuy || bggGameData.want || bggGameData.wishlist) {
-                collections.push('🛒'); // Want to Buy
-            }
-            // Note: BGG API doesn't have "wantintrade" - would need custom field logic
-            if (bggGameData.prevowned) {
-                collections.push('⏪'); // Previously Owned
-            }
-            if (bggGameData.fortrade) {
-                collections.push('📤'); // Trading Away
-            }
-            
-            // If we found BGG data, return it
-            if (collections.length > 0) {
-                return collections.slice(0, 4); // Limit to 4 emojis max
-            }
-        }
-        
-        // Fallback: Check various fields that might indicate collection status
+        // Check various fields that might indicate collection status
         const gameData = {
             name: (game.name || '').toLowerCase(),
             description: (game.description || '').toLowerCase(),
@@ -509,8 +405,8 @@
             'want in trade': '🔄',     // Want in Trade (alternative)
             'prevowned': '⏪',         // Previously Owned
             'previously owned': '⏪',  // Previously Owned (alternative)
-            'tradingaway': '📤',       // Trading Away
-            'trading away': '📤'      // Trading Away (alternative)
+            'tradingaway': '�',       // Trading Away
+            'trading away': '�'      // Trading Away (alternative)
         };
         
         // Check all possible fields for collection status keywords
@@ -731,9 +627,6 @@
     async function displayGameCards(items, bggImages) {
         const gamesTableWrapper = document.getElementById('gamesTableWrapper');
         
-        // Fetch BGG collection data if not already cached
-        const bggCollection = await fetchBGGCollection();
-        
         let html = `<div class="game-list">`;
         
         items.forEach((game, idx) => {
@@ -746,8 +639,8 @@
             const lastUpdated = game.date_updated ? new Date(game.date_updated).toLocaleDateString() : 'Unknown';
             const dateCreated = game.date_created ? new Date(game.date_created).toLocaleDateString() : 'Unknown';
             
-            // Get collection emojis for this game using BGG collection data
-            const collectionEmojis = getCollectionEmojis(game, bggCollection);
+            // Get collection emojis for this game
+            const collectionEmojis = getCollectionEmojis(game);
             
             // Generate collection badges HTML
             const collectionBadgesHtml = `
@@ -1958,13 +1851,6 @@
 
     // Initial load
     fetchGames();
-    
-    // Preload BGG collection data in background
-    fetchBGGCollection().then(() => {
-        console.log('BGG collection data preloaded');
-    }).catch(error => {
-        console.warn('Failed to preload BGG collection:', error);
-    });
     </script>
 </body>
 </html>
