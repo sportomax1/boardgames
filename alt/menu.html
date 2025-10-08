@@ -42,7 +42,53 @@
         .bayes-average { background: rgba(255,152,0,0.9); color: white; } /* 6.0+ */
         .bayes-below { background: rgba(244,67,54,0.9); color: white; } /* < 6.0 */
         
+        .player-votes-indicator { position: absolute; top: 50%; right: 8px; transform: translateY(-50%); background: rgba(0,0,0,0.8); color: white; padding: 0.2em 0.4em; border-radius: 6px; font-size: 0.65em; font-weight: 600; line-height: 1.2; z-index: 2; }
+        
         .error { background: #ffebee; color: #c62828; border-radius: 8px; padding: 1em; margin: 1em 0; }
+        
+        /* Print Options Modal */
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); }
+        .modal-content { 
+            background-color: #fff; 
+            margin: 10% auto; 
+            padding: 1.5em; 
+            border-radius: 12px; 
+            width: 90%; 
+            max-width: 500px; 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal-header { font-size: 1.2em; font-weight: 600; margin-bottom: 1em; text-align: center; }
+        .modal-section { margin-bottom: 1.5em; }
+        .modal-section h3 { font-size: 1.1em; margin-bottom: 0.5em; color: #333; }
+        .corner-options { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8em; margin-bottom: 1em; }
+        .corner-group { border: 1px solid #ddd; border-radius: 8px; padding: 0.8em; }
+        .corner-title { font-weight: 600; margin-bottom: 0.5em; font-size: 0.85em; }
+        .option-group { margin-bottom: 0.5em; }
+        .option-group label { display: block; font-size: 0.8em; margin-bottom: 0.3em; }
+        .option-group select { width: 100%; padding: 0.5em; border: 1px solid #ccc; border-radius: 4px; font-size: 0.8em; }
+        .modal-buttons { display: flex; gap: 0.8em; justify-content: center; margin-top: 1.5em; }
+        .modal-btn { padding: 0.8em 1.2em; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.9em; }
+        .btn-print { background: #4caf50; color: white; }
+        .btn-cancel { background: #ccc; color: #333; }
+        
+        /* Mobile optimizations */
+        @media (max-width: 480px) {
+            .modal-content { 
+                margin: 5% auto; 
+                padding: 1em; 
+                width: 95%; 
+                max-height: 90vh;
+            }
+            .corner-options { grid-template-columns: 1fr; gap: 0.5em; }
+            .modal-header { font-size: 1.1em; }
+            .corner-title { font-size: 0.8em; }
+            .option-group label { font-size: 0.75em; }
+            .option-group select { font-size: 0.75em; padding: 0.6em; }
+            .modal-buttons { flex-direction: column; gap: 0.5em; }
+            .modal-btn { width: 100%; padding: 1em; }
+        }
     </style>
 </head>
 <body>
@@ -76,10 +122,69 @@
         <div id="results"></div>
     </div>
 
+    <!-- Print Options Modal -->
+    <div id="printModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">Print Layout Options</div>
+            
+            <div class="corner-options">
+                <div class="corner-group">
+                    <div class="corner-title">Top Left</div>
+                    <div class="option-group">
+                        <label>Show:</label>
+                        <select id="topLeft">
+                            <option value="rank" selected>Rank Number (#1, #2, etc.)</option>
+                            <option value="none">Nothing</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="corner-group">
+                    <div class="corner-title">Top Right</div>
+                    <div class="option-group">
+                        <label>Show:</label>
+                        <select id="topRight">
+                            <option value="category" selected>Category (P/B/R)</option>
+                            <option value="none">Nothing</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="corner-group">
+                    <div class="corner-title">Bottom Left</div>
+                    <div class="option-group">
+                        <label>Show:</label>
+                        <select id="bottomLeft">
+                            <option value="playerVotes" selected>Player Votes (B:X R:Y N:Z)</option>
+                            <option value="none">Nothing</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="corner-group">
+                    <div class="corner-title">Bottom Right</div>
+                    <div class="option-group">
+                        <label>Show:</label>
+                        <select id="bottomRight">
+                            <option value="bayes" selected>Bayes Average (Rating)</option>
+                            <option value="none">Nothing</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-buttons">
+                <button class="modal-btn btn-cancel" onclick="closePrintModal()">Cancel</button>
+                <button class="modal-btn btn-print" onclick="proceedToPrint()">Generate Print View</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         let allGames = [];
         let gameDetails = {};
         let currentSortedGames = []; // Store current sorted games for print view
+        let currentGameDetails = {}; // Store current game details for print view
 
         // Clear localStorage on page load
         window.addEventListener('load', () => {
@@ -221,6 +326,7 @@
                             // Get player count polls
                             const playerCountPoll = item.querySelector('poll[name="suggested_numplayers"]');
                             const playerCountData = {};
+                            const playerVotesArray = []; // Array format for print view
                             
                             if (playerCountPoll) {
                                 const results = Array.from(playerCountPoll.querySelectorAll('results'));
@@ -236,6 +342,14 @@
                                         notRecommended,
                                         total: best + recommended + notRecommended
                                     };
+                                    
+                                    // Also store in array format for print view
+                                    playerVotesArray.push({
+                                        playerCount: parseInt(numPlayers),
+                                        best,
+                                        recommended,
+                                        notRecommended
+                                    });
                                 });
                             }
                             
@@ -262,6 +376,7 @@
                             
                             details[objectId] = {
                                 playerCountData,
+                                playerVotes: playerVotesArray, // Add for print view
                                 bggRank,
                                 bayesAverage
                             };
@@ -388,6 +503,7 @@
             if (!gameList) return;
             
             currentSortedGames = games; // Update stored games for print view
+            currentGameDetails = details; // Update stored details for print view
             
             // Clear and rebuild the game list with updated sorting
             let html = '';
@@ -405,11 +521,25 @@
                 const bayesClass = getBayesStyle(game.bayesAverage);
                 const bayesText = game.bayesAverage > 0 ? game.bayesAverage.toFixed(2) : 'N/A';
                 
+                // Get player votes for current player count
+                let playerVotesHtml = '';
+                if (gameDetails?.playerCountData) {
+                    const playerCount = document.getElementById('playerCount').value;
+                    const playerData = gameDetails.playerCountData[playerCount];
+                    if (playerData && playerData.total > 0) {
+                        const best = playerData.best || 0;
+                        const recommended = playerData.recommended || 0;
+                        const notRecommended = playerData.notRecommended || 0;
+                        playerVotesHtml = `<div class="player-votes-indicator">B:${best}<br>R:${recommended}<br>N:${notRecommended}</div>`;
+                    }
+                }
+                
                 html += `
                     <div class="game-card">
                         <div class="sort-index" style="position:absolute; top:8px; left:8px; background:rgba(0,0,0,0.7); color:white; padding:0.2em 0.5em; border-radius:8px; font-size:0.75em; font-weight:600; z-index:3;">#${index + 1}</div>
                         <div class="category-flag ${flagClass}">${flagText}</div>
                         <div class="bayes-indicator ${bayesClass}">${bayesText}</div>
+                        ${playerVotesHtml}
                         <img src="${game.thumbnail}" alt="${game.name} thumbnail" class="game-thumb" onerror="this.style.display='none'">
                         <div class="game-info">
                             <div class="game-title">${game.name}</div>
@@ -482,6 +612,7 @@
         function displayResults(games, details, username, playerCount, totalTime) {
             const resultsDiv = document.getElementById('results');
             currentSortedGames = games; // Store final sorted games for print view
+            currentGameDetails = details; // Store final game details for print view
             
             // Calculate stats
             const totalGames = games.length;
@@ -602,8 +733,51 @@
             }
         }
 
-        // Clean print function - opens separate print page
-        function createPrintView() {
+        // Show print options modal
+        function showPrintModal() {
+            console.log('showPrintModal called'); // Debug log
+            if (!currentSortedGames || currentSortedGames.length === 0) {
+                alert('No games to print. Please run a search first.');
+                return;
+            }
+            
+            const modal = document.getElementById('printModal');
+            if (modal) {
+                modal.style.display = 'block';
+                console.log('Modal should be visible now'); // Debug log
+            } else {
+                console.error('Modal element not found'); // Debug log
+            }
+        }
+
+        // Close print options modal
+        function closePrintModal() {
+            const modal = document.getElementById('printModal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        // Proceed with print after modal selection
+        function proceedToPrint() {
+            const printOptions = {
+                topLeft: document.getElementById('topLeft').value,
+                topRight: document.getElementById('topRight').value,
+                bottomLeft: document.getElementById('bottomLeft').value,
+                bottomRight: document.getElementById('bottomRight').value
+            };
+            
+            createPrintView(printOptions);
+            closePrintModal();
+        }
+
+        // Make functions globally accessible
+        window.showPrintModal = showPrintModal;
+        window.closePrintModal = closePrintModal;
+        window.proceedToPrint = proceedToPrint;
+
+        // Updated print function with options
+        function createPrintView(printOptions = {}) {
             if (!currentSortedGames || currentSortedGames.length === 0) {
                 alert('No games to print. Please run a search first.');
                 return;
@@ -612,12 +786,22 @@
             const username = document.getElementById('username').value;
             const playerCount = document.getElementById('playerCount').value;
             
-            // Prepare games data (with category and bayes info)
+            // Default options if not provided
+            const options = {
+                topLeft: 'rank',
+                topRight: 'category', 
+                bottomLeft: 'playerVotes',
+                bottomRight: 'bayes',
+                ...printOptions
+            };
+            
+            // Prepare games data (with category, bayes info, and player votes)
             const gamesData = currentSortedGames.slice(0, 120).map(game => ({
                 name: game.name,
                 thumbnail: game.thumbnail,
                 category: game.category || 'supported',
-                bayesAverage: game.bayesAverage || 0
+                bayesAverage: game.bayesAverage || 0,
+                playerVotes: currentGameDetails[game.objectId]?.playerVotes || [] // Add player voting data
             }));
             
             // Store data in localStorage instead of URL
@@ -625,6 +809,7 @@
                 username: username,
                 playerCount: playerCount,
                 games: gamesData,
+                printOptions: options, // Add print options
                 timestamp: Date.now()
             };
             
@@ -640,7 +825,7 @@
 
         // Event listeners
         document.getElementById('submitBtn').addEventListener('click', handleSubmit);
-        document.getElementById('printBtn').addEventListener('click', createPrintView);
+        document.getElementById('printBtn').addEventListener('click', showPrintModal);
         
         // Allow Enter key to submit
         document.addEventListener('keypress', (e) => {
