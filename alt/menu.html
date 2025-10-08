@@ -70,7 +70,7 @@
             </div>
             
             <button id="submitBtn" class="submit-btn">Find Games</button>
-            <button id="printBtn" class="submit-btn" style="margin-top:0.5em; background:#4caf50;" disabled>📄 Print View (Top 100)</button>
+            <button id="printBtn" class="submit-btn" style="margin-top:0.5em; background:#4caf50;" disabled>📄 Print View (Top 120)</button>
         </div>
         
         <div id="results"></div>
@@ -613,7 +613,7 @@
             const playerCount = document.getElementById('playerCount').value;
             
             // Prepare games data (with category and bayes info)
-            const gamesData = currentSortedGames.slice(0, 100).map(game => ({
+            const gamesData = currentSortedGames.slice(0, 120).map(game => ({
                 name: game.name,
                 thumbnail: game.thumbnail,
                 category: game.category || 'supported',

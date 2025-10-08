@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BGG Top 100 Print View</title>
+    <title>BGG Top 120 Print View</title>
     <style>
         @page { 
             size: letter; 
@@ -27,10 +27,10 @@
         .grid { 
             display: grid; 
             grid-template-columns: repeat(10, 1fr); 
-            grid-template-rows: repeat(10, 1fr); 
+            grid-template-rows: repeat(12, 1fr); 
             gap: 2px; 
             width: 7.5in; 
-            height: 7.5in; 
+            height: 9in; 
             margin: 0 auto; 
             border: 1px solid #ccc; 
         }
@@ -160,18 +160,18 @@
                 
                 // Set header
                 const header = document.getElementById('header');
-                header.textContent = `BGG: ${username} - Top 100 Games (${playerCount} Players)`;
+                header.textContent = `BGG: ${username} - Top 120 Games (${playerCount} Players)`;
                 
                 // Build grid
                 const grid = document.getElementById('grid');
-                const top100 = games.slice(0, 100);
+                const top120 = games.slice(0, 120);
                 
-                for (let i = 0; i < 100; i++) {
+                for (let i = 0; i < 120; i++) {
                     const tile = document.createElement('div');
                     tile.className = 'tile';
                     
-                    if (i < top100.length && top100[i]) {
-                        const game = top100[i];
+                    if (i < top120.length && top120[i]) {
+                        const game = top120[i];
                         
                         // Add rank number (smaller font)
                         const rank = document.createElement('div');
