@@ -24,7 +24,7 @@
         
         .game-list { margin-top: 1em; }
         .game-card { background: #fff; border-radius: 12px; box-shadow: 0 2px 12px #0001; margin-bottom: 1em; padding: 1em 1.2em; display: flex; flex-direction: row; align-items: center; position: relative; }
-        .game-thumb { width: 64px; height: 64px; border-radius: 10px; margin-right: 1em; object-fit: cover; flex-shrink: 0; }
+        .game-thumb { width: 64px; height: 64px; border-radius: 10px; margin-right: 1em; object-fit: contain; flex-shrink: 0; background: #f5f5f5; }
         .game-info { display: flex; flex-direction: column; flex: 1; }
         .game-title { font-size: 1.1em; font-weight: 600; margin-bottom: 0.2em; }
         .game-details { font-size: 0.98em; color: #555; }
@@ -70,7 +70,7 @@
             </div>
             
             <button id="submitBtn" class="submit-btn">Find Games</button>
-                        <!-- <button id="printBtn" class="submit-btn" style="margin-top:0.5em; background:#4caf50;" disabled>📄 Print View (Top 100)</button> -->
+            <button id="printBtn" class="submit-btn" style="margin-top:0.5em; background:#4caf50;" disabled>📄 Print View (Top 120)</button>
         </div>
         
         <div id="results"></div>
@@ -80,6 +80,11 @@
         let allGames = [];
         let gameDetails = {};
         let currentSortedGames = []; // Store current sorted games for print view
+
+        // Clear localStorage on page load
+        window.addEventListener('load', () => {
+            localStorage.removeItem('bgg_print_data');
+        });
 
         // Function to fetch user's BGG collection
         // Function to fetch user's BGG collection
@@ -429,9 +434,9 @@
             currentSortedGames = games; // Store for print view
             
             // Enable print button
-            // const printBtn = document.getElementById('printBtn');
-            // printBtn.disabled = false;
-            // printBtn.style.background = '#4caf50';
+            const printBtn = document.getElementById('printBtn');
+            printBtn.disabled = false;
+            printBtn.style.background = '#4caf50';
             
             const totalGames = games.length;
             
@@ -597,9 +602,45 @@
             }
         }
 
+        // Clean print function - opens separate print page
+        function createPrintView() {
+            if (!currentSortedGames || currentSortedGames.length === 0) {
+                alert('No games to print. Please run a search first.');
+                return;
+            }
+            
+            const username = document.getElementById('username').value;
+            const playerCount = document.getElementById('playerCount').value;
+            
+            // Prepare games data (with category and bayes info)
+            const gamesData = currentSortedGames.slice(0, 120).map(game => ({
+                name: game.name,
+                thumbnail: game.thumbnail,
+                category: game.category || 'supported',
+                bayesAverage: game.bayesAverage || 0
+            }));
+            
+            // Store data in localStorage instead of URL
+            const printData = {
+                username: username,
+                playerCount: playerCount,
+                games: gamesData,
+                timestamp: Date.now()
+            };
+            
+            localStorage.setItem('bgg_print_data', JSON.stringify(printData));
+            
+            // Create simple URL
+            const baseUrl = window.location.href.replace('menu.html', 'menu-print.html');
+            const printUrl = baseUrl + '?t=' + Date.now(); // Add timestamp to prevent caching
+            
+            // Open print page in new window/tab
+            window.open(printUrl, '_blank');
+        }
+
         // Event listeners
         document.getElementById('submitBtn').addEventListener('click', handleSubmit);
-        // document.getElementById('printBtn').addEventListener('click', createPrintView);
+        document.getElementById('printBtn').addEventListener('click', createPrintView);
         
         // Allow Enter key to submit
         document.addEventListener('keypress', (e) => {
