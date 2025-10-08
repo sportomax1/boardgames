@@ -33,6 +33,8 @@
                 <option value="wantintrade">🔄 Want in Trade</option>
                 <option value="prevowned">⏪ Previously Owned</option>
                 <option value="tradingaway">📤 Trading Away</option>
+                <option value="sold">🔴 Sold Items</option>
+                <option value="available">🟢 Available Items</option>
             </select>
             <div id="sellerFilterContainer" style="display:none; position:relative; max-width:250px;">
                 <input id="sellerFilterInput" type="text" placeholder="Search sellers..." style="font-size:1em; padding:0.6em 1em; border-radius:10px; border:1px solid #bbb; width:100%; min-height:44px; -webkit-appearance:none; appearance:none; box-sizing:border-box;">
@@ -77,7 +79,8 @@
         { id: 321725, name: "BGG.CON VFM 2023" },
         { id: 349103, name: "DTW VFM 2025" },
         { id: 328677, name: "DTW VFM 2024" },
-        { id: 308714, name: "DTW VFM 2023" }
+        { id: 308714, name: "DTW VFM 2023" },
+        { id: 235851, name: "Denver CO VFM" }
     ];
     const gamesCardWrapper = document.getElementById('gamesCardWrapper');
     async function fetchThingDetails(objectId) {
@@ -474,6 +477,40 @@
         // Filter by emoji status if set
         if (currentStatusFilter) {
             filtered = filtered.filter(item => {
+                if (currentStatusFilter === 'sold') {
+                    // Check if item is sold
+                    const isSold = item.item.getAttribute('sold') === '1';
+                    const bodyNode = item.item.querySelector('body');
+                    let bodyContainsSold = false;
+                    if (bodyNode) {
+                        const bodyText = bodyNode.textContent.toLowerCase();
+                        const soldPatterns = [
+                            /%sold%/i,
+                            /\bsold\b/i,
+                            /\[sold\]/i,
+                            /\(sold\)/i
+                        ];
+                        bodyContainsSold = soldPatterns.some(pattern => pattern.test(bodyText));
+                    }
+                    return isSold || bodyContainsSold;
+                }
+                if (currentStatusFilter === 'available') {
+                    // Check if item is NOT sold
+                    const isSold = item.item.getAttribute('sold') === '1';
+                    const bodyNode = item.item.querySelector('body');
+                    let bodyContainsSold = false;
+                    if (bodyNode) {
+                        const bodyText = bodyNode.textContent.toLowerCase();
+                        const soldPatterns = [
+                            /%sold%/i,
+                            /\bsold\b/i,
+                            /\[sold\]/i,
+                            /\(sold\)/i
+                        ];
+                        bodyContainsSold = soldPatterns.some(pattern => pattern.test(bodyText));
+                    }
+                    return !isSold && !bodyContainsSold;
+                }
                 if (!item.objectId) return false;
                 if (currentStatusFilter === 'own') return userCollection.has(item.objectId);
                 if (currentStatusFilter === 'wanttoplay') return userWantToPlay.has(item.objectId);
@@ -497,48 +534,76 @@
         toShow.forEach((item, idx) => {
             // Extract seller name from username attribute
             const seller = item.item.getAttribute('username') || '';
-            // Extract price and type from body text
+            
+            // Check if item is sold
+            const isSold = item.item.getAttribute('sold') === '1';
+            
+            // Extract price and type from body text or price attribute
             let price = '';
             let priceType = '';
+            let soldIndicator = '';
+            
+            // Check for sold in body text (case insensitive patterns)
             const bodyNode = item.item.querySelector('body');
+            let bodyText = '';
             if (bodyNode) {
-                const bodyText = bodyNode.textContent;
+                bodyText = bodyNode.textContent.toLowerCase();
+            }
+            
+            // Check for various sold patterns in body text
+            const soldPatterns = [
+                /%sold%/i,
+                /\bsold\b/i,
+                /\[sold\]/i,
+                /\(sold\)/i
+            ];
+            const bodyContainsSold = soldPatterns.some(pattern => pattern.test(bodyText));
+            
+            // Determine if item is sold from either attribute or body text
+            const itemIsSold = isSold || bodyContainsSold;
+            
+            if (itemIsSold) {
+                soldIndicator = '<span style="color:#ff0000; font-weight:bold; font-size:1.1em;">SOLD</span>';
+            }
+            
+            // Try to get price from price attribute first
+            const priceAttr = item.item.getAttribute('price');
+            const currencyAttr = item.item.getAttribute('currency') || 'USD';
+            
+            if (priceAttr) {
+                price = `$${priceAttr}`;
+                priceType = 'Listed Price';
+            } else if (bodyNode) {
+                const bodyTextOrig = bodyNode.textContent;
                 // Try to extract [FP:] $xx or $xx
-                const fpMatch = bodyText.match(/\[FP:?\][^$]*\$([0-9]+(?:\.[0-9]{2})?)/i);
+                const fpMatch = bodyTextOrig.match(/\[FP:?\][^$]*\$([0-9]+(?:\.[0-9]{2})?)/i);
                 if (fpMatch) {
                     price = `$${fpMatch[1]}`;
                     priceType = 'Fixed Price';
                 } else {
                     // BIN
-                    const binMatch = bodyText.match(/BIN[^$]*\$([0-9]+(?:\.[0-9]{2})?)/i);
+                    const binMatch = bodyTextOrig.match(/BIN[^$]*\$([0-9]+(?:\.[0-9]{2})?)/i);
                     if (binMatch) {
                         price = `$${binMatch[1]}`;
                         priceType = 'Buy It Now';
                     } else {
                         // Starting Bid
-                        const sbMatch = bodyText.match(/Starting Bid[^$]*\$([0-9]+(?:\.[0-9]{2})?)/i);
+                        const sbMatch = bodyTextOrig.match(/Starting Bid[^$]*\$([0-9]+(?:\.[0-9]{2})?)/i);
                         if (sbMatch) {
                             price = `$${sbMatch[1]}`;
                             priceType = 'Starting Bid';
                         } else {
-                            // Sold
-                            const soldMatch = bodyText.match(/Sold[^$]*\$([0-9]+(?:\.[0-9]{2})?)/i);
-                            if (soldMatch) {
-                                price = `$${soldMatch[1]}`;
-                                priceType = 'Sold';
+                            // Available
+                            const availMatch = bodyTextOrig.match(/Available[^$]*\$([0-9]+(?:\.[0-9]{2})?)/i);
+                            if (availMatch) {
+                                price = `$${availMatch[1]}`;
+                                priceType = 'Available';
                             } else {
-                                // Available
-                                const availMatch = bodyText.match(/Available[^$]*\$([0-9]+(?:\.[0-9]{2})?)/i);
-                                if (availMatch) {
-                                    price = `$${availMatch[1]}`;
-                                    priceType = 'Available';
-                                } else {
-                                    // Fallback: any $xx
-                                    const dollarMatch = bodyText.match(/\$([0-9]+(?:\.[0-9]{2})?)/);
-                                    if (dollarMatch) {
-                                        price = `$${dollarMatch[1]}`;
-                                        priceType = '';
-                                    }
+                                // Fallback: any $xx
+                                const dollarMatch = bodyTextOrig.match(/\$([0-9]+(?:\.[0-9]{2})?)/);
+                                if (dollarMatch) {
+                                    price = `$${dollarMatch[1]}`;
+                                    priceType = '';
                                 }
                             }
                         }
@@ -632,7 +697,7 @@
                     <div class='geeklist-label'>${item.geeklistName}</div>
                     <div class='game-details'>
                         <b>Seller:</b> ${seller}<br>
-                        <b>Price:</b> ${price || 'N/A'}${priceType ? ` <span style='font-size:0.95em; color:#1976d2;'>(${priceType})</span>` : ''}<br>
+                        <b>Price:</b> ${price || 'N/A'}${priceType ? ` <span style='font-size:0.95em; color:#1976d2;'>(${priceType})</span>` : ''}${soldIndicator ? ` ${soldIndicator}` : ''}<br>
                         ${item.details?.year ? `<b>Year:</b> ${item.details.year}<br>` : ''}
                         <b>Post Date:</b> ${item.postdate ? new Date(item.postdate).toLocaleString() : 'N/A'}
                         ${item.comments ? ` (<b>${item.comments}</b> comments)` : ''}<br>
@@ -717,14 +782,48 @@
                 const details = item.details || {};
                 // Extract seller name and price again for modal
                 const seller = item.item.getAttribute('username') || '';
+                
+                // Check if item is sold
+                const isSold = item.item.getAttribute('sold') === '1';
+                
                 let price = '';
+                let soldIndicator = '';
+                
+                // Check for sold in body text (case insensitive patterns)
                 const bodyNode = item.item.querySelector('body');
+                let bodyText = '';
                 if (bodyNode) {
-                    const bodyText = bodyNode.textContent;
-                    const fpMatch = bodyText.match(/\[FP:?\][^$]*\$([0-9]+(?:\.[0-9]{2})?)/i);
+                    bodyText = bodyNode.textContent.toLowerCase();
+                }
+                
+                // Check for various sold patterns in body text
+                const soldPatterns = [
+                    /%sold%/i,
+                    /\bsold\b/i,
+                    /\[sold\]/i,
+                    /\(sold\)/i
+                ];
+                const bodyContainsSold = soldPatterns.some(pattern => pattern.test(bodyText));
+                
+                // Determine if item is sold from either attribute or body text
+                const itemIsSold = isSold || bodyContainsSold;
+                
+                if (itemIsSold) {
+                    soldIndicator = '<span style="color:#ff0000; font-weight:bold; font-size:1.1em;">SOLD</span>';
+                }
+                
+                // Try to get price from price attribute first
+                const priceAttr = item.item.getAttribute('price');
+                const currencyAttr = item.item.getAttribute('currency') || 'USD';
+                
+                if (priceAttr) {
+                    price = `$${priceAttr}`;
+                } else if (bodyNode) {
+                    const bodyTextOrig = bodyNode.textContent;
+                    const fpMatch = bodyTextOrig.match(/\[FP:?\][^$]*\$([0-9]+(?:\.[0-9]{2})?)/i);
                     if (fpMatch) price = `$${fpMatch[1]}`;
                     else {
-                        const dollarMatch = bodyText.match(/\$([0-9]+(?:\.[0-9]{2})?)/);
+                        const dollarMatch = bodyTextOrig.match(/\$([0-9]+(?:\.[0-9]{2})?)/);
                         if (dollarMatch) price = `$${dollarMatch[1]}`;
                     }
                 }
@@ -770,7 +869,7 @@
                     ${details.thumbnail ? `<img src='${details.thumbnail}' alt='${item.name} thumbnail' style='width:80px; height:80px; border-radius:12px; margin-bottom:1em; object-fit:cover;'>` : ''}
                     <div style='font-size:1em; text-align:left; background:#f7f7fa; padding:1em; border-radius:8px; margin-bottom:1em;'>
                         <b>Seller:</b> ${seller}<br>
-                        <b>Price:</b> ${price || 'N/A'}<br>
+                        <b>Price:</b> ${price || 'N/A'}${soldIndicator ? ` ${soldIndicator}` : ''}<br>
                         ${attrHtml}
                         <b>Year:</b> ${details.year || 'N/A'}<br>
                         ${details.bggRank ? `<b>BGG Rank:</b> #${details.bggRank}<br>` : ''}
