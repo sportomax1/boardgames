@@ -7,13 +7,22 @@
     <style>
         @page { 
             size: letter; 
-            margin: 0.5in; 
+            margin: 0.5in;
+            /* Remove ALL browser headers and footers */
+            @top-left { content: ""; }
+            @top-center { content: ""; }
+            @top-right { content: ""; }
+            @bottom-left { content: ""; }
+            @bottom-center { content: ""; }
+            @bottom-right { content: ""; }
         }
         
         body { 
             margin: 0; 
             font-family: Arial, sans-serif; 
             background: white;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
         }
         
         .header { 
@@ -22,6 +31,15 @@
             font-size: 16px; 
             font-weight: bold; 
             color: #333;
+        }
+        
+        .custom-footer {
+            position: fixed;
+            bottom: 0.25in;
+            right: 0.5in;
+            font-size: 10px;
+            color: #666;
+            z-index: 1000;
         }
         
         .grid { 
@@ -56,7 +74,7 @@
             left: 1px; 
             background: rgba(0,0,0,0.8); 
             color: white; 
-            font-size: 6px; 
+            font-size: 8px; 
             padding: 1px 2px; 
             border-radius: 2px; 
             font-weight: bold; 
@@ -67,7 +85,7 @@
             position: absolute; 
             top: 1px; 
             right: 1px; 
-            font-size: 7px; 
+            font-size: 8px; 
             padding: 1px 3px; 
             border-radius: 2px; 
             font-weight: bold; 
@@ -94,11 +112,25 @@
             display: flex; 
             align-items: center; 
             justify-content: center; 
-            font-size: 5px; 
+            font-size: 8px; 
             font-weight: bold; 
-            color: white; 
-            text-shadow: 0 0 2px rgba(0,0,0,0.8);
+            color: black; 
+            text-shadow: 0 0 2px rgba(255,255,255,0.8);
             z-index: 10;
+        }
+        
+        .player-votes { 
+            position: absolute; 
+            bottom: 1px; 
+            left: 1px; 
+            background: rgba(0,0,0,0.8); 
+            color: white; 
+            font-size: 8px; 
+            padding: 1px 2px; 
+            border-radius: 2px; 
+            font-weight: bold; 
+            z-index: 10;
+            line-height: 1.1;
         }
         
         .loading {
@@ -109,17 +141,45 @@
         }
         
         @media print {
-            body { background: white !important; }
+            body { 
+                background: white !important; 
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
             .no-print { display: none !important; }
+            
+            /* Completely remove browser headers/footers */
+            @page {
+                margin: 0.5in;
+                size: letter;
+                @top-left { content: "" !important; }
+                @top-center { content: "" !important; }
+                @top-right { content: "" !important; }
+                @bottom-left { content: "" !important; }
+                @bottom-center { content: "" !important; }
+                @bottom-right { content: "" !important; }
+            }
+            
+            /* Hide any browser print elements */
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="loading" id="loading">Loading games data...</div>
+    <div class="loading" id="loading">
+        Loading games data...<br>
+        <small style="color:#666; margin-top:1em; display:block; font-size:12px; line-height:1.4;">
+            💡 <strong>For clean printing:</strong> In your browser's Print Settings, turn off "Headers and footers" to remove URL, page numbers, and date/time from the printout.
+        </small>
+    </div>
     
     <div id="printContent" style="display: none;">
         <div class="header" id="header"></div>
         <div class="grid" id="grid"></div>
+        <div class="custom-footer" id="customFooter"></div>
     </div>
 
     <script>
@@ -156,11 +216,26 @@
                     return;
                 }
                 
-                const { username, playerCount, games } = printData;
+                const { username, playerCount, games, printOptions = {} } = printData;
+                
+                // Default print options if not specified
+                const options = {
+                    topLeft: 'rank',
+                    topRight: 'category',
+                    bottomLeft: 'playerVotes', 
+                    bottomRight: 'bayes',
+                    ...printOptions
+                };
                 
                 // Set header
                 const header = document.getElementById('header');
                 header.textContent = `BGG: ${username} - Top 120 Games (${playerCount} Players)`;
+                
+                // Set custom footer with timestamp
+                const footer = document.getElementById('customFooter');
+                const now = new Date();
+                const timestamp = now.toLocaleDateString() + ' ' + now.toLocaleTimeString();
+                footer.textContent = `${timestamp}`;
                 
                 // Build grid
                 const grid = document.getElementById('grid');
@@ -173,14 +248,16 @@
                     if (i < top120.length && top120[i]) {
                         const game = top120[i];
                         
-                        // Add rank number (smaller font)
-                        const rank = document.createElement('div');
-                        rank.className = 'rank';
-                        rank.textContent = i + 1;
-                        tile.appendChild(rank);
+                        // Add rank number (top left)
+                        if (options.topLeft === 'rank') {
+                            const rank = document.createElement('div');
+                            rank.className = 'rank';
+                            rank.textContent = i + 1;
+                            tile.appendChild(rank);
+                        }
                         
-                        // Add category letter with colors (P, B = green; R = yellow; S = none)
-                        if (game.category !== 'supported') {
+                        // Add category letter (top right)
+                        if (options.topRight === 'category' && game.category !== 'supported') {
                             const category = document.createElement('div');
                             category.className = `category category-${game.category}`;
                             const categoryMap = {
@@ -192,19 +269,68 @@
                             tile.appendChild(category);
                         }
                         
-                        // Add bayes average as gradient circle (red to green)
-                        if (game.bayesAverage && game.bayesAverage > 0) {
+                        // Add bayes average (bottom right)
+                        if (options.bottomRight === 'bayes' && game.bayesAverage && game.bayesAverage > 0) {
                             const bayes = document.createElement('div');
                             bayes.className = 'bayes';
                             
-                            // Calculate gradient color (red to green based on 0-10 scale)
-                            const normalizedScore = Math.max(0, Math.min(10, game.bayesAverage)) / 10;
-                            const red = Math.round(255 * (1 - normalizedScore));
-                            const green = Math.round(255 * normalizedScore);
-                            bayes.style.backgroundColor = `rgb(${red}, ${green}, 0)`;
+                            // Enhanced color gradient with more steps (0-10 scale)
+                            const score = Math.max(0, Math.min(10, game.bayesAverage));
+                            let red, green, blue = 0;
+                            
+                            if (score < 2) {
+                                // Deep red to red (0-2)
+                                red = 200 + Math.round(55 * (score / 2));
+                                green = Math.round(20 * (score / 2));
+                            } else if (score < 4) {
+                                // Red to orange-red (2-4)
+                                red = 255;
+                                green = Math.round(80 * ((score - 2) / 2));
+                            } else if (score < 5.5) {
+                                // Orange-red to orange (4-5.5)
+                                red = 255;
+                                green = 80 + Math.round(95 * ((score - 4) / 1.5));
+                            } else if (score < 7) {
+                                // Orange to yellow-orange (5.5-7)
+                                red = 255;
+                                green = 175 + Math.round(80 * ((score - 5.5) / 1.5));
+                            } else if (score < 8.5) {
+                                // Yellow-orange to yellow-green (7-8.5)
+                                red = 255 - Math.round(100 * ((score - 7) / 1.5));
+                                green = 255;
+                            } else {
+                                // Yellow-green to green (8.5-10)
+                                red = 155 - Math.round(155 * ((score - 8.5) / 1.5));
+                                green = 255;
+                            }
+                            
+                            bayes.style.backgroundColor = `rgb(${red}, ${green}, ${blue})`;
                             
                             bayes.textContent = Math.ceil(game.bayesAverage * 10) / 10;
                             tile.appendChild(bayes);
+                        }
+                        
+                        // Add player count voting data (bottom left)
+                        if (options.bottomLeft === 'playerVotes' && game.playerVotes && game.playerVotes.length > 0) {
+                            const playerVotes = document.createElement('div');
+                            playerVotes.className = 'player-votes';
+                            
+                            // Find votes for the current player count
+                            const currentPlayerVotes = game.playerVotes.find(vote => 
+                                vote.playerCount === parseInt(playerCount)
+                            );
+                            
+                            if (currentPlayerVotes) {
+                                const best = currentPlayerVotes.best || 0;
+                                const recommended = currentPlayerVotes.recommended || 0;
+                                const notRecommended = currentPlayerVotes.notRecommended || 0;
+                                
+                                playerVotes.innerHTML = `B:${best}<br>R:${recommended}<br>N:${notRecommended}`;
+                            } else {
+                                playerVotes.innerHTML = 'B:0<br>R:0<br>N:0';
+                            }
+                            
+                            tile.appendChild(playerVotes);
                         }
                         
                         // Add game thumbnail
