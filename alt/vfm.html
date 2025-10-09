@@ -83,6 +83,79 @@
         { id: 235851, name: "Denver CO VFM" }
     ];
     const gamesCardWrapper = document.getElementById('gamesCardWrapper');
+    
+    // Cache for user details to avoid repeated API calls
+    const userDetailsCache = new Map();
+    
+    async function fetchUserDetails(username) {
+        if (!username) return { name: '', username: '', location: '' };
+        
+        // Check cache first
+        if (userDetailsCache.has(username)) {
+            return userDetailsCache.get(username);
+        }
+        
+        try {
+            console.log(`🔍 Fetching user details for: ${username}`);
+            const resp = await fetch(`https://boardgamegeek.com/xmlapi2/user?name=${username}`);
+            if (!resp.ok) {
+                console.log(`❌ Failed to fetch user ${username}: ${resp.status}`);
+                // Store empty result in cache to avoid repeated failed requests
+                const result = { name: '', username: username, location: '' };
+                userDetailsCache.set(username, result);
+                return result;
+            }
+            
+            const xml = await resp.text();
+            const parser = new window.DOMParser();
+            const doc = parser.parseFromString(xml, 'text/xml');
+            
+            const userNode = doc.querySelector('user');
+            const firstNameNode = doc.querySelector('firstname');
+            const lastNameNode = doc.querySelector('lastname');
+            const stateNode = doc.querySelector('stateorprovince');
+            const countryNode = doc.querySelector('country');
+            
+            const firstName = firstNameNode?.getAttribute('value') || '';
+            const lastName = lastNameNode?.getAttribute('value') || '';
+            const state = stateNode?.getAttribute('value') || '';
+            const country = countryNode?.getAttribute('value') || '';
+            
+            const fullName = [firstName, lastName].filter(n => n).join(' ').trim();
+            
+            // Build location string
+            let location = '';
+            if (state && country) {
+                location = `${state}, ${country}`;
+            } else if (state) {
+                location = state;
+            } else if (country) {
+                location = country;
+            }
+            
+            const result = {
+                name: fullName,
+                username: username,
+                location: location,
+                firstName: firstName,
+                lastName: lastName,
+                state: state,
+                country: country
+            };
+            
+            console.log(`✅ User details for ${username}:`, result);
+            
+            // Cache the result
+            userDetailsCache.set(username, result);
+            return result;
+        } catch (error) {
+            console.log(`❌ Error fetching user details for ${username}:`, error);
+            const result = { name: '', username: username, location: '' };
+            userDetailsCache.set(username, result);
+            return result;
+        }
+    }
+    
     async function fetchThingDetails(objectId) {
         if (!objectId) return {};
         try {
@@ -239,7 +312,7 @@
             
             while (retryCount < maxRetries && !success) {
                 try {
-                    const resp = await fetch(`https://boardgamegeek.com/xmlapi/geeklist/${geeklist.id}`);
+                    const resp = await fetch(`https://boardgamegeek.com/xmlapi/geeklist/${geeklist.id}?comments=1`);
                     console.log(`Response status for ${geeklist.name}:`, resp.status);
                     
                     if (resp.status === 202) {
@@ -307,7 +380,18 @@
                     
                     for (let i = 0; i < items.length; i++) {
                     const item = items[i];
-                    allItems.push({
+                    
+                    // Extract comment data from the item
+                    const commentNodes = Array.from(item.querySelectorAll('comment'));
+                    const commentData = commentNodes.map(comment => ({
+                        username: comment.getAttribute('username') || '',
+                        date: comment.getAttribute('date') || '',
+                        content: comment.textContent.trim() || ''
+                    }));
+                    
+                    const username = item.getAttribute('username') || '';
+                    
+                    const itemData = {
                         geeklistName: geeklist.name,
                         geeklistId: geeklist.id,
                         name: item.getAttribute('objectname') || 'Unknown',
@@ -315,9 +399,21 @@
                         objectId: item.getAttribute('objectid') || '',
                         postdate: item.getAttribute('postdate') || '',
                         comments: item.getAttribute('comments') || '',
+                        commentData: commentData, // Store actual comment data
+                        username: username,
+                        userDetails: null, // Will be populated later
                         details: null,
                         item
-                    });
+                    };
+                    
+                    allItems.push(itemData);
+                    
+                    // Start fetching user details immediately for better performance
+                    if (username) {
+                        fetchUserDetails(username).then(userDetails => {
+                            itemData.userDetails = userDetails;
+                        });
+                    }
                 }
                 
                 // Sort by postdate descending after adding new items
@@ -535,6 +631,15 @@
             // Extract seller name from username attribute
             const seller = item.item.getAttribute('username') || '';
             
+            // Format seller display with name and username
+            let sellerDisplay = seller;
+            if (item.userDetails && item.userDetails.name) {
+                sellerDisplay = `${item.userDetails.name} (${seller})`;
+                if (item.userDetails.location) {
+                    sellerDisplay += ` - ${item.userDetails.location}`;
+                }
+            }
+            
             // Check if item is sold
             const isSold = item.item.getAttribute('sold') === '1';
             
@@ -696,11 +801,11 @@
                     <div class='game-title'>${item.name}</div>
                     <div class='geeklist-label'>${item.geeklistName}</div>
                     <div class='game-details'>
-                        <b>Seller:</b> ${seller}<br>
+                        <b>Seller:</b> ${sellerDisplay}<br>
                         <b>Price:</b> ${price || 'N/A'}${priceType ? ` <span style='font-size:0.95em; color:#1976d2;'>(${priceType})</span>` : ''}${soldIndicator ? ` ${soldIndicator}` : ''}<br>
                         ${item.details?.year ? `<b>Year:</b> ${item.details.year}<br>` : ''}
-                        <b>Post Date:</b> ${item.postdate ? new Date(item.postdate).toLocaleString() : 'N/A'}
-                        ${item.comments ? ` (<b>${item.comments}</b> comments)` : ''}<br>
+                        <b>Post Date:</b> ${item.postdate ? new Date(item.postdate).toLocaleString() : 'N/A'}<br>
+                        ${item.commentData && item.commentData.length > 0 ? `<b>Comments:</b> ${item.commentData.length} <button class='viewCommentsBtn' data-idx='${idx}' style='background:#ff9800; color:#fff; border:none; border-radius:6px; padding:0.2em 0.5em; font-size:0.8em; margin-left:0.3em; cursor:pointer;'>View</button><br>` : ''}
                         ${item.objectId ? `<a href='https://boardgamegeek.com/boardgame/${item.objectId}' target='_blank' style='color:#1976d2;'>View on BGG</a>` : ''}<br>
                         <a href='https://boardgamegeek.com/geeklist/${item.geeklistId}?itemid=${item.item.getAttribute('id')}' target='_blank' style='color:#1976d2;'>View Geeklisting</a><br>
                         <button class='viewDetailBtn' data-idx='${idx}' style='margin-top:0.7em; background:#1976d2; color:#fff; font-size:1em; padding:0.5em 1.2em; border-radius:8px; border:none; width:100%; max-width:180px;'>View Details</button>
@@ -774,6 +879,34 @@
                 });
             }
         });
+        
+        // Fetch user details asynchronously and update seller display
+        toShow.forEach((item, idx) => {
+            if (item.username && !item.userDetails) {
+                fetchUserDetails(item.username).then(userDetails => {
+                    item.userDetails = userDetails;
+                    // Update the seller display in the card
+                    const card = document.querySelector(`#vfmcard-${idx}`);
+                    if (card && (userDetails.name || userDetails.location)) {
+                        const gameDetails = card.querySelector('.game-details');
+                        if (gameDetails) {
+                            let sellerDisplay = item.username;
+                            if (userDetails.name) {
+                                sellerDisplay = `${userDetails.name} (${item.username})`;
+                                if (userDetails.location) {
+                                    sellerDisplay += ` - ${userDetails.location}`;
+                                }
+                            }
+                            gameDetails.innerHTML = gameDetails.innerHTML.replace(
+                                new RegExp(`<b>Seller:</b> ${item.username}`),
+                                `<b>Seller:</b> ${sellerDisplay}`
+                            );
+                        }
+                    }
+                });
+            }
+        });
+        
         // Modal logic for View Details
         document.querySelectorAll('.viewDetailBtn').forEach(btn => {
             btn.onclick = () => {
@@ -782,6 +915,15 @@
                 const details = item.details || {};
                 // Extract seller name and price again for modal
                 const seller = item.item.getAttribute('username') || '';
+                
+                // Format seller display with name and username for modal
+                let sellerDisplay = seller;
+                if (item.userDetails && item.userDetails.name) {
+                    sellerDisplay = `${item.userDetails.name} (${seller})`;
+                    if (item.userDetails.location) {
+                        sellerDisplay += ` - ${item.userDetails.location}`;
+                    }
+                }
                 
                 // Check if item is sold
                 const isSold = item.item.getAttribute('sold') === '1';
@@ -864,11 +1006,27 @@
                 if (bodyNode) {
                     bodyHtml = `<div style='margin-top:1em; font-size:0.98em; color:#333; background:#f7f7fa; padding:0.7em; border-radius:8px;'><b>Listing Details:</b><br>${bodyNode.textContent.replace(/\n/g,'<br>')}</div>`;
                 }
+                
+                // Add comments section if available
+                let commentsHtml = '';
+                if (item.commentData && item.commentData.length > 0) {
+                    commentsHtml = `<div style='margin-top:1em; font-size:0.98em; color:#333; background:#fff3e0; padding:0.7em; border-radius:8px; border-left:4px solid #ff9800;'>
+                        <b>Comments (${item.commentData.length}):</b><br>`;
+                    item.commentData.forEach((comment, idx) => {
+                        const commentDate = comment.date ? new Date(comment.date).toLocaleString() : 'N/A';
+                        commentsHtml += `<div style='margin-top:0.5em; padding:0.5em; background:#f5f5f5; border-radius:6px; border-left:3px solid #ff9800;'>
+                            <div style='font-weight:600; color:#ff9800; font-size:0.9em;'>${comment.username} - ${commentDate}</div>
+                            <div style='margin-top:0.3em;'>${comment.content.replace(/\n/g,'<br>')}</div>
+                        </div>`;
+                    });
+                    commentsHtml += `</div>`;
+                }
+                
                 content.innerHTML = `
                     <h2 style='font-size:1.2em; margin-bottom:0.7em;'>${item.name}</h2>
                     ${details.thumbnail ? `<img src='${details.thumbnail}' alt='${item.name} thumbnail' style='width:80px; height:80px; border-radius:12px; margin-bottom:1em; object-fit:cover;'>` : ''}
                     <div style='font-size:1em; text-align:left; background:#f7f7fa; padding:1em; border-radius:8px; margin-bottom:1em;'>
-                        <b>Seller:</b> ${seller}<br>
+                        <b>Seller:</b> ${sellerDisplay}<br>
                         <b>Price:</b> ${price || 'N/A'}${soldIndicator ? ` ${soldIndicator}` : ''}<br>
                         ${attrHtml}
                         <b>Year:</b> ${details.year || 'N/A'}<br>
@@ -878,11 +1036,77 @@
                         <a href='https://boardgamegeek.com/geeklist/${item.geeklistId}?itemid=${item.item.getAttribute('id')}' target='_blank' style='color:#1976d2;'>View Geeklisting</a>
                     </div>
                     ${bodyHtml}
+                    ${commentsHtml}
                     <button id='closeModalBtn' style='margin-top:1.5em; background:#1976d2; color:#fff; font-size:1.1em; padding:0.8em 2em; border-radius:12px; border:none; width:100%; min-height:44px; font-weight:600; cursor:pointer; -webkit-appearance:none;'>Close</button>
                 `;
                 modal.appendChild(content);
                 document.body.appendChild(modal);
                 document.getElementById('closeModalBtn').onclick = () => {
+                    document.body.removeChild(modal);
+                };
+            };
+        });
+        
+        // Modal logic for View Comments
+        document.querySelectorAll('.viewCommentsBtn').forEach(btn => {
+            btn.onclick = (e) => {
+                e.stopPropagation(); // Prevent triggering other click events
+                const idx = btn.getAttribute('data-idx');
+                const item = toShow[idx];
+                
+                if (!item.commentData || item.commentData.length === 0) {
+                    alert('No comments available for this item.');
+                    return;
+                }
+                
+                const modal = document.createElement('div');
+                modal.className = 'modal';
+                modal.style.position = 'fixed';
+                modal.style.left = '0';
+                modal.style.top = '0';
+                modal.style.width = '100vw';
+                modal.style.height = '100vh';
+                modal.style.background = 'rgba(0,0,0,0.25)';
+                modal.style.display = 'flex';
+                modal.style.alignItems = 'center';
+                modal.style.justifyContent = 'center';
+                modal.style.zIndex = '9999';
+                modal.style.padding = 'env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)';
+                modal.style.boxSizing = 'border-box';
+                
+                const content = document.createElement('div');
+                content.style.maxWidth = '390px';
+                content.style.width = '90vw';
+                content.style.background = '#fff';
+                content.style.borderRadius = '16px';
+                content.style.boxShadow = '0 4px 20px rgba(0,0,0,0.15)';
+                content.style.padding = '1.5em 1em 1.2em 1em';
+                content.style.maxHeight = '85vh';
+                content.style.overflowY = 'auto';
+                content.style.margin = '1em';
+                content.style.position = 'relative';
+                
+                let commentsHtml = `<h2 style='font-size:1.2em; margin-bottom:0.7em; color:#ff9800;'>💬 Comments for ${item.name}</h2>`;
+                commentsHtml += `<div style='margin-bottom:1em; font-size:0.9em; color:#666;'>Total: ${item.commentData.length} comment${item.commentData.length !== 1 ? 's' : ''}</div>`;
+                
+                item.commentData.forEach((comment, idx) => {
+                    const commentDate = comment.date ? new Date(comment.date).toLocaleString() : 'N/A';
+                    commentsHtml += `<div style='margin-bottom:1em; padding:0.8em; background:#fff3e0; border-radius:8px; border-left:4px solid #ff9800;'>
+                        <div style='font-weight:600; color:#ff9800; font-size:0.95em; margin-bottom:0.4em;'>
+                            👤 ${comment.username} 
+                            <span style='font-weight:normal; color:#666; font-size:0.85em;'>• ${commentDate}</span>
+                        </div>
+                        <div style='color:#333; line-height:1.4;'>${comment.content.replace(/\n/g,'<br>')}</div>
+                    </div>`;
+                });
+                
+                commentsHtml += `<button id='closeCommentsModalBtn' style='margin-top:1em; background:#ff9800; color:#fff; font-size:1.1em; padding:0.8em 2em; border-radius:12px; border:none; width:100%; min-height:44px; font-weight:600; cursor:pointer; -webkit-appearance:none;'>Close Comments</button>`;
+                
+                content.innerHTML = commentsHtml;
+                modal.appendChild(content);
+                document.body.appendChild(modal);
+                
+                document.getElementById('closeCommentsModalBtn').onclick = () => {
                     document.body.removeChild(modal);
                 };
             };
