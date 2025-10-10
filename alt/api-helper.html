@@ -429,6 +429,190 @@
         .error { background: #f8d7da; color: #721c24; padding: 1em; border-radius: 6px; }
         .success { background: #d4edda; color: #155724; padding: 1em; border-radius: 6px; }
         
+        /* Dynamic Cards Styles */
+        .cards-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0.75em;
+            margin-top: 1em;
+        }
+        
+        .result-card {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 1em;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        
+        .result-card:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        }
+        
+        .card-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75em;
+            margin-bottom: 0.75em;
+        }
+        
+        .card-thumbnail {
+            width: 60px;
+            height: 60px;
+            border-radius: 6px;
+            object-fit: cover;
+            background: #f0f0f0;
+            flex-shrink: 0;
+        }
+        
+        .card-main {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .card-title {
+            font-weight: 600;
+            color: #1976d2;
+            margin-bottom: 0.25em;
+            font-size: 1em;
+            line-height: 1.3;
+        }
+        
+        .card-subtitle {
+            color: #666;
+            font-size: 0.85em;
+            margin-bottom: 0.5em;
+        }
+        
+        .card-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5em;
+            margin-bottom: 0.75em;
+        }
+        
+        .stat-item {
+            background: #f8f9fa;
+            padding: 0.4em 0.6em;
+            border-radius: 4px;
+            font-size: 0.8em;
+            text-align: center;
+        }
+        
+        .stat-label {
+            display: block;
+            color: #666;
+            font-size: 0.75em;
+            margin-bottom: 0.1em;
+        }
+        
+        .stat-value {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .card-details {
+            font-size: 0.85em;
+            color: #555;
+            line-height: 1.4;
+        }
+        
+        .card-actions {
+            display: flex;
+            gap: 0.5em;
+            margin-top: 0.75em;
+            flex-wrap: wrap;
+        }
+        
+        .card-btn {
+            background: #1976d2;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 0.4em 0.8em;
+            font-size: 0.8em;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            min-height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            touch-action: manipulation;
+        }
+        
+        .card-btn:hover {
+            background: #1565c0;
+        }
+        
+        .card-btn.secondary {
+            background: #4caf50;
+        }
+        
+        .card-btn.secondary:hover {
+            background: #43a047;
+        }
+        
+        .cards-info {
+            background: #e3f2fd;
+            border: 1px solid #1976d2;
+            border-radius: 6px;
+            padding: 0.75em;
+            font-size: 0.9em;
+            color: #1976d2;
+        }
+        
+        /* Fullscreen Cards Modal Styles */
+        .fullscreen-cards-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1em;
+            margin-top: 1em;
+        }
+        
+        .fullscreen-cards-info {
+            background: #e3f2fd;
+            border: 1px solid #1976d2;
+            border-radius: 6px;
+            padding: 1em;
+            font-size: 1em;
+            color: #1976d2;
+            text-align: center;
+            font-weight: 600;
+        }
+        
+        /* Enhanced card styles for fullscreen */
+        .fullscreen-cards-container .result-card {
+            min-height: auto;
+        }
+        
+        .fullscreen-cards-container .card-thumbnail {
+            width: 80px;
+            height: 80px;
+        }
+        
+        .fullscreen-cards-container .card-title {
+            font-size: 1.1em;
+        }
+        
+        .fullscreen-cards-container .card-stats {
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75em;
+        }
+        
+        .fullscreen-cards-container .stat-item {
+            padding: 0.6em;
+        }
+        
+        @media (max-width: 768px) {
+            .fullscreen-cards-container {
+                grid-template-columns: 1fr;
+                gap: 0.75em;
+            }
+        }
+        
         /* iPhone-Only Responsive Styles */
         @media (max-width: 430px) {
             .container { 
@@ -527,6 +711,18 @@
             </button>
         </div>
 
+        <!-- Dynamic Cards Section -->
+        <div class="section" id="cardsSection" style="display: none;">
+            <h2>🎴 Results Cards</h2>
+            <div class="cards-info" id="cardsInfo"></div>
+            <div class="cards-actions" style="margin-bottom: 1em;">
+                <button class="btn btn-primary" onclick="openCardsFullscreen()" id="fullscreenCardsBtn" style="display: none;">
+                    🔍 View Fullscreen
+                </button>
+            </div>
+            <div class="cards-container" id="cardsContainer"></div>
+        </div>
+
         <!-- Footer Info -->
         <div class="section">
             <h2>ℹ️ About BGG API</h2>
@@ -609,6 +805,20 @@
             </div>
             <div class="modal-body">
                 <div id="fullResponseContent" style="font-family: monospace; font-size: 0.8em; white-space: pre-wrap; word-break: break-all;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fullscreen Cards Modal -->
+    <div id="cardsFullscreenModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">🎴 Results Cards - Fullscreen</h2>
+                <button class="modal-close" onclick="closeModal('cardsFullscreen')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="fullscreen-cards-info" id="fullscreenCardsInfo"></div>
+                <div class="fullscreen-cards-container" id="fullscreenCardsContainer"></div>
             </div>
         </div>
     </div>
@@ -881,6 +1091,9 @@
                         break;
                     case 'response':
                         initializeResponseModal();
+                        break;
+                    case 'cardsFullscreen':
+                        initializeCardsFullscreenModal();
                         break;
                 }
                 
@@ -1177,7 +1390,7 @@
             }
         }
 
-        function executeApiCall() {
+        async function executeApiCall() {
             if (!currentApiCall) {
                 alert('No API call to execute');
                 return;
@@ -1196,25 +1409,51 @@
             responseContent.textContent = '';
             viewFullBtn.style.display = 'none';
             
-            const startTime = performance.now();
+            const maxRetries = 5;
+            let attempt = 1;
+            let lastError = null;
             
-            fetch(currentApiCall.url)
-                .then(response => {
+            while (attempt <= maxRetries) {
+                const startTime = performance.now();
+                
+                try {
+                    console.log(`🔄 Attempt ${attempt}/${maxRetries} for API call`);
+                    if (attempt > 1) {
+                        responseInfo.innerHTML = `<div class="loading">🔄 Retrying... (Attempt ${attempt}/${maxRetries})</div>`;
+                    }
+                    
+                    const response = await fetch(currentApiCall.url);
                     const endTime = performance.now();
                     const duration = Math.round(endTime - startTime);
                     
                     console.log(`⏱️ API call completed in ${duration}ms`);
                     console.log('📊 Response status:', response.status, response.statusText);
                     
+                    // If we get a 202, BGG is preparing the data - wait and retry
+                    if (response.status === 202 && attempt < maxRetries) {
+                        console.log('📅 BGG returned 202 (Accepted) - data being prepared, will retry');
+                        responseInfo.innerHTML = `
+                            <div class="loading">
+                                🔄 BGG is preparing data... (Attempt ${attempt}/${maxRetries})<br>
+                                Status: 202 Accepted - Retrying in ${attempt * 2} seconds
+                            </div>
+                        `;
+                        
+                        // Wait before retrying (exponential backoff: 2s, 4s, 6s, 8s)
+                        await new Promise(resolve => setTimeout(resolve, attempt * 2000));
+                        attempt++;
+                        continue;
+                    }
+                    
+                    // Success or final attempt - process the response
                     responseInfo.innerHTML = `
                         <strong>Status:</strong> ${response.status} ${response.statusText}<br>
                         <strong>Response Time:</strong> ${duration}ms<br>
-                        <strong>Content-Type:</strong> ${response.headers.get('content-type') || 'Unknown'}
+                        <strong>Content-Type:</strong> ${response.headers.get('content-type') || 'Unknown'}<br>
+                        <strong>Attempts:</strong> ${attempt}/${maxRetries}
                     `;
                     
-                    return response.text();
-                })
-                .then(text => {
+                    const text = await response.text();
                     console.log('📏 Response size:', text.length, 'characters');
                     
                     currentResponse = text;
@@ -1227,13 +1466,40 @@
                         viewFullBtn.style.display = 'block';
                     }
                     
-                    console.log('✅ Response displayed successfully');
-                })
-                .catch(error => {
-                    console.log('❌ API call failed:', error.message);
-                    responseInfo.innerHTML = `<div class="error">Error: ${error.message}</div>`;
-                    responseContent.textContent = '';
-                });
+                    // Generate dynamic cards based on response
+                    generateDynamicCards(text, currentApiCall);
+                    
+                    if (response.status === 202) {
+                        console.log('⚠️ Final attempt still returned 202 - BGG data may not be ready yet');
+                        responseInfo.innerHTML += '<br><div style="color: orange;">⚠️ BGG returned 202 after all retries - data may not be fully prepared</div>';
+                    } else {
+                        console.log('✅ Response displayed successfully');
+                    }
+                    
+                    return; // Success - exit the retry loop
+                    
+                } catch (error) {
+                    console.log(`❌ Attempt ${attempt} failed:`, error.message);
+                    lastError = error;
+                    
+                    if (attempt < maxRetries) {
+                        responseInfo.innerHTML = `
+                            <div class="loading">
+                                ❌ Attempt ${attempt} failed: ${error.message}<br>
+                                Retrying in ${attempt * 2} seconds...
+                            </div>
+                        `;
+                        await new Promise(resolve => setTimeout(resolve, attempt * 2000));
+                        attempt++;
+                    } else {
+                        // All retries failed
+                        console.log('❌ All retry attempts failed');
+                        responseInfo.innerHTML = `<div class="error">❌ Failed after ${maxRetries} attempts<br>Last error: ${error.message}</div>`;
+                        responseContent.textContent = '';
+                        return;
+                    }
+                }
+            }
         }
 
         function copyCurrentUrl() {
@@ -1242,9 +1508,10 @@
                 return;
             }
             
+            const btn = document.getElementById('copyBtn') || event.target;
+            const originalText = btn.textContent;
+            
             navigator.clipboard.writeText(currentApiCall.url).then(() => {
-                const btn = event.target;
-                const originalText = btn.textContent;
                 btn.textContent = '✅ Copied!';
                 btn.style.background = '#4caf50';
                 setTimeout(() => {
@@ -1254,7 +1521,26 @@
                 console.log('📋 URL copied to clipboard');
             }).catch(error => {
                 console.log('❌ Copy failed:', error);
-                alert('Failed to copy URL');
+                // Fallback for older browsers or HTTPS issues
+                try {
+                    const textArea = document.createElement('textarea');
+                    textArea.value = currentApiCall.url;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    
+                    btn.textContent = '✅ Copied!';
+                    btn.style.background = '#4caf50';
+                    setTimeout(() => {
+                        btn.textContent = originalText;
+                        btn.style.background = '';
+                    }, 2000);
+                    console.log('📋 URL copied using fallback method');
+                } catch (fallbackError) {
+                    console.log('❌ Fallback copy also failed:', fallbackError);
+                    alert('Copy failed. URL: ' + currentApiCall.url);
+                }
             });
         }
 
@@ -1265,8 +1551,41 @@
             
             document.getElementById('currentApiSection').style.display = 'none';
             document.getElementById('responseSection').style.display = 'none';
+            document.getElementById('cardsSection').style.display = 'none';
+            
+            // Hide fullscreen button
+            const fullscreenBtn = document.getElementById('fullscreenCardsBtn');
+            if (fullscreenBtn) {
+                fullscreenBtn.style.display = 'none';
+            }
             
             console.log('🗑️ API call cleared');
+        }
+
+        // Fullscreen Cards Functions
+        function openCardsFullscreen() {
+            console.log('🔍 Opening cards in fullscreen');
+            openModal('cardsFullscreen');
+        }
+
+        function initializeCardsFullscreenModal() {
+            console.log('🎴 Initializing fullscreen cards modal');
+            
+            const fullscreenInfo = document.getElementById('fullscreenCardsInfo');
+            const fullscreenContainer = document.getElementById('fullscreenCardsContainer');
+            const originalInfo = document.getElementById('cardsInfo');
+            const originalContainer = document.getElementById('cardsContainer');
+            
+            // Copy content from original cards section
+            if (originalInfo && originalContainer) {
+                fullscreenInfo.innerHTML = originalInfo.innerHTML;
+                fullscreenContainer.innerHTML = originalContainer.innerHTML;
+                console.log('✅ Cards content copied to fullscreen modal');
+            } else {
+                fullscreenInfo.innerHTML = 'No cards data available';
+                fullscreenContainer.innerHTML = '';
+                console.log('❌ No cards data to display in fullscreen');
+            }
         }
 
         // Initialize API Reference
@@ -1395,6 +1714,374 @@
             console.log('🎲 BGG API Helper initialized');
             updateCurrentApiDisplay();
         });
+
+        // Dynamic Cards Generation
+        function generateDynamicCards(xmlText, apiCall) {
+            console.log('🎴 Generating dynamic cards for API response');
+            
+            const cardsSection = document.getElementById('cardsSection');
+            const cardsInfo = document.getElementById('cardsInfo');
+            const cardsContainer = document.getElementById('cardsContainer');
+            
+            try {
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+                
+                // Check for XML parsing errors
+                const parseError = xmlDoc.querySelector('parsererror');
+                if (parseError) {
+                    console.log('❌ XML parsing error:', parseError.textContent);
+                    cardsSection.style.display = 'none';
+                    return;
+                }
+                
+                // Determine endpoint type and generate appropriate cards
+                let cards = [];
+                let cardType = 'unknown';
+                
+                if (apiCall.endpoint.key === 'thing' || xmlDoc.querySelector('items')) {
+                    cards = generateThingCards(xmlDoc);
+                    cardType = 'games';
+                } else if (apiCall.endpoint.key === 'collection' || xmlDoc.querySelector('items item[objecttype]')) {
+                    cards = generateCollectionCards(xmlDoc);
+                    cardType = 'collection';
+                } else if (apiCall.endpoint.key === 'search' || xmlDoc.querySelector('items item[type]')) {
+                    cards = generateSearchCards(xmlDoc);
+                    cardType = 'search';
+                } else if (apiCall.endpoint.key === 'hot' || xmlDoc.querySelector('items item[rank]')) {
+                    cards = generateHotCards(xmlDoc);
+                    cardType = 'hot';
+                } else if (apiCall.endpoint.key === 'user' || xmlDoc.querySelector('user')) {
+                    cards = generateUserCards(xmlDoc);
+                    cardType = 'user';
+                } else if (apiCall.endpoint.key === 'plays' || xmlDoc.querySelector('plays')) {
+                    cards = generatePlaysCards(xmlDoc);
+                    cardType = 'plays';
+                } else if (apiCall.endpoint.key === 'geeklist' || xmlDoc.querySelector('geeklist')) {
+                    cards = generateGeeklistCards(xmlDoc);
+                    cardType = 'geeklist';
+                }
+                
+                if (cards.length > 0) {
+                    cardsInfo.innerHTML = `📊 Found ${cards.length} ${cardType} items`;
+                    cardsContainer.innerHTML = cards.join('');
+                    cardsSection.style.display = 'block';
+                    
+                    // Show fullscreen button
+                    const fullscreenBtn = document.getElementById('fullscreenCardsBtn');
+                    if (fullscreenBtn) {
+                        fullscreenBtn.style.display = 'inline-block';
+                    }
+                    
+                    console.log(`✅ Generated ${cards.length} ${cardType} cards`);
+                } else {
+                    console.log('❌ No cards generated - unsupported data format');
+                    cardsSection.style.display = 'none';
+                }
+                
+            } catch (error) {
+                console.log('❌ Error generating cards:', error);
+                cardsSection.style.display = 'none';
+            }
+        }
+
+        function generateThingCards(xmlDoc) {
+            const items = xmlDoc.querySelectorAll('item');
+            const cards = [];
+            
+            items.forEach(item => {
+                const id = item.getAttribute('id');
+                const type = item.getAttribute('type') || 'boardgame';
+                const name = item.querySelector('name[type="primary"]')?.getAttribute('value') || 
+                           item.querySelector('name')?.getAttribute('value') || 'Unknown';
+                const image = item.querySelector('image')?.textContent || '';
+                const thumbnail = item.querySelector('thumbnail')?.textContent || image;
+                const yearPublished = item.querySelector('yearpublished')?.getAttribute('value') || '';
+                const description = item.querySelector('description')?.textContent || '';
+                
+                // Stats
+                const stats = item.querySelector('statistics ratings');
+                const rating = stats?.querySelector('average')?.getAttribute('value') || '';
+                const bayesAverage = stats?.querySelector('bayesaverage')?.getAttribute('value') || '';
+                const rank = stats?.querySelector('rank[name="boardgame"]')?.getAttribute('value') || '';
+                const numPlayers = item.querySelector('minplayers')?.getAttribute('value') + 
+                                 (item.querySelector('maxplayers')?.getAttribute('value') ? 
+                                  '-' + item.querySelector('maxplayers')?.getAttribute('value') : '') || '';
+                
+                cards.push(`
+                    <div class="result-card">
+                        <div class="card-header">
+                            ${thumbnail ? `<img src="${thumbnail}" alt="${name}" class="card-thumbnail" loading="lazy">` : '<div class="card-thumbnail" style="background: #e0e0e0; display: flex; align-items: center; justify-content: center; color: #999; font-size: 0.7em;">No Image</div>'}
+                            <div class="card-main">
+                                <div class="card-title">${name}</div>
+                                <div class="card-subtitle">${type.charAt(0).toUpperCase() + type.slice(1)} ${yearPublished ? `(${yearPublished})` : ''}</div>
+                            </div>
+                        </div>
+                        ${rating || rank || numPlayers ? `
+                            <div class="card-stats">
+                                ${rating ? `<div class="stat-item"><span class="stat-label">Rating</span><span class="stat-value">${parseFloat(rating).toFixed(1)}</span></div>` : ''}
+                                ${rank && rank !== 'Not Ranked' ? `<div class="stat-item"><span class="stat-label">BGG Rank</span><span class="stat-value">#${rank}</span></div>` : ''}
+                                ${numPlayers ? `<div class="stat-item"><span class="stat-label">Players</span><span class="stat-value">${numPlayers}</span></div>` : ''}
+                                ${bayesAverage ? `<div class="stat-item"><span class="stat-label">Bayes Avg</span><span class="stat-value">${parseFloat(bayesAverage).toFixed(1)}</span></div>` : ''}
+                            </div>
+                        ` : ''}
+                        ${description ? `<div class="card-details">${description.substring(0, 150)}${description.length > 150 ? '...' : ''}</div>` : ''}
+                        <div class="card-actions">
+                            <a href="https://boardgamegeek.com/${type}/${id}" target="_blank" class="card-btn">🔗 View on BGG</a>
+                            ${image ? `<a href="${image}" target="_blank" class="card-btn secondary">🖼️ Full Image</a>` : ''}
+                        </div>
+                    </div>
+                `);
+            });
+            
+            return cards;
+        }
+
+        function generateCollectionCards(xmlDoc) {
+            const items = xmlDoc.querySelectorAll('item');
+            const cards = [];
+            
+            items.forEach(item => {
+                const objectid = item.getAttribute('objectid');
+                const objecttype = item.getAttribute('objecttype') || 'boardgame';
+                const name = item.querySelector('name')?.textContent || 'Unknown';
+                const image = item.querySelector('image')?.textContent || '';
+                const thumbnail = item.querySelector('thumbnail')?.textContent || image;
+                const yearPublished = item.querySelector('yearpublished')?.textContent || '';
+                
+                // Collection specific data
+                const owned = item.querySelector('status')?.getAttribute('own') === '1';
+                const played = item.querySelector('status')?.getAttribute('played') === '1';
+                const rating = item.querySelector('stats rating')?.getAttribute('value') || '';
+                const numPlays = item.querySelector('numplays')?.textContent || '0';
+                
+                const statusTags = [];
+                if (owned) statusTags.push('👍 Owned');
+                if (played) statusTags.push('🎯 Played');
+                if (item.querySelector('status')?.getAttribute('fortrade') === '1') statusTags.push('💱 For Trade');
+                if (item.querySelector('status')?.getAttribute('want') === '1') statusTags.push('💝 Want');
+                
+                cards.push(`
+                    <div class="result-card">
+                        <div class="card-header">
+                            ${thumbnail ? `<img src="${thumbnail}" alt="${name}" class="card-thumbnail" loading="lazy">` : '<div class="card-thumbnail" style="background: #e0e0e0; display: flex; align-items: center; justify-content: center; color: #999; font-size: 0.7em;">No Image</div>'}
+                            <div class="card-main">
+                                <div class="card-title">${name}</div>
+                                <div class="card-subtitle">${objecttype.charAt(0).toUpperCase() + objecttype.slice(1)} ${yearPublished ? `(${yearPublished})` : ''}</div>
+                            </div>
+                        </div>
+                        ${rating || numPlays ? `
+                            <div class="card-stats">
+                                ${rating ? `<div class="stat-item"><span class="stat-label">My Rating</span><span class="stat-value">${rating}</span></div>` : ''}
+                                <div class="stat-item"><span class="stat-label">Plays</span><span class="stat-value">${numPlays}</span></div>
+                            </div>
+                        ` : ''}
+                        ${statusTags.length ? `<div class="card-details">${statusTags.join(' • ')}</div>` : ''}
+                        <div class="card-actions">
+                            <a href="https://boardgamegeek.com/${objecttype}/${objectid}" target="_blank" class="card-btn">🔗 View Game</a>
+                        </div>
+                    </div>
+                `);
+            });
+            
+            return cards;
+        }
+
+        function generateSearchCards(xmlDoc) {
+            const items = xmlDoc.querySelectorAll('item');
+            const cards = [];
+            
+            items.forEach(item => {
+                const id = item.getAttribute('id');
+                const type = item.getAttribute('type') || 'boardgame';
+                const name = item.querySelector('name')?.getAttribute('value') || 'Unknown';
+                const yearPublished = item.querySelector('yearpublished')?.getAttribute('value') || '';
+                
+                cards.push(`
+                    <div class="result-card">
+                        <div class="card-header">
+                            <div class="card-thumbnail" style="background: #e3f2fd; display: flex; align-items: center; justify-content: center; color: #1976d2; font-size: 1.2em;">🔍</div>
+                            <div class="card-main">
+                                <div class="card-title">${name}</div>
+                                <div class="card-subtitle">${type.charAt(0).toUpperCase() + type.slice(1)} ${yearPublished ? `(${yearPublished})` : ''}</div>
+                            </div>
+                        </div>
+                        <div class="card-actions">
+                            <a href="https://boardgamegeek.com/${type}/${id}" target="_blank" class="card-btn">🔗 View on BGG</a>
+                            <button onclick="loadGameDetails('${id}')" class="card-btn secondary">📄 Get Details</button>
+                        </div>
+                    </div>
+                `);
+            });
+            
+            return cards;
+        }
+
+        function generateHotCards(xmlDoc) {
+            const items = xmlDoc.querySelectorAll('item');
+            const cards = [];
+            
+            items.forEach(item => {
+                const id = item.getAttribute('id');
+                const rank = item.getAttribute('rank');
+                const name = item.querySelector('name')?.getAttribute('value') || 'Unknown';
+                const thumbnail = item.querySelector('thumbnail')?.getAttribute('value') || '';
+                const yearPublished = item.querySelector('yearpublished')?.getAttribute('value') || '';
+                
+                cards.push(`
+                    <div class="result-card">
+                        <div class="card-header">
+                            ${thumbnail ? `<img src="${thumbnail}" alt="${name}" class="card-thumbnail" loading="lazy">` : '<div class="card-thumbnail" style="background: #ff5722; display: flex; align-items: center; justify-content: center; color: white; font-size: 1em;">🔥</div>'}
+                            <div class="card-main">
+                                <div class="card-title">#${rank} ${name}</div>
+                                <div class="card-subtitle">Hot Item ${yearPublished ? `(${yearPublished})` : ''}</div>
+                            </div>
+                        </div>
+                        <div class="card-actions">
+                            <a href="https://boardgamegeek.com/boardgame/${id}" target="_blank" class="card-btn">🔗 View on BGG</a>
+                            <button onclick="loadGameDetails('${id}')" class="card-btn secondary">📄 Get Details</button>
+                        </div>
+                    </div>
+                `);
+            });
+            
+            return cards;
+        }
+
+        function generateUserCards(xmlDoc) {
+            const user = xmlDoc.querySelector('user');
+            if (!user) return [];
+            
+            const id = user.getAttribute('id');
+            const name = user.getAttribute('name');
+            const firstname = user.querySelector('firstname')?.getAttribute('value') || '';
+            const lastname = user.querySelector('lastname')?.getAttribute('value') || '';
+            const avatarlink = user.querySelector('avatarlink')?.getAttribute('value') || '';
+            const country = user.querySelector('country')?.getAttribute('value') || '';
+            const state = user.querySelector('state')?.getAttribute('value') || '';
+            
+            const cards = [`
+                <div class="result-card">
+                    <div class="card-header">
+                        ${avatarlink ? `<img src="${avatarlink}" alt="${name}" class="card-thumbnail" loading="lazy">` : '<div class="card-thumbnail" style="background: #4caf50; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.2em;">👤</div>'}
+                        <div class="card-main">
+                            <div class="card-title">${name} (ID: ${id})</div>
+                            <div class="card-subtitle">${firstname} ${lastname}</div>
+                        </div>
+                    </div>
+                    ${country || state ? `<div class="card-details">📍 ${state ? state + ', ' : ''}${country}</div>` : ''}
+                    <div class="card-actions">
+                        <a href="https://boardgamegeek.com/user/${name}" target="_blank" class="card-btn">👤 View Profile</a>
+                        <button onclick="loadUserCollection('${name}')" class="card-btn secondary">📦 View Collection</button>
+                    </div>
+                </div>
+            `];
+            
+            return cards;
+        }
+
+        function generatePlaysCards(xmlDoc) {
+            const plays = xmlDoc.querySelectorAll('play');
+            const cards = [];
+            
+            plays.forEach(play => {
+                const id = play.getAttribute('id');
+                const date = play.getAttribute('date');
+                const quantity = play.getAttribute('quantity') || '1';
+                const length = play.getAttribute('length') || '';
+                const location = play.getAttribute('location') || '';
+                
+                const item = play.querySelector('item');
+                const gameName = item?.getAttribute('name') || 'Unknown Game';
+                const gameId = item?.getAttribute('objectid') || '';
+                
+                const players = play.querySelectorAll('players player');
+                const playerCount = players.length;
+                
+                cards.push(`
+                    <div class="result-card">
+                        <div class="card-header">
+                            <div class="card-thumbnail" style="background: #9c27b0; display: flex; align-items: center; justify-content: center; color: white; font-size: 1em;">🎲</div>
+                            <div class="card-main">
+                                <div class="card-title">${gameName}</div>
+                                <div class="card-subtitle">Played on ${date}</div>
+                            </div>
+                        </div>
+                        <div class="card-stats">
+                            <div class="stat-item"><span class="stat-label">Players</span><span class="stat-value">${playerCount || 'N/A'}</span></div>
+                            ${length ? `<div class="stat-item"><span class="stat-label">Duration</span><span class="stat-value">${length} min</span></div>` : ''}
+                            <div class="stat-item"><span class="stat-label">Plays</span><span class="stat-value">${quantity}</span></div>
+                            ${location ? `<div class="stat-item"><span class="stat-label">Location</span><span class="stat-value">${location}</span></div>` : ''}
+                        </div>
+                        <div class="card-actions">
+                            ${gameId ? `<a href="https://boardgamegeek.com/boardgame/${gameId}" target="_blank" class="card-btn">🔗 View Game</a>` : ''}
+                        </div>
+                    </div>
+                `);
+            });
+            
+            return cards;
+        }
+
+        function generateGeeklistCards(xmlDoc) {
+            const items = xmlDoc.querySelectorAll('item');
+            const cards = [];
+            
+            items.forEach(item => {
+                const id = item.getAttribute('id');
+                const objecttype = item.getAttribute('objecttype') || 'thing';
+                const objectid = item.getAttribute('objectid') || '';
+                const objectname = item.getAttribute('objectname') || 'Unknown';
+                const username = item.getAttribute('username') || '';
+                const postdate = item.getAttribute('postdate') || '';
+                const body = item.querySelector('body')?.textContent || '';
+                
+                cards.push(`
+                    <div class="result-card">
+                        <div class="card-header">
+                            <div class="card-thumbnail" style="background: #ff9800; display: flex; align-items: center; justify-content: center; color: white; font-size: 1em;">📋</div>
+                            <div class="card-main">
+                                <div class="card-title">${objectname}</div>
+                                <div class="card-subtitle">by ${username} • ${postdate}</div>
+                            </div>
+                        </div>
+                        ${body ? `<div class="card-details">${body.substring(0, 200)}${body.length > 200 ? '...' : ''}</div>` : ''}
+                        <div class="card-actions">
+                            ${objectid ? `<a href="https://boardgamegeek.com/${objecttype}/${objectid}" target="_blank" class="card-btn">🔗 View Item</a>` : ''}
+                        </div>
+                    </div>
+                `);
+            });
+            
+            return cards;
+        }
+
+        // Helper functions for card actions
+        function loadGameDetails(gameId) {
+            console.log('🎯 Loading details for game:', gameId);
+            
+            currentApiCall = {
+                url: `https://boardgamegeek.com/xmlapi2/thing?id=${gameId}&stats=1`,
+                endpoint: { name: 'Game Details', desc: 'Auto-generated from search result' },
+                params: { id: gameId, stats: '1' }
+            };
+            
+            updateCurrentApiDisplay();
+            executeApiCall();
+        }
+
+        function loadUserCollection(username) {
+            console.log('👤 Loading collection for user:', username);
+            
+            currentApiCall = {
+                url: `https://boardgamegeek.com/xmlapi2/collection?username=${username}&own=1&stats=1`,
+                endpoint: { name: 'User Collection', desc: 'Auto-generated from user result' },
+                params: { username: username, own: '1', stats: '1' }
+            };
+            
+            updateCurrentApiDisplay();
+            executeApiCall();
+        }
     </script>
 </body>
 </html>
