@@ -25,6 +25,7 @@
             <button id="statusFilterBtn" style="background:#1976d2; color:#fff; border:none; border-radius:8px; padding:0.5em 0.8em; font-size:0.9em; font-weight:600; cursor:pointer; min-height:36px; -webkit-appearance:none; appearance:none; flex:1;">🔍 Status</button>
             <button id="sellerFilterBtn" style="background:#1976d2; color:#fff; border:none; border-radius:8px; padding:0.5em 0.8em; font-size:0.9em; font-weight:600; cursor:pointer; min-height:36px; -webkit-appearance:none; appearance:none; flex:1;">👤 Seller</button>
             <button id="geeklistFilterBtn" style="background:#1976d2; color:#fff; border:none; border-radius:8px; padding:0.5em 0.8em; font-size:0.9em; font-weight:600; cursor:pointer; min-height:36px; -webkit-appearance:none; appearance:none; flex:1;">📋 Lists</button>
+            <button id="apiAccessBtn" style="background:#ff9800; color:#fff; border:none; border-radius:8px; padding:0.5em 0.8em; font-size:0.9em; font-weight:600; cursor:pointer; min-height:36px; -webkit-appearance:none; appearance:none; flex:1; display:none;">🔗 APIs</button>
             <select id="statusFilterSelect" style="font-size:1em; padding:0.6em 1em; border-radius:10px; border:1px solid #bbb; display:none; min-height:44px; -webkit-appearance:none; appearance:none;">
                 <option value="">All</option>
                 <option value="own">✅ Own</option>
@@ -50,6 +51,11 @@
                 <button id="applyGeeklistFilter" style="background:#8e24aa; color:#fff; border:none; border-radius:8px; padding:0.5em 1em; font-size:0.9em; cursor:pointer; font-weight:600;">Apply Filter</button>
             </div>
         </div>
+        <div id="apiAccessPanel" style="display:none; background:#fff5e6; border-radius:10px; padding:1em; margin-bottom:1em; border:2px solid #ff9800;">
+            <div style="font-weight:600; margin-bottom:0.7em; color:#ff9800;">🔗 API Access & URLs</div>
+            <div style="font-size:0.9em; margin-bottom:1em; color:#666;">Copy API calls and geeklist URLs for the loaded data:</div>
+            <div id="loadedGeeklistsContainer" style="display:grid; gap:0.8em;"></div>
+        </div>
         <!-- <div id="emojiDesc" style="background:#f7f7fa; border-radius:8px; padding:0.7em 1em; font-size:1em; color:#333; margin-bottom:1em;">
             <b>Status Emoji Legend:</b><br>
             ✅ Own &mdash; You own this game<br>
@@ -68,7 +74,15 @@
             </div>
         </div>
         <div id="gamesCardWrapper">
-            <div style="text-align:center; color:#888; font-size:1.1em;">Loading VFM Geeklists...</div>
+            <div id="geeklistSelector" style="background:#fff; border-radius:12px; padding:1.5em; margin-bottom:1em; box-shadow: 0 2px 12px #0001;">
+                <h3 style="margin-top:0; margin-bottom:1em; color:#1976d2;">Select Geeklists to Load</h3>
+                <div id="geeklistOptions" style="display:grid; gap:0.8em;"></div>
+                <div style="margin-top:1.5em; display:flex; gap:0.5em; flex-wrap:wrap; justify-content:center;">
+                    <button id="selectAllBtn" style="background:#43a047; color:#fff; border:none; border-radius:8px; padding:0.6em 1em; font-size:0.9em; cursor:pointer; font-weight:600;">Select All</button>
+                    <button id="deselectAllBtn" style="background:#ff4136; color:#fff; border:none; border-radius:8px; padding:0.6em 1em; font-size:0.9em; cursor:pointer; font-weight:600;">Deselect All</button>
+                    <button id="loadSelectedBtn" style="background:#1976d2; color:#fff; border:none; border-radius:8px; padding:0.6em 1.5em; font-size:1em; cursor:pointer; font-weight:600; min-height:44px;">Load Selected Geeklists</button>
+                </div>
+            </div>
         </div>
         <div id="loadMoreWrapper" style="text-align:center; margin:1em 0;"></div>
     </div>
@@ -243,6 +257,131 @@
     const loadMoreWrapper = document.getElementById('loadMoreWrapper');
     const filterInput = document.getElementById('filterInput');
 
+    // Initialize geeklist selector
+    function initializeGeeklistSelector() {
+        const geeklistOptions = document.getElementById('geeklistOptions');
+        geeklistOptions.innerHTML = '';
+        
+        geeklists.forEach(geeklist => {
+            const optionDiv = document.createElement('div');
+            optionDiv.style.display = 'flex';
+            optionDiv.style.alignItems = 'center';
+            optionDiv.style.gap = '0.8em';
+            optionDiv.style.padding = '0.8em';
+            optionDiv.style.background = '#f7f7fa';
+            optionDiv.style.borderRadius = '8px';
+            optionDiv.style.border = '1px solid #ddd';
+            
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = `selector-${geeklist.id}`;
+            checkbox.checked = true; // Start with all selected
+            checkbox.style.transform = 'scale(1.3)';
+            checkbox.style.marginRight = '0.3em';
+            
+            const label = document.createElement('label');
+            label.htmlFor = `selector-${geeklist.id}`;
+            label.textContent = geeklist.name;
+            label.style.fontSize = '1em';
+            label.style.cursor = 'pointer';
+            label.style.flex = '1';
+            label.style.fontWeight = '500';
+            
+            const actionsDiv = document.createElement('div');
+            actionsDiv.style.display = 'flex';
+            actionsDiv.style.gap = '0.4em';
+            actionsDiv.style.flexWrap = 'wrap';
+            
+            // Copy API call button
+            const copyBtn = document.createElement('button');
+            copyBtn.textContent = '🔑';
+            copyBtn.style.background = '#ff9800';
+            copyBtn.style.color = '#fff';
+            copyBtn.style.border = 'none';
+            copyBtn.style.borderRadius = '6px';
+            copyBtn.style.padding = '0.4em 0.6em';
+            copyBtn.style.fontSize = '0.8em';
+            copyBtn.style.cursor = 'pointer';
+            copyBtn.style.fontWeight = '500';
+            copyBtn.title = 'Copy API URL';
+            copyBtn.onclick = (e) => {
+                e.preventDefault();
+                const apiUrl = `https://boardgamegeek.com/xmlapi/geeklist/${geeklist.id}?comments=1`;
+                navigator.clipboard.writeText(apiUrl).then(() => {
+                    const originalText = copyBtn.textContent;
+                    copyBtn.textContent = '✅ Copied!';
+                    copyBtn.style.background = '#4caf50';
+                    setTimeout(() => {
+                        copyBtn.textContent = originalText;
+                        copyBtn.style.background = '#ff9800';
+                    }, 2000);
+                }).catch(() => {
+                    alert(`API URL: ${apiUrl}`);
+                });
+            };
+            
+            // View geeklist button
+            const viewBtn = document.createElement('button');
+            viewBtn.textContent = '🌐';
+            viewBtn.style.background = '#1976d2';
+            viewBtn.style.color = '#fff';
+            viewBtn.style.border = 'none';
+            viewBtn.style.borderRadius = '6px';
+            viewBtn.style.padding = '0.4em 0.6em';
+            viewBtn.style.fontSize = '0.8em';
+            viewBtn.style.cursor = 'pointer';
+            viewBtn.style.fontWeight = '500';
+            viewBtn.title = 'View Geeklist on BGG';
+            viewBtn.onclick = (e) => {
+                e.preventDefault();
+                window.open(`https://boardgamegeek.com/geeklist/${geeklist.id}`, '_blank');
+            };
+            
+            actionsDiv.appendChild(copyBtn);
+            actionsDiv.appendChild(viewBtn);
+            
+            optionDiv.appendChild(checkbox);
+            optionDiv.appendChild(label);
+            optionDiv.appendChild(actionsDiv);
+            geeklistOptions.appendChild(optionDiv);
+        });
+        
+        // Add event listeners for select/deselect all buttons
+        document.getElementById('selectAllBtn').onclick = () => {
+            geeklists.forEach(geeklist => {
+                const checkbox = document.getElementById(`selector-${geeklist.id}`);
+                if (checkbox) checkbox.checked = true;
+            });
+        };
+        
+        document.getElementById('deselectAllBtn').onclick = () => {
+            geeklists.forEach(geeklist => {
+                const checkbox = document.getElementById(`selector-${geeklist.id}`);
+                if (checkbox) checkbox.checked = false;
+            });
+        };
+        
+        // Load selected geeklists button
+        document.getElementById('loadSelectedBtn').onclick = () => {
+            const selectedIds = [];
+            geeklists.forEach(geeklist => {
+                const checkbox = document.getElementById(`selector-${geeklist.id}`);
+                if (checkbox && checkbox.checked) {
+                    selectedIds.push(geeklist.id);
+                }
+            });
+            
+            if (selectedIds.length === 0) {
+                alert('Please select at least one geeklist to load.');
+                return;
+            }
+            
+            // Hide selector and start loading
+            document.getElementById('geeklistSelector').style.display = 'none';
+            fetchSelectedGeeklists(selectedIds);
+        };
+    }
+
     // Gradient color functions for visual indicators
     function getRankGradientColor(rank) {
         if (!rank || rank === 'Not Ranked') return { bg: 'rgba(128,128,128,0.9)', text: 'white' }; // Gray for unranked
@@ -272,15 +411,18 @@
         return { bg: 'rgba(233,30,99,0.9)', text: 'white' }; // Default pink for older posts
     }
 
-    async function fetchAllGeeklists() {
+    async function fetchSelectedGeeklists(selectedIds) {
         // Fetch user's collection first
+        console.log('🎯 Starting collection fetch for user: sportomax');
         try {
             const resp = await fetch('https://boardgamegeek.com/xmlapi2/collection?username=sportomax');
             if (resp.ok) {
                 const xml = await resp.text();
+                console.log('✅ Collection XML received, length:', xml.length);
                 const parser = new window.DOMParser();
                 const doc = parser.parseFromString(xml, 'text/xml');
                 const items = Array.from(doc.querySelectorAll('item'));
+                console.log('📦 Collection items found:', items.length);
                 
                 // Extract all status information from the full collection
                 userCollection = new Set();
@@ -324,23 +466,39 @@
                 userWantInTrade = tempWantInTrade;
                 userPrevOwned = tempPrevOwned;
                 userTradingAway = tempTradingAway;
+                
+                console.log('📊 Collection status summary:');
+                console.log(`  - Own: ${userCollection.size} games`);
+                console.log(`  - Want to Play: ${tempWantToPlay.size} games`);
+                console.log(`  - Want to Buy: ${tempWantToBuy.size} games`);
+                console.log(`  - Want in Trade: ${tempWantInTrade.size} games`);
+                console.log(`  - Previously Owned: ${tempPrevOwned.size} games`);
+                console.log(`  - Trading Away: ${tempTradingAway.size} games`);
+            } else {
+                console.error('❌ Failed to fetch collection:', resp.status, resp.statusText);
             }
-        } catch {}
-        gamesCardWrapper.innerHTML = '<div style="text-align:center; color:#888; font-size:1.1em;" id="loadingStatus">Loading VFM Geeklists...</div>';
+        } catch (error) {
+            console.error('❌ Error fetching collection:', error);
+        }
+        
+        const gamesCardWrapper = document.getElementById('gamesCardWrapper');
+        gamesCardWrapper.innerHTML = '<div style="text-align:center; color:#888; font-size:1.1em;" id="loadingStatus">Loading Selected Geeklists...</div>';
         allItems = [];
         loadedCount = 0;
         loading = true;
         
         const loadingStatus = document.getElementById('loadingStatus');
+        const selectedGeeklistsToLoad = geeklists.filter(g => selectedIds.includes(g.id));
         
-        for (let g = 0; g < geeklists.length; g++) {
-            const geeklist = geeklists[g];
-            loadingStatus.innerHTML = `Loading ${geeklist.name}...`;
+        console.log(`Starting to fetch ${selectedGeeklistsToLoad.length} selected geeklists:`, selectedGeeklistsToLoad.map(g => g.name));
+        
+        for (let g = 0; g < selectedGeeklistsToLoad.length; g++) {
+            const geeklist = selectedGeeklistsToLoad[g];
+            loadingStatus.innerHTML = `Loading ${geeklist.name}... (${g + 1}/${selectedGeeklistsToLoad.length})`;
             console.log(`Fetching geeklist: ${geeklist.name} (ID: ${geeklist.id})`);
             
             let retryCount = 0;
-            // BGG Con VFM 25 needs more retries due to smaller volume but frequent issues
-            const maxRetries = geeklist.name.includes('BGG.CON VFM 2025') ? 5 : 3;
+            const maxRetries = 3; // Reduced from 5 to 3
             let success = false;
             
             while (retryCount < maxRetries && !success) {
@@ -349,7 +507,7 @@
                     console.log(`Response status for ${geeklist.name}:`, resp.status);
                     
                     if (resp.status === 202) {
-                        const waitTime = geeklist.name.includes('BGG.CON VFM 2025') ? 5000 : 3000; // Extra wait for BGG Con
+                        const waitTime = 3000; // Standard wait time
                         console.log(`BGG still processing ${geeklist.name}, waiting ${waitTime/1000} seconds... (attempt ${retryCount + 1}/${maxRetries})`);
                         loadingStatus.innerHTML = `${geeklist.name}: BGG processing, waiting... (${retryCount + 1}/${maxRetries})`;
                         retryCount++;
@@ -378,7 +536,7 @@
                         loadingStatus.innerHTML = `${geeklist.name}: Empty response, retrying... (${retryCount + 1}/${maxRetries})`;
                         retryCount++;
                         if (retryCount < maxRetries) {
-                            const retryWait = geeklist.name.includes('BGG.CON VFM 2025') ? 4000 : 2000;
+                            const retryWait = 2000;
                             await new Promise(resolve => setTimeout(resolve, retryWait));
                             continue;
                         } else {
@@ -398,7 +556,7 @@
                         loadingStatus.innerHTML = `${geeklist.name}: Parse error, retrying... (${retryCount + 1}/${maxRetries})`;
                         retryCount++;
                         if (retryCount < maxRetries) {
-                            const retryWait = geeklist.name.includes('BGG.CON VFM 2025') ? 4000 : 2000;
+                            const retryWait = 2000;
                             await new Promise(resolve => setTimeout(resolve, retryWait));
                             continue;
                         } else {
@@ -412,74 +570,78 @@
                     console.log(`Items found in ${geeklist.name}:`, items.length);
                     
                     for (let i = 0; i < items.length; i++) {
-                    const item = items[i];
+                        const item = items[i];
+                        
+                        // Extract comment data from the item
+                        const commentNodes = Array.from(item.querySelectorAll('comment'));
+                        const commentData = commentNodes.map(comment => ({
+                            username: comment.getAttribute('username') || '',
+                            date: comment.getAttribute('date') || '',
+                            content: comment.textContent.trim() || ''
+                        }));
+                        
+                        const username = item.getAttribute('username') || '';
+                        
+                        const itemData = {
+                            geeklistName: geeklist.name,
+                            geeklistId: geeklist.id,
+                            itemIndex: i + 1, // Add 1-based index from the geeklist
+                            name: item.getAttribute('objectname') || 'Unknown',
+                            objectType: item.getAttribute('objecttype') || '',
+                            objectId: item.getAttribute('objectid') || '',
+                            postdate: item.getAttribute('postdate') || '',
+                            comments: item.getAttribute('comments') || '',
+                            commentData: commentData, // Store actual comment data
+                            username: username,
+                            userDetails: null, // Will be populated later
+                            details: null,
+                            item
+                        };
+                        
+                        allItems.push(itemData);
+                        
+                        // Start fetching user details immediately for better performance
+                        if (username) {
+                            fetchUserDetails(username).then(userDetails => {
+                                itemData.userDetails = userDetails;
+                            });
+                        }
+                    }
                     
-                    // Extract comment data from the item
-                    const commentNodes = Array.from(item.querySelectorAll('comment'));
-                    const commentData = commentNodes.map(comment => ({
-                        username: comment.getAttribute('username') || '',
-                        date: comment.getAttribute('date') || '',
-                        content: comment.textContent.trim() || ''
-                    }));
+                    // Sort by postdate descending after adding new items
+                    allItems.sort((a, b) => {
+                        const da = new Date(a.postdate);
+                        const db = new Date(b.postdate);
+                        return db - da;
+                    });
                     
-                    const username = item.getAttribute('username') || '';
+                    // Render items progressively after each geeklist is loaded
+                    renderItems();
                     
-                    const itemData = {
-                        geeklistName: geeklist.name,
-                        geeklistId: geeklist.id,
-                        name: item.getAttribute('objectname') || 'Unknown',
-                        objectType: item.getAttribute('objecttype') || '',
-                        objectId: item.getAttribute('objectid') || '',
-                        postdate: item.getAttribute('postdate') || '',
-                        comments: item.getAttribute('comments') || '',
-                        commentData: commentData, // Store actual comment data
-                        username: username,
-                        userDetails: null, // Will be populated later
-                        details: null,
-                        item
-                    };
-                    
-                    allItems.push(itemData);
-                    
-                    // Start fetching user details immediately for better performance
-                    if (username) {
-                        fetchUserDetails(username).then(userDetails => {
-                            itemData.userDetails = userDetails;
-                        });
+                    success = true; // Mark as successful
+                } catch (e) {
+                    console.error(`Error fetching geeklist ${geeklist.name} (attempt ${retryCount + 1}):`, e);
+                    retryCount++;
+                    if (retryCount < maxRetries) {
+                        const retryWait = 2000;
+                        console.log(`Retrying ${geeklist.name} in ${retryWait/1000} seconds...`);
+                        await new Promise(resolve => setTimeout(resolve, retryWait));
+                    } else {
+                        console.error(`Failed to fetch ${geeklist.name} after ${maxRetries} attempts`);
                     }
                 }
-                
-                // Sort by postdate descending after adding new items
-                allItems.sort((a, b) => {
-                    const da = new Date(a.postdate);
-                    const db = new Date(b.postdate);
-                    return db - da;
-                });
-                
-                // Render items progressively after each geeklist is loaded
-                renderItems();
-                
-                success = true; // Mark as successful
-            } catch (e) {
-                console.error(`Error fetching geeklist ${geeklist.name} (attempt ${retryCount + 1}):`, e);
-                retryCount++;
-                if (retryCount < maxRetries) {
-                    const retryWait = geeklist.name.includes('BGG.CON VFM 2025') ? 4000 : 2000;
-                    console.log(`Retrying ${geeklist.name} in ${retryWait/1000} seconds...`);
-                    await new Promise(resolve => setTimeout(resolve, retryWait));
-                } else {
-                    console.error(`Failed to fetch ${geeklist.name} after ${maxRetries} attempts`);
-                }
-            }
             } // End retry loop
         }
         
-        console.log(`Total items loaded from all geeklists: ${allItems.length}`);
-        console.log('Items per geeklist:', geeklists.map(g => ({
+        console.log(`Total items loaded from selected geeklists: ${allItems.length}`);
+        console.log('Items per geeklist:', selectedGeeklistsToLoad.map(g => ({
             name: g.name,
             count: allItems.filter(item => item.geeklistId === g.id).length
         })));
         loading = false;
+        
+        // Update selectedGeeklists set for filtering
+        selectedGeeklists = new Set(selectedIds);
         
         // Initialize seller suggestions (but don't show them yet)
         updateSellerSuggestions();
@@ -489,6 +651,12 @@
         if (finalLoadingStatus) {
             finalLoadingStatus.remove();
         }
+        
+        // Populate the API access panel with loaded geeklists
+        populateApiAccessPanel(selectedGeeklistsToLoad);
+        
+        // Show the API access button now that data is loaded
+        document.getElementById('apiAccessBtn').style.display = 'block';
         
         renderItems();
     }
@@ -585,6 +753,115 @@
         });
         
         suggestionsDiv.style.display = 'block';
+    }
+
+    function populateApiAccessPanel(loadedGeeklists) {
+        const container = document.getElementById('loadedGeeklistsContainer');
+        container.innerHTML = '';
+        
+        loadedGeeklists.forEach(geeklist => {
+            const itemCount = allItems.filter(item => item.geeklistId === geeklist.id).length;
+            
+            const optionDiv = document.createElement('div');
+            optionDiv.style.display = 'flex';
+            optionDiv.style.alignItems = 'center';
+            optionDiv.style.gap = '0.8em';
+            optionDiv.style.padding = '0.8em';
+            optionDiv.style.background = '#fff';
+            optionDiv.style.borderRadius = '8px';
+            optionDiv.style.border = '1px solid #ddd';
+            optionDiv.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+            
+            const infoDiv = document.createElement('div');
+            infoDiv.style.flex = '1';
+            infoDiv.innerHTML = `
+                <div style="font-weight:600; color:#333; margin-bottom:0.2em;">${geeklist.name}</div>
+                <div style="font-size:0.85em; color:#666;">Loaded ${itemCount} items</div>
+            `;
+            
+            const actionsDiv = document.createElement('div');
+            actionsDiv.style.display = 'flex';
+            actionsDiv.style.gap = '0.4em';
+            actionsDiv.style.flexWrap = 'wrap';
+            
+            // Copy API call button
+            const copyApiBtn = document.createElement('button');
+            copyApiBtn.textContent = '🔑';
+            copyApiBtn.style.background = '#2196f3';
+            copyApiBtn.style.color = '#fff';
+            copyApiBtn.style.border = 'none';
+            copyApiBtn.style.borderRadius = '6px';
+            copyApiBtn.style.padding = '0.4em 0.6em';
+            copyApiBtn.style.fontSize = '0.8em';
+            copyApiBtn.style.cursor = 'pointer';
+            copyApiBtn.style.fontWeight = '500';
+            copyApiBtn.title = 'Copy API URL';
+            copyApiBtn.onclick = () => {
+                const apiUrl = `https://boardgamegeek.com/xmlapi/geeklist/${geeklist.id}?comments=1`;
+                navigator.clipboard.writeText(apiUrl).then(() => {
+                    const originalText = copyApiBtn.textContent;
+                    copyApiBtn.textContent = '✅ Copied!';
+                    copyApiBtn.style.background = '#4caf50';
+                    setTimeout(() => {
+                        copyApiBtn.textContent = originalText;
+                        copyApiBtn.style.background = '#2196f3';
+                    }, 2000);
+                }).catch(() => {
+                    prompt('Copy this API URL:', apiUrl);
+                });
+            };
+            
+            // Copy geeklist URL button
+            const copyUrlBtn = document.createElement('button');
+            copyUrlBtn.textContent = '🔗';
+            copyUrlBtn.style.background = '#ff9800';
+            copyUrlBtn.style.color = '#fff';
+            copyUrlBtn.style.border = 'none';
+            copyUrlBtn.style.borderRadius = '6px';
+            copyUrlBtn.style.padding = '0.4em 0.6em';
+            copyUrlBtn.style.fontSize = '0.8em';
+            copyUrlBtn.style.cursor = 'pointer';
+            copyUrlBtn.style.fontWeight = '500';
+            copyUrlBtn.title = 'Copy Geeklist URL';
+            copyUrlBtn.onclick = () => {
+                const geeklistUrl = `https://boardgamegeek.com/geeklist/${geeklist.id}`;
+                navigator.clipboard.writeText(geeklistUrl).then(() => {
+                    const originalText = copyUrlBtn.textContent;
+                    copyUrlBtn.textContent = '✅ Copied!';
+                    copyUrlBtn.style.background = '#4caf50';
+                    setTimeout(() => {
+                        copyUrlBtn.textContent = originalText;
+                        copyUrlBtn.style.background = '#ff9800';
+                    }, 2000);
+                }).catch(() => {
+                    prompt('Copy this Geeklist URL:', geeklistUrl);
+                });
+            };
+            
+            // View geeklist button
+            const viewBtn = document.createElement('button');
+            viewBtn.textContent = '🌐';
+            viewBtn.style.background = '#9c27b0';
+            viewBtn.style.color = '#fff';
+            viewBtn.style.border = 'none';
+            viewBtn.style.borderRadius = '6px';
+            viewBtn.style.padding = '0.4em 0.6em';
+            viewBtn.style.fontSize = '0.8em';
+            viewBtn.style.cursor = 'pointer';
+            viewBtn.style.fontWeight = '500';
+            viewBtn.title = 'View Geeklist on BGG';
+            viewBtn.onclick = () => {
+                window.open(`https://boardgamegeek.com/geeklist/${geeklist.id}`, '_blank');
+            };
+            
+            actionsDiv.appendChild(copyApiBtn);
+            actionsDiv.appendChild(copyUrlBtn);
+            actionsDiv.appendChild(viewBtn);
+            
+            optionDiv.appendChild(infoDiv);
+            optionDiv.appendChild(actionsDiv);
+            container.appendChild(optionDiv);
+        });
     }
 
     function renderItems(filter = '') {
@@ -793,7 +1070,7 @@
             const statusTitle = statusTitles.join(', ');
             
             // Calculate time since posting (only if within last 24 hours)
-            let timeIndicator = '';
+            let timeIndicatorText = '';
             if (item.postdate) {
                 const postDate = new Date(item.postdate);
                 const now = new Date();
@@ -804,10 +1081,10 @@
                     const timeColors = getTimeGradientColor(diffHours);
                     if (diffHours < 1) {
                         const diffMinutes = Math.floor(diffMs / (1000 * 60));
-                        timeIndicator = `<span style='position:absolute; bottom:8px; right:12px; background:${timeColors.bg}; color:${timeColors.text}; padding:0.2em 0.5em; border-radius:12px; font-size:0.75em; font-weight:600; z-index:2;'>${diffMinutes}m ago</span>`;
+                        timeIndicatorText = `<span style='background:${timeColors.bg}; color:${timeColors.text}; padding:0.2em 0.5em; border-radius:12px; font-size:0.75em; font-weight:600; margin-left:0.5em;'>${diffMinutes}m ago</span>`;
                     } else {
                         const hours = Math.floor(diffHours);
-                        timeIndicator = `<span style='position:absolute; bottom:8px; right:12px; background:${timeColors.bg}; color:${timeColors.text}; padding:0.2em 0.5em; border-radius:12px; font-size:0.75em; font-weight:600; z-index:2;'>${hours}h ago</span>`;
+                        timeIndicatorText = `<span style='background:${timeColors.bg}; color:${timeColors.text}; padding:0.2em 0.5em; border-radius:12px; font-size:0.75em; font-weight:600; margin-left:0.5em;'>${hours}h ago</span>`;
                     }
                 }
             }
@@ -827,21 +1104,22 @@
             html += `<div class='game-card' id='vfmcard-${idx}' data-object-id='${item.objectId}' style='border:${borderColor}; position:relative;'>
                 ${statusEmoji ? `<span style='position:absolute; top:8px; right:12px; font-size:1.4em; z-index:2; line-height:1; letter-spacing:-2px;' title='${statusTitle}'>${statusEmoji}</span>` : ''}
                 <span class='bgg-rank-indicator' style='position:absolute; top:8px; left:12px; ${rankStyle} padding:0.2em 0.5em; border-radius:8px; font-size:0.75em; font-weight:600; z-index:2; ${item.details?.bggRank ? 'display:block;' : 'display:none;'}'>${item.details?.bggRank ? `#${item.details.bggRank}` : ''}</span>
-                ${timeIndicator}
                 <img src='${item.details?.thumbnail || ''}' alt='${item.name} thumbnail' class='game-thumb' style='width:64px; height:64px; border-radius:10px; margin-right:1em; object-fit:cover; ${item.details?.thumbnail ? 'display:block;' : 'display:none;'}'>
                 <span class='bayes-avg-indicator' style='position:absolute; bottom:8px; left:12px; ${bayesStyle} padding:0.2em 0.5em; border-radius:8px; font-size:0.75em; font-weight:600; z-index:2; ${item.details?.bayesAverage ? 'display:block;' : 'display:none;'}'>${item.details?.bayesAverage || ''}</span>
                 <div class='game-info'>
                     <div class='game-title'>${item.name}</div>
-                    <div class='geeklist-label'>${item.geeklistName}</div>
+                    <div class='geeklist-label'>${item.geeklistName} - Item #${item.itemIndex}${timeIndicatorText}</div>
                     <div class='game-details'>
                         <b>Seller:</b> ${sellerDisplay}<br>
                         <b>Price:</b> ${price || 'N/A'}${priceType ? ` <span style='font-size:0.95em; color:#1976d2;'>(${priceType})</span>` : ''}${soldIndicator ? ` ${soldIndicator}` : ''}<br>
                         ${item.details?.year ? `<b>Year:</b> ${item.details.year}<br>` : ''}
                         <b>Post Date:</b> ${item.postdate ? new Date(item.postdate).toLocaleString() : 'N/A'}<br>
                         ${item.commentData && item.commentData.length > 0 ? `<b>Comments:</b> ${item.commentData.length} <button class='viewCommentsBtn' data-idx='${idx}' style='background:#ff9800; color:#fff; border:none; border-radius:6px; padding:0.2em 0.5em; font-size:0.8em; margin-left:0.3em; cursor:pointer;'>View</button><br>` : ''}
-                        ${item.objectId ? `<a href='https://boardgamegeek.com/boardgame/${item.objectId}' target='_blank' style='color:#1976d2;'>View on BGG</a>` : ''}<br>
-                        <a href='https://boardgamegeek.com/geeklist/${item.geeklistId}?itemid=${item.item.getAttribute('id')}' target='_blank' style='color:#1976d2;'>View Geeklisting</a><br>
-                        <button class='viewDetailBtn' data-idx='${idx}' style='margin-top:0.7em; background:#1976d2; color:#fff; font-size:1em; padding:0.5em 1.2em; border-radius:8px; border:none; width:100%; max-width:180px;'>View Details</button>
+                        <div style='margin-top:0.7em; display:flex; gap:0.5em; flex-wrap:wrap;'>
+                            ${item.objectId ? `<button onclick="window.open('https://boardgamegeek.com/boardgame/${item.objectId}', '_blank')" style='background:#fff; color:#000; border:2px solid #000; border-radius:6px; padding:0.5em 0.8em; font-size:0.9em; cursor:pointer; font-weight:500; flex:1; min-width:60px;'>BGG</button>` : ''}
+                            <button onclick="window.open('https://boardgamegeek.com/geeklist/${item.geeklistId}?itemid=${item.item.getAttribute('id')}', '_blank')" style='background:#fff; color:#000; border:2px solid #000; border-radius:6px; padding:0.5em 0.8em; font-size:0.9em; cursor:pointer; font-weight:500; flex:1; min-width:80px;'>GeekListing</button>
+                            <button class='viewDetailBtn' data-idx='${idx}' style='background:#fff; color:#000; border:2px solid #000; border-radius:6px; padding:0.5em 0.8em; font-size:0.9em; cursor:pointer; font-weight:500; flex:1; min-width:60px;'>Details</button>
+                        </div>
                     </div>
                 </div>
             </div>`;
@@ -867,9 +1145,12 @@
             loadMoreWrapper.innerHTML = '';
         }
         // Fetch thumbnails/details asynchronously and update cards
+        console.log(`Starting to fetch details for ${toShow.length} visible items`);
         toShow.forEach((item, idx) => {
             if (item.objectType === 'thing' && item.objectId && !item.details) {
+                console.log(`Fetching details for ${item.name} (ID: ${item.objectId})`);
                 fetchThingDetails(item.objectId).then(details => {
+                    console.log(`Got details for ${item.name}:`, details);
                     item.details = details;
                     // Find the card using the objectId data attribute for more reliable matching
                     const card = document.querySelector(`[data-object-id="${item.objectId}"]`);
@@ -914,12 +1195,15 @@
         });
         
         // Fetch user details asynchronously and update seller display
+        console.log(`Starting to fetch user details for ${toShow.length} visible items`);
         toShow.forEach((item, idx) => {
             if (item.username && !item.userDetails) {
+                console.log(`Fetching user details for ${item.username}`);
                 fetchUserDetails(item.username).then(userDetails => {
+                    console.log(`Got user details for ${item.username}:`, userDetails);
                     item.userDetails = userDetails;
-                    // Update the seller display in the card
-                    const card = document.querySelector(`#vfmcard-${idx}`);
+                    // Update the seller display in the card using a more reliable selector
+                    const card = document.querySelector(`[data-object-id="${item.objectId}"]`);
                     if (card && (userDetails.name || userDetails.location)) {
                         const gameDetails = card.querySelector('.game-details');
                         if (gameDetails) {
@@ -1154,7 +1438,20 @@
         renderItems(filterInput.value.trim());
     });
 
-    fetchAllGeeklists();
+    // Initialize the geeklist selector
+    initializeGeeklistSelector();
+    
+    // API access button logic
+    document.getElementById('apiAccessBtn').onclick = () => {
+        const isVisible = document.getElementById('apiAccessPanel').style.display !== 'none';
+        document.getElementById('apiAccessPanel').style.display = isVisible ? 'none' : 'block';
+        
+        // Hide other panels
+        document.getElementById('geeklistFilterPanel').style.display = 'none';
+        document.getElementById('statusFilterSelect').style.display = 'none';
+        document.getElementById('sellerFilterContainer').style.display = 'none';
+    };
+    
     // Analytics button logic
     document.getElementById('analyticsBtn').onclick = () => {
         // Prepare analytics data
