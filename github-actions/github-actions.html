@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🎲 BGG Collection — sportomax (Full Stats)</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f8f9fa;
+      margin: 0;
+      padding: 0.5rem;
+    }
+    h1 { text-align: center; margin-bottom: 0.5rem; }
+    button {
+      display: inline-block;
+      margin: 0.25rem;
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+      background: #007aff;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    #buttonContainer { text-align: center; margin-bottom: 0.5rem; }
+    #status { text-align: center; font-size: 0.9rem; margin-bottom: 0.5rem; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+      overflow-x: auto;
+      display: block;
+    }
+    th, td {
+      padding: 0.3rem;
+      border-bottom: 1px solid #ddd;
+      text-align: left;
+      white-space: nowrap;
+    }
+    th {
+      background: #007aff;
+      color: white;
+      position: sticky;
+      top: 0;
+    }
+    tr:nth-child(even) { background: #f2f2f2; }
+  </style>
+</head>
+<body>
+  <h1>🎲 BGG Collection — sportomax</h1>
+  <div id="buttonContainer">
+    <button id="fetchLiveBtn">Fetch Live</button>
+    <button id="loadStoredBtn">Load Stored</button>
+  </div>
+  <div id="status"></div>
+  <table id="collectionTable">
+    <thead></thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    const username = "sportomax";
+    const liveURL = `https://boardgamegeek.com/xmlapi2/collection?username=${username}&own=1&stats=1`;
+    const storedURL = "./collection.xml";
+    const statusDiv = document.getElementById("status");
+
+    const columns = [
+      "Object ID",
+      "Collection ID",
+      "Name",
+      "Year",
+      "Subtype",
+      "Own",
+      "Min Players",
+      "Max Players",
+      "Playing Time",
+      "Min Playtime",
+      "Max Playtime",
+      "Average Rating",
+      "Bayes Avg",
+      "Stddev",
+      "Num Ratings",
+      "Rank (Board Game)",
+      "Rank (Family)",
+      "User Rating",
+      "Weight",
+      "Last Modified"
+    ];
+
+    function updateStatus(msg, color = "#333") {
+      statusDiv.style.color = color;
+      statusDiv.textContent = msg;
+    }
+
+    async function fetchWithRetries(url, retries = [2000, 4000, 8000]) {
+      for (let i = 0; i <= retries.length; i++) {
+        try {
+          const res = await fetch(url);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const text = await res.text();
+          return text;
+        } catch (err) {
+          if (i < retries.length) {
+            updateStatus(`Fetch failed. Retrying in ${retries[i]/1000}s…`, "red");
+            await new Promise(r => setTimeout(r, retries[i]));
+          } else {
+            throw err;
+          }
+        }
+      }
+    }
+
+    function buildTableHeader() {
+      const thead = document.querySelector("#collectionTable thead");
+      thead.innerHTML = "";
+      const tr = document.createElement("tr");
+      columns.forEach(col => {
+        const th = document.createElement("th");
+        th.textContent = col;
+        tr.appendChild(th);
+      });
+      thead.appendChild(tr);
+    }
+
+    function parseAndDisplay(xmlText) {
+      const parser = new DOMParser();
+      const xml = parser.parseFromString(xmlText, "application/xml");
+      const items = xml.querySelectorAll("item");
+      const tbody = document.querySelector("#collectionTable tbody");
+      tbody.innerHTML = "";
+
+      items.forEach(item => {
+        const stats = item.querySelector("stats");
+        const ranks = stats?.querySelectorAll("rank");
+        let rankBoard = "";
+        let rankFamily = "";
+
+        ranks?.forEach(r => {
+          const type = r.getAttribute("friendlyname") || "";
+          if (type.includes("Board Game Rank")) rankBoard = r.getAttribute("value");
+          if (type.includes("Family Game Rank")) rankFamily = r.getAttribute("value");
+        });
+
+        const rowData = [
+          item.getAttribute("objectid") || "",
+          item.getAttribute("collid") || "",
+          item.querySelector("name")?.textContent || "",
+          item.querySelector("yearpublished")?.textContent || "",
+          item.getAttribute("subtype") || "",
+          item.querySelector("status")?.getAttribute("own") || "",
+          stats?.getAttribute("minplayers") || "",
+          stats?.getAttribute("maxplayers") || "",
+          stats?.getAttribute("playingtime") || "",
+          stats?.getAttribute("minplaytime") || "",
+          stats?.getAttribute("maxplaytime") || "",
+          stats?.querySelector("rating average")?.getAttribute("value") || "",
+          stats?.querySelector("rating bayesaverage")?.getAttribute("value") || "",
+          stats?.querySelector("rating stddev")?.getAttribute("value") || "",
+          stats?.querySelector("rating usersrated")?.getAttribute("value") || "",
+          rankBoard,
+          rankFamily,
+          stats?.querySelector("rating")?.getAttribute("value") || "",
+          stats?.querySelector("rating averageweight")?.getAttribute("value") || "",
+          item.querySelector("status")?.getAttribute("lastmodified") || ""
+        ];
+
+        const tr = document.createElement("tr");
+        rowData.forEach(val => {
+          const td = document.createElement("td");
+          td.textContent = val;
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+
+      updateStatus(`Loaded ${items.length} games ✅`, "green");
+    }
+
+    async function fetchLive() {
+      updateStatus("Fetching live data… ⏳");
+      try {
+        const xmlText = await fetchWithRetries(liveURL);
+        buildTableHeader();
+        parseAndDisplay(xmlText);
+      } catch (err) {
+        updateStatus("❌ Failed to fetch live data: " + err.message, "red");
+      }
+    }
+
+    async function loadStored() {
+      updateStatus("Loading stored data… ⏳");
+      try {
+        const xmlText = await fetchWithRetries(storedURL);
+        buildTableHeader();
+        parseAndDisplay(xmlText);
+      } catch (err) {
+        updateStatus("❌ Failed to load stored data: " + err.message, "red");
+      }
+    }
+
+    document.getElementById("fetchLiveBtn").addEventListener("click", fetchLive);
+    document.getElementById("loadStoredBtn").addEventListener("click", loadStored);
+  </script>
+</body>
+</html>
