@@ -66,26 +66,41 @@
     const statusDiv = document.getElementById("status");
 
     const columns = [
+      "Idx",
+      "api_date",
       "Object ID",
       "Collection ID",
       "Name",
       "Year",
       "Subtype",
+      "Image",
+      "Thumbnail",
       "Own",
+      "Prev Owned",
+      "For Trade",
+      "Want",
+      "Want to Play",
+      "Want to Buy",
+      "Wishlist",
+      "Wishlist Priority",
+      "Preordered",
       "Min Players",
       "Max Players",
       "Playing Time",
       "Min Playtime",
       "Max Playtime",
+      "Num Owned",
       "Average Rating",
       "Bayes Avg",
       "Stddev",
+      "Median",
       "Num Ratings",
       "Rank (Board Game)",
       "Rank (Family)",
       "User Rating",
       "Weight",
-      "Last Modified"
+      "Last Modified",
+      "Num Plays"
     ];
 
     function updateStatus(msg, color = "#333") {
@@ -130,9 +145,13 @@
       const tbody = document.querySelector("#collectionTable tbody");
       tbody.innerHTML = "";
 
-      items.forEach(item => {
+      // Get current date/time as api_date (ISO string, local time)
+      const apiDate = new Date().toLocaleString();
+
+      items.forEach((item, idx) => {
         const stats = item.querySelector("stats");
-        const ranks = stats?.querySelectorAll("rank");
+        const rating = stats?.querySelector("rating");
+        const ranks = rating?.querySelectorAll("rank");
         let rankBoard = "";
         let rankFamily = "";
 
@@ -142,33 +161,67 @@
           if (type.includes("Family Game Rank")) rankFamily = r.getAttribute("value");
         });
 
+        const status = item.querySelector("status");
+
         const rowData = [
+          (idx + 1).toString(),
+          apiDate,
           item.getAttribute("objectid") || "",
           item.getAttribute("collid") || "",
           item.querySelector("name")?.textContent || "",
           item.querySelector("yearpublished")?.textContent || "",
           item.getAttribute("subtype") || "",
-          item.querySelector("status")?.getAttribute("own") || "",
+          item.querySelector("image")?.textContent || "",
+          item.querySelector("thumbnail")?.textContent || "",
+          status?.getAttribute("own") || "",
+          status?.getAttribute("prevowned") || "",
+          status?.getAttribute("fortrade") || "",
+          status?.getAttribute("want") || "",
+          status?.getAttribute("wanttoplay") || "",
+          status?.getAttribute("wanttobuy") || "",
+          status?.getAttribute("wishlist") || "",
+          status?.getAttribute("wishlistpriority") || "",
+          status?.getAttribute("preordered") || "",
           stats?.getAttribute("minplayers") || "",
           stats?.getAttribute("maxplayers") || "",
           stats?.getAttribute("playingtime") || "",
           stats?.getAttribute("minplaytime") || "",
           stats?.getAttribute("maxplaytime") || "",
-          stats?.querySelector("rating average")?.getAttribute("value") || "",
-          stats?.querySelector("rating bayesaverage")?.getAttribute("value") || "",
-          stats?.querySelector("rating stddev")?.getAttribute("value") || "",
-          stats?.querySelector("rating usersrated")?.getAttribute("value") || "",
+          stats?.getAttribute("numowned") || "",
+          rating?.querySelector("average")?.getAttribute("value") || "",
+          rating?.querySelector("bayesaverage")?.getAttribute("value") || "",
+          rating?.querySelector("stddev")?.getAttribute("value") || "",
+          rating?.querySelector("median")?.getAttribute("value") || "",
+          rating?.querySelector("usersrated")?.getAttribute("value") || "",
           rankBoard,
           rankFamily,
-          stats?.querySelector("rating")?.getAttribute("value") || "",
-          stats?.querySelector("rating averageweight")?.getAttribute("value") || "",
-          item.querySelector("status")?.getAttribute("lastmodified") || ""
+          rating?.getAttribute("value") || "",
+          rating?.querySelector("averageweight")?.getAttribute("value") || "",
+          status?.getAttribute("lastmodified") || "",
+          item.querySelector("numplays")?.textContent || ""
         ];
 
         const tr = document.createElement("tr");
-        rowData.forEach(val => {
+        rowData.forEach((val, idx) => {
           const td = document.createElement("td");
-          td.textContent = val;
+          // Show image and thumbnail as images
+          if (columns[idx] === "Image" && val) {
+            const img = document.createElement("img");
+            img.src = val;
+            img.alt = "Image";
+            img.style.maxWidth = "60px";
+            img.style.maxHeight = "40px";
+            td.appendChild(img);
+          } else if (columns[idx] === "Thumbnail" && val) {
+            const img = document.createElement("img");
+            img.src = val;
+            img.alt = "Thumbnail";
+            img.style.maxWidth = "60px";
+            img.style.maxHeight = "40px";
+            td.appendChild(img);
+          } else {
+            td.textContent = val;
+          }
           tr.appendChild(td);
         });
         tbody.appendChild(tr);
