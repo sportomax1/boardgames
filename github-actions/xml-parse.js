@@ -1,5 +1,9 @@
 let lastHeaders = [];
 let lastRows = [];
+let isCardView = false;
+let cardFields = [];
+let lastMetrics = '';
+let outputDiv;
 function isImageUrl(url) {
     return /^https?:\/\/.*\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(url);
 }
@@ -90,8 +94,52 @@ function parseXML(text) {
     return { headers: Array.from(headers), rows: items };
 }
 
+function renderCardFieldSelect(headers, selected) {
+    let html = '<div style="margin-bottom:8px;"><strong>Select fields for cards:</strong><br>';
+    headers.forEach(h => {
+        let checked = selected.includes(h) ? 'checked' : '';
+        html += `<label><input type="checkbox" class="cardFieldChk" value="${h}" ${checked}> ${h}</label> `;
+    });
+    html += '</div>';
+    return html;
+}
+
+function renderCardList(rows, fields) {
+    let html = '';
+    rows.forEach((row, idx) => {
+        html += '<div class="card" style="border:1px solid #555; padding:8px; margin:8px 0; background:#333; color:#fff;">';
+        html += `<div><strong>Record ${idx+1}</strong></div>`;
+        fields.forEach(f => {
+            let val = row[f] ?? '';
+            if (typeof val === 'string' && isImageUrl(val.trim())) {
+                val = `<img src="${val.trim()}" alt="img" style="max-width:100px;" />`;
+            }
+            html += `<div><strong>${f}:</strong> ${val}</div>`;
+        });
+        html += '</div>';
+    });
+    return html;
+}
+
+function renderOutput() {
+    if (!lastHeaders.length || !lastRows.length) {
+        outputDiv.innerHTML = 'No data to display.';
+        return;
+    }
+    let content = '';
+    if (isCardView) {
+        // Default fields if not set
+        if (!cardFields.length) cardFields = lastHeaders.slice(0, 3);
+        content = renderCardFieldSelect(lastHeaders, cardFields);
+        content += '<div id="cardList" style="margin-top:12px;">' + renderCardList(lastRows, cardFields) + '</div>';
+    } else {
+        content = createTable(lastHeaders, lastRows);
+    }
+    outputDiv.innerHTML = lastMetrics + content;
+}
+
 document.addEventListener('DOMContentLoaded', function() {
-    const outputDiv = document.getElementById('output');
+    outputDiv = document.getElementById('output');
 
     function showLoading(msg, startTime) {
         const now = new Date();
@@ -133,8 +181,9 @@ document.addEventListener('DOMContentLoaded', function() {
             let recordCount = data.rows.length;
             lastHeaders = data.headers;
             lastRows = data.rows;
+            lastMetrics = `<div style='color:#4fc3f7;font-weight:bold;margin-bottom:8px;'>File loaded (Started: ${startDate.toLocaleTimeString()}, Ended: ${endDate.toLocaleTimeString()}, Total: ${duration} s, Parse: ${parseDuration} s, Render: ${renderDuration} s, Records: ${recordCount}</div>`;
             document.getElementById('cardViewBtn').style.display = recordCount ? '' : 'none';
-            outputDiv.innerHTML = `<div style='color:#4fc3f7;font-weight:bold;margin-bottom:8px;'>File loaded (Started: ${startDate.toLocaleTimeString()}, Ended: ${endDate.toLocaleTimeString()}, Total: ${duration} s, Parse: ${parseDuration} s, Render: ${renderDuration} s, Records: ${recordCount}</div>` + tableHtml;
+            renderOutput();
         };
         reader.readAsText(file);
     });
@@ -165,8 +214,9 @@ document.addEventListener('DOMContentLoaded', function() {
     let recordCount = data.rows.length;
     lastHeaders = data.headers;
     lastRows = data.rows;
+    lastMetrics = `<div style='color:#4fc3f7;font-weight:bold;margin-bottom:8px;'>Pasted text parsed (Started: ${startDate.toLocaleTimeString()}, Ended: ${endDate.toLocaleTimeString()}, Total: ${duration} s, Parse: ${parseDuration} s, Render: ${renderDuration} s, Records: ${recordCount}</div>`;
     document.getElementById('cardViewBtn').style.display = recordCount ? '' : 'none';
-    outputDiv.innerHTML = `<div style='color:#4fc3f7;font-weight:bold;margin-bottom:8px;'>Pasted text parsed (Started: ${startDate.toLocaleTimeString()}, Ended: ${endDate.toLocaleTimeString()}, Total: ${duration} s, Parse: ${parseDuration} s, Render: ${renderDuration} s, Records: ${recordCount}</div>` + tableHtml;
+    renderOutput();
     });
 
     document.getElementById('bggApiBtn').addEventListener('click', function() {
@@ -192,61 +242,28 @@ document.addEventListener('DOMContentLoaded', function() {
                 let recordCount = data.rows.length;
                 lastHeaders = data.headers;
                 lastRows = data.rows;
+                lastMetrics = `<div style='color:#4fc3f7;font-weight:bold;margin-bottom:8px;'>BGG API loaded (Started: ${startDate.toLocaleTimeString()}, Ended: ${endDate.toLocaleTimeString()}, Total: ${duration} s, Parse: ${parseDuration} s, Render: ${renderDuration} s, Records: ${recordCount}</div>`;
                 document.getElementById('cardViewBtn').style.display = recordCount ? '' : 'none';
-                outputDiv.innerHTML = `<div style='color:#4fc3f7;font-weight:bold;margin-bottom:8px;'>BGG API loaded (Started: ${startDate.toLocaleTimeString()}, Ended: ${endDate.toLocaleTimeString()}, Total: ${duration} s, Parse: ${parseDuration} s, Render: ${renderDuration} s, Records: ${recordCount}</div>` + tableHtml;
-// Card View Modal logic
-function renderCardFieldSelect(headers, selectedFields) {
-    return '<div style="margin-bottom:8px;">Choose fields to display:<br>' +
-        headers.map(h => `<label style='margin-right:8px;'><input type='checkbox' class='cardFieldChk' value='${h.replace(/'/g, "&#39;")}' ${selectedFields.includes(h) ? 'checked' : ''}/> ${h}</label>`).join('') +
-        '</div>';
-}
-
-function renderCardList(rows, fields) {
-    if (!fields.length) return '<div style="color:#f55;">No fields selected.</div>';
-    return rows.map((row, idx) => {
-        return `<div style="background:#26324a;margin-bottom:14px;padding:12px 10px;border-radius:8px;box-shadow:0 2px 8px #0004;max-width:370px;">
-            <div style='font-weight:bold;color:#4fc3f7;margin-bottom:4px;'>#${idx+1}</div>
-            ${fields.map(f => `<div style='margin-bottom:2px;'><span style='color:#aaa;'>${f}:</span> <span>${row[f] ?? ''}</span></div>`).join('')}
-        </div>`;
-    }).join('');
-}
-
-// Only run this card modal setup once
-window.addEventListener('DOMContentLoaded', function() {
-    const cardViewBtn = document.getElementById('cardViewBtn');
-    const cardModal = document.getElementById('cardModal');
-    const cardModalContent = document.getElementById('cardModalContent');
-    const cardFieldSelect = document.getElementById('cardFieldSelect');
-    const cardList = document.getElementById('cardList');
-    const closeCardModal = document.getElementById('closeCardModal');
-    let cardFields = [];
-
-    cardViewBtn.onclick = function() {
-        if (!lastHeaders.length || !lastRows.length) return;
-        // Default: show first 3 fields or all if less
-        if (!cardFields.length) cardFields = lastHeaders.slice(0, 3);
-        cardFieldSelect.innerHTML = renderCardFieldSelect(lastHeaders, cardFields);
-        cardList.innerHTML = renderCardList(lastRows, cardFields);
-        cardModal.style.display = 'flex';
-    };
-    closeCardModal.onclick = function() {
-        cardModal.style.display = 'none';
-    };
-    cardFieldSelect.addEventListener('change', function(e) {
-        if (e.target.classList.contains('cardFieldChk')) {
-            const checkboxes = cardFieldSelect.querySelectorAll('.cardFieldChk');
-            cardFields = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
-            cardList.innerHTML = renderCardList(lastRows, cardFields);
-        }
-    });
-    // Close modal on outside click
-    cardModal.addEventListener('click', function(e) {
-        if (e.target === cardModal) cardModal.style.display = 'none';
-    });
-});
+                renderOutput();
             })
             .catch(err => {
                 outputDiv.innerHTML = 'Error loading BGG API: ' + err;
             });
+    });
+
+    // Card view setup
+    const cardViewBtn = document.getElementById('cardViewBtn');
+    cardViewBtn.onclick = function() {
+        isCardView = !isCardView;
+        cardViewBtn.textContent = isCardView ? 'Table View' : 'Card View';
+        renderOutput();
+    };
+    // Handle field selection changes
+    outputDiv.addEventListener('change', function(e) {
+        if (e.target.classList.contains('cardFieldChk')) {
+            const checkboxes = outputDiv.querySelectorAll('.cardFieldChk');
+            cardFields = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
+            if (isCardView) renderOutput(); // Re-render cards
+        }
     });
 });
