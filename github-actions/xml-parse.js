@@ -211,8 +211,8 @@ function renderCardList(rows, fields) {
     }).join('');
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-    // ...existing code...
+// Only run this card modal setup once
+window.addEventListener('DOMContentLoaded', function() {
     const cardViewBtn = document.getElementById('cardViewBtn');
     const cardModal = document.getElementById('cardModal');
     const cardModalContent = document.getElementById('cardModalContent');
