@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>XML/CSV File Parser</title>
+    <link rel="stylesheet" href="xml-parse.css">
+</head>
+<body>
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h2 style="margin:0;">Upload or Paste XML/CSV File</h2>
+        <div style="display:flex;gap:8px;">
+            <a href="https://boardgamegeek.com/geekcollection.php?action=exportcsv&subtype=boardgame&username=Sportomax&all=1" target="_blank">
+                <button type="button" style="min-width:120px;">Export CSV (All)</button>
+            </a>
+            <a href="https://boardgamegeek.com/geekcollection.php?action=exportcsv&subtype=boardgame&username=Sportomax" target="_blank">
+                <button type="button" style="min-width:120px;">Export CSV (Owned)</button>
+            </a>
+        </div>
+    </div>
+    <input type="file" id="fileInput" accept=".xml,.csv" />
+    <div style="margin: 16px 0;">
+        <textarea id="textInput" rows="8" style="width: 100%;" placeholder="Paste XML or CSV text here..."></textarea><br>
+        <button id="parseTextBtn">Parse Text</button>
+        <button id="bggApiBtn">Collection API</button>
+    </div>
+    <div style="margin-bottom:8px;text-align:right;">
+        <button id="cardViewBtn" style="display:none;">Show Card View</button>
+    </div>
+    <div id="output"></div>
+    <div id="cardModal" style="display:none;position:fixed;z-index:1000;left:0;top:0;width:100vw;height:100vh;background:rgba(24,31,42,0.95);overflow:auto;align-items:center;justify-content:center;">
+        <div id="cardModalContent" style="background:#232b39;color:#fff;max-width:420px;width:96vw;margin:40px auto;padding:18px 10px 24px 10px;border-radius:10px;box-shadow:0 8px 32px #000a;position:relative;">
+            <button id="closeCardModal" style="position:absolute;top:8px;right:12px;font-size:1.5em;background:none;border:none;color:#fff;cursor:pointer;">&times;</button>
+            <h3 style="margin-top:0;">Card View</h3>
+            <div id="cardFieldSelect"></div>
+            <div id="cardList" style="margin-top:12px;"></div>
+        </div>
+    </div>
+
+    <script src="xml-parse.js"></script>
+</body>
+</html></html>
