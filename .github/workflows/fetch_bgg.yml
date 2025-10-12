@@ -3,7 +3,10 @@ name: Fetch BGG Collection
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 */6 * * *"   # every 6 hours
+    - cron: "0 */6 * * *"
+
+permissions:
+  contents: write   # 👈 this gives the bot permission to push commits
 
 jobs:
   fetch-bgg:
@@ -21,5 +24,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add collection.xml
-          git commit -m "Update BGG collection"
+          git commit -m "Update BGG collection" || echo "No changes to commit"
           git push
