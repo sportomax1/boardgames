@@ -21,20 +21,12 @@
         <a href="https://boardgamegeek.com/data_dumps/bg_ranks" target="_blank">
             <button type="button">BGG Ranks</button>
         </a>
-        <button id="cardViewBtn" style="display:none;">Show Card View</button>
+        <button id="cardViewBtn" style="display:none;">Card View</button>
     </div>
     <div id="pasteSection" style="margin: 16px 0; display:none;">
         <textarea id="textInput" rows="8" style="width: 100%;" placeholder="Paste XML or CSV text here..."></textarea>
     </div>
     <div id="output"></div>
-    <div id="cardModal" style="display:none;position:fixed;z-index:1000;left:0;top:0;width:100vw;height:100vh;background:rgba(24,31,42,0.95);overflow:auto;align-items:center;justify-content:center;">
-        <div id="cardModalContent" style="background:#232b39;color:#fff;max-width:420px;width:96vw;margin:40px auto;padding:18px 10px 24px 10px;border-radius:10px;box-shadow:0 8px 32px #000a;position:relative;">
-            <button id="closeCardModal" style="position:absolute;top:8px;right:12px;font-size:1.5em;background:none;border:none;color:#fff;cursor:pointer;">&times;</button>
-            <h3 style="margin-top:0;">Card View</h3>
-            <div id="cardFieldSelect"></div>
-            <div id="cardList" style="margin-top:12px;"></div>
-        </div>
-    </div>
 
     <script src="xml-parse.js"></script>
     <script>
