@@ -9,12 +9,15 @@ on:
 jobs:
   fetch-bgg-library:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          persist-credentials: true
         
       - name: Set up Node.js
         uses: actions/setup-node@v4
