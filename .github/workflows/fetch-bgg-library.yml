@@ -1,5 +1,13 @@
+name: Fetch BGG Library Data
 
-fetch-bgg-library:
+on:
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch: # Allows manual triggering
+
+jobs:
+  fetch-bgg-library:
     runs-on: ubuntu-latest
     
     steps:
