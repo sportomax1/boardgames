@@ -38,17 +38,19 @@ jobs:
           echo "Total items: $TOTAL_ITEMS"
           echo "Total pages: $TOTAL_PAGES"
           
-          # Fetch all pages and combine
-          ALL_GAMES="[]"
+          # Create temporary directory for page files
+          mkdir -p pages
+          
+          # Fetch all pages and save to individual files
           for ((page=1; page<=TOTAL_PAGES; page++)); do
             echo "Fetching page $page of $TOTAL_PAGES..."
-            PAGE_DATA=$(curl -s "${BASE_URL}?_page_number=${page}&_items_per_page=${ITEMS_PER_PAGE}")
-            PAGE_GAMES=$(echo "$PAGE_DATA" | jq -r '.result.items')
-            ALL_GAMES=$(echo "$ALL_GAMES" | jq --argjson new "$PAGE_GAMES" '. + $new')
+            curl -s "${BASE_URL}?_page_number=${page}&_items_per_page=${ITEMS_PER_PAGE}" | \
+              jq -r '.result.items' > "pages/page_${page}.json"
           done
           
-          # Save as JSON temporarily
-          echo "$ALL_GAMES" > bgg_data.json
+          # Combine all pages into one JSON array using jq slurp
+          jq -s 'add' pages/page_*.json > bgg_data.json
+          
           echo "Data fetched successfully!"
           
       - name: Convert JSON to XML
