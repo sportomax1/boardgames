@@ -140,6 +140,20 @@ jobs:
           console.log('XML file created successfully!');
           EOF
           
+      - name: Commit and push XML file
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add bggcon.xml
+          
+          # Only commit if there are changes
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Update BGG library data - $(date +'%Y-%m-%d %H:%M:%S')"
+            git push
+          fi
+          
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
