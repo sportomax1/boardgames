@@ -1,0 +1,28 @@
+name: Fetch BGG VFM Geeklist
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/30 * * * *"
+
+permissions:
+  contents: write
+
+jobs:
+  fetch-bgg:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Fetch BGG VFM geeklist XML
+        run: |
+          curl -L "https://boardgamegeek.com/xmlapi/geeklist/363504?comments=1" -o vfm25.xml
+
+      - name: Commit and push results
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add vfm25.xml
+          git commit -m "Update VFM geeklist" || echo "No changes to commit"
+          git push
