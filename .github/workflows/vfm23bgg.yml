@@ -22,7 +22,7 @@ jobs:
           
           while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
             echo "[$(date '+%Y-%m-%d %H:%M:%S')] Attempt $((RETRY_COUNT + 1)) of $MAX_RETRIES..."
-            curl -L "https://boardgamegeek.com/xmlapi/geeklist/321725?comments=1" -o vfm24bgg.xml
+            curl -L "https://boardgamegeek.com/xmlapi/geeklist/321725?comments=1" -o vfm23bgg.xml
             
             # Check if the response contains the "accepted and will be processed" message
             if grep -q "Your request for this geeklist has been accepted and will be processed" vfm25.xml; then
