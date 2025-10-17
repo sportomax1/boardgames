@@ -2,502 +2,381 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, viewport-fit=cover">
-    <title>Virtual Flea Market (VFM)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BGG Geeklist Viewer - Refactored</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap">
     <style>
-        body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; background: #f7f7fa; color: #222; }
-        .container { max-width: 430px; margin: 0 auto; padding: 2em 1em 1em 1em; box-sizing: border-box; min-height: 100vh; padding-bottom: env(safe-area-inset-bottom); }
-        h1 { font-size: 1.7em; margin-bottom: 1em; text-align: center; }
-        .game-card { background: #fff; border-radius: 12px; box-shadow: 0 2px 12px #0001; margin-bottom: 1em; padding: 1em 1.2em; display: flex; flex-direction: row; align-items: center; }
-        .game-thumb { width: 64px; height: 64px; border-radius: 10px; margin-right: 1em; object-fit: cover; flex-shrink: 0; }
-        .game-info { display: flex; flex-direction: column; flex: 1; }
-        .game-title { font-size: 1.1em; font-weight: 600; margin-bottom: 0.2em; }
-        .game-details { font-size: 0.98em; color: #555; }
-        .geeklist-label { font-size: 0.95em; color: #1976d2; margin-bottom: 0.2em; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f7f7; /* gray-50 */
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+        /* Card hover effect */
+        .card-shadow {
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .card-shadow:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+        /* Hide template by default */
+        template { display: none; }
     </style>
 </head>
-<body>
-    <div class="container">
-        <h1>Virtual Flea Market (VFM)</h1>
-        <div style="margin-bottom:1em; text-align:center; display:flex; flex-direction:row; justify-content:center; align-items:center; gap:0.5em; flex-wrap:wrap;">
-            <button id="analyticsBtn" style="background:#1976d2; color:#fff; border:none; border-radius:8px; padding:0.5em 0.8em; font-size:0.9em; font-weight:600; cursor:pointer; min-height:36px; -webkit-appearance:none; appearance:none; flex:1;">📊 Stats</button>
-            <button id="statusFilterBtn" style="background:#1976d2; color:#fff; border:none; border-radius:8px; padding:0.5em 0.8em; font-size:0.9em; font-weight:600; cursor:pointer; min-height:36px; -webkit-appearance:none; appearance:none; flex:1;">🔍 Status</button>
-            <button id="sellerFilterBtn" style="background:#1976d2; color:#fff; border:none; border-radius:8px; padding:0.5em 0.8em; font-size:0.9em; font-weight:600; cursor:pointer; min-height:36px; -webkit-appearance:none; appearance:none; flex:1;">👤 Seller</button>
-            <button id="geeklistFilterBtn" style="background:#1976d2; color:#fff; border:none; border-radius:8px; padding:0.5em 0.8em; font-size:0.9em; font-weight:600; cursor:pointer; min-height:36px; -webkit-appearance:none; appearance:none; flex:1;">📋 Lists</button>
-            <button id="apiAccessBtn" style="background:#ff9800; color:#fff; border:none; border-radius:8px; padding:0.5em 0.8em; font-size:0.9em; font-weight:600; cursor:pointer; min-height:36px; -webkit-appearance:none; appearance:none; flex:1; display:none;">🔗 APIs</button>
-            <select id="statusFilterSelect" style="font-size:1em; padding:0.6em 1em; border-radius:10px; border:1px solid #bbb; display:none; min-height:44px; -webkit-appearance:none; appearance:none;">
-                <option value="">All</option>
-                <option value="own">✅ Own</option>
-                <option value="wanttoplay">🎮 Want to Play</option>
-                <option value="wanttobuy">🛒 Want to Buy</option>
-                <option value="wantintrade">🔄 Want in Trade</option>
-                <option value="prevowned">⏪ Previously Owned</option>
-                <option value="tradingaway">📤 Trading Away</option>
-                <option value="sold">🔴 Sold Items</option>
-                <option value="available">🟢 Available Items</option>
-            </select>
-            <div id="sellerFilterContainer" style="display:none; position:relative; max-width:250px;">
-                <input id="sellerFilterInput" type="text" placeholder="Search sellers..." style="font-size:1em; padding:0.6em 1em; border-radius:10px; border:1px solid #bbb; width:100%; min-height:44px; -webkit-appearance:none; appearance:none; box-sizing:border-box;">
-                <div id="sellerSuggestions" style="position:absolute; top:100%; left:0; right:0; background:#fff; border:1px solid #bbb; border-top:none; border-radius:0 0 10px 10px; max-height:200px; overflow-y:auto; z-index:1000; display:none; box-shadow:0 4px 8px rgba(0,0,0,0.1);"></div>
-            </div>
+<body class="p-4 md:p-8">
+
+    <header class="mb-8 text-center">
+        <h1 class="text-4xl font-extrabold text-gray-800 tracking-tight">BGG Geeklist Viewer</h1>
+        <p class="text-lg text-gray-600 mt-2">
+            Items from Geeklist: <a href="https://boardgamegeek.com/geeklist/299817" target="_blank" class="text-blue-600 hover:text-blue-800 font-medium">299817</a>
+        </p>
+    </header>
+
+    <div id="status-container" class="text-center p-6 bg-blue-100 border border-blue-300 text-blue-800 rounded-xl mb-8" role="alert" aria-live="polite">
+        <svg class="animate-spin h-5 w-5 mr-3 inline" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <span id="status-text">Initializing...</span>
+    </div>
+
+    <div id="cards-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         </div>
-        <div id="geeklistFilterPanel" style="display:none; background:#f7f7fa; border-radius:10px; padding:1em; margin-bottom:1em; border:2px solid #8e24aa;">
-            <div style="font-weight:600; margin-bottom:0.7em; color:#8e24aa;">Select Geeklists to Include:</div>
-            <div id="geeklistCheckboxes" style="display:grid; grid-template-columns:1fr; gap:0.5em;"></div>
-            <div style="margin-top:1em; display:flex; gap:0.5em; justify-content:center;">
-                <button id="selectAllGeeklists" style="background:#43a047; color:#fff; border:none; border-radius:8px; padding:0.5em 1em; font-size:0.9em; cursor:pointer;">Select All</button>
-                <button id="deselectAllGeeklists" style="background:#ff4136; color:#fff; border:none; border-radius:8px; padding:0.5em 1em; font-size:0.9em; cursor:pointer;">Deselect All</button>
-                <button id="applyGeeklistFilter" style="background:#8e24aa; color:#fff; border:none; border-radius:8px; padding:0.5em 1em; font-size:0.9em; cursor:pointer; font-weight:600;">Apply Filter</button>
-            </div>
-        </div>
-        <div id="apiAccessPanel" style="display:none; background:#fff5e6; border-radius:10px; padding:1em; margin-bottom:1em; border:2px solid #ff9800;">
-            <div style="font-weight:600; margin-bottom:0.7em; color:#ff9800;">🔗 API Access & URLs</div>
-            <div style="font-size:0.9em; margin-bottom:1em; color:#666;">Copy API calls and geeklist URLs for the loaded data:</div>
-            <div id="loadedGeeklistsContainer" style="display:grid; gap:0.8em;"></div>
-        </div>
-        <div id="filterBar" style="margin-bottom:1em; text-align:center;">
-            <input id="filterInput" type="text" placeholder="Filter by name..." style="font-size:1.1em; padding:0.6em 1em; border-radius:10px; border:1px solid #bbb; width:70%; max-width:200px; margin-bottom:0.7em; -webkit-appearance:none; appearance:none;">
-            <div style="display:flex; justify-content:center; gap:0.4em; flex-wrap:wrap;">
-                <button id="exactMatchBtn" data-mode="exact" style="background:#666; color:#fff; border:none; border-radius:8px; padding:0.5em 1em; font-size:0.9em; min-height:36px; cursor:pointer; font-weight:500; -webkit-appearance:none; appearance:none;">Exact Match</button>
-                <button id="startsWithBtn" data-mode="startswith" style="background:#666; color:#fff; border:none; border-radius:8px; padding:0.5em 1em; font-size:0.9em; min-height:36px; cursor:pointer; font-weight:500; -webkit-appearance:none; appearance:none;">Starts With</button>
-                <button id="containsBtn" data-mode="contains" style="background:#1976d2; color:#fff; border:none; border-radius:8px; padding:0.5em 1em; font-size:0.9em; min-height:36px; cursor:pointer; font-weight:500; -webkit-appearance:none; appearance:none;">Contains</button>
-            </div>
-        </div>
-        <div id="gamesCardWrapper">
-            <div id="geeklistSelector" style="background:#fff; border-radius:12px; padding:1.5em; margin-bottom:1em; box-shadow: 0 2px 12px #0001;">
-                <h3 style="margin-top:0; margin-bottom:1em; color:#1976d2;">Select Geeklists to Load</h3>
-                <div id="geeklistOptions" style="display:grid; gap:0.8em;"></div>
-                <div style="margin-top:1.5em; display:flex; gap:0.5em; flex-wrap:wrap; justify-content:center;">
-                    <button id="selectAllBtn" style="background:#43a047; color:#fff; border:none; border-radius:8px; padding:0.6em 1em; font-size:0.9em; cursor:pointer; font-weight:600;">Select All</button>
-                    <button id="deselectAllBtn" style="background:#ff4136; color:#fff; border:none; border-radius:8px; padding:0.6em 1em; font-size:0.9em; cursor:pointer; font-weight:600;">Deselect All</button>
-                    <button id="loadSelectedBtn" style="background:#1976d2; color:#fff; border:none; border-radius:8px; padding:0.6em 1.5em; font-size:1em; cursor:pointer; font-weight:600; min-height:44px;">Load Selected Geeklists</button>
+
+    <template id="game-card-template">
+        <div class="card-shadow bg-white rounded-xl overflow-hidden shadow-lg flex flex-col">
+            <div class="p-4 flex items-start border-b border-gray-100 bg-gray-50">
+                <img data-template="thumbnail" src="https://placehold.co/64x64/E2E8F0/4A5568?text=Img" class="w-16 h-16 object-cover rounded-md flex-shrink-0 mr-4 border border-gray-200" alt="Game Thumbnail">
+                <div class="flex-grow">
+                    <h2 data-template="gameName" class="text-xl font-bold text-gray-900 leading-tight">Game Title</h2>
+                    <p data-template="price" class="text-lg text-red-600 font-semibold mt-1">N/A</p>
                 </div>
             </div>
+            <div class="p-4 flex-grow">
+                <p class="text-xs text-gray-500 mb-4">
+                    Posted by: <a data-template="username" href="#" target="_blank" class="font-medium text-blue-600">username</a>
+                </p>
+                <div class="space-y-1 text-sm text-gray-700 mb-4">
+                    <p><span class="font-semibold text-gray-500 w-24 inline-block">Post Date:</span> <span data-template="postDate"></span></p>
+                    <p><span class="font-semibold text-gray-500 w-24 inline-block">Thumbs:</span> <span data-template="thumbs" class="text-green-600 font-bold"></span></p>
+                    <p><span class="font-semibold text-gray-500 w-24 inline-block">Comments:</span> <span data-template="comments" class="text-gray-900 font-bold"></span></p>
+                </div>
+                <div class="mt-3 pt-3 border-t border-gray-100">
+                    <p class="text-xs font-semibold text-gray-600 uppercase mb-1">Description Snippet:</p>
+                    <p data-template="bodyPreview" class="text-sm text-gray-700 whitespace-pre-wrap"></p>
+                </div>
+            </div>
+            <div class="p-4 bg-gray-50 border-t border-gray-100 mt-auto">
+                <a data-template="bggLink" href="#" target="_blank" class="text-sm font-medium text-indigo-600 hover:text-indigo-800 transition duration-150 flex items-center justify-center">
+                    View Item on BGG
+                    <svg class="w-4 h-4 ml-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4m-4-7l6-6m-6 6l-6-6"></path></svg>
+                </a>
+            </div>
         </div>
-        <div id="loadMoreWrapper" style="text-align:center; margin:1em 0;"></div>
-    </div>
+    </template>
+
     <script>
-    const geeklists = [
-        { id: 363504, name: "BGG.CON VFM 2025" },
-        { id: 342440, name: "BGG.CON VFM 2024" },
-        { id: 321725, name: "BGG.CON VFM 2023" },
-        { id: 349103, name: "DTW VFM 2025" },
-        { id: 328677, name: "DTW VFM 2024" },
-        { id: 308714, name: "DTW VFM 2023" },
-        { id: 235851, name: "Denver CO VFM" }
-    ];
-    
-    const gamesCardWrapper = document.getElementById('gamesCardWrapper');
-    const userDetailsCache = new Map();
-    
-    let allItems = [];
-    let userCollection = new Set();
-    let userWantToPlay = new Set();
-    let userWantToBuy = new Set();
-    let userWantInTrade = new Set();
-    let userPrevOwned = new Set();
-    let userTradingAway = new Set();
-    let loadedCount = 0;
-    const PAGE_SIZE = 50;
-    let loading = false;
-    let currentStatusFilter = '';
-    let currentSellerFilter = '';
-    let currentFilterMode = 'contains';
-    let selectedGeeklists = new Set(geeklists.map(g => g.id));
-    const loadMoreWrapper = document.getElementById('loadMoreWrapper');
-    const filterInput = document.getElementById('filterInput');
-
-    function sleep(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
-    }
-
-    function formatBGGText(text) {
-        if (!text) return text;
-        return text
-            .replace(/\[B\](.*?)\[\/B\]/gi, '<b>$1</b>')
-            .replace(/\[I\](.*?)\[\/I\]/gi, '<i>$1</i>')
-            .replace(/\[U\](.*?)\[\/U\]/gi, '<u>$1</u>')
-            .replace(/\[size=(\d+)\](.*?)\[\/size\]/gi, '<span style="font-size:$1pt">$2</span>')
-            .replace(/\[url=(.*?)\](.*?)\[\/url\]/gi, '<a href="$1" target="_blank" style="color:#1976d2;">$2</a>')
-            .replace(/\[thing=(\d+)\](.*?)\[\/thing\]/gi, '<a href="https://boardgamegeek.com/boardgame/$1" target="_blank" style="color:#1976d2;">$2</a>')
-            .replace(/\[imageid=(\d+)\]/gi, '<a href="https://boardgamegeek.com/image/$1" target="_blank" style="color:#ff9800;">[View Image $1]</a>')
-            .replace(/\n/g, '<br>');
-    }
-    
-    async function fetchUserDetails(username) {
-        if (!username) return { name: '', username: '', location: '' };
-        if (userDetailsCache.has(username)) {
-            return userDetailsCache.get(username);
-        }
-        
-        try {
-            const resp = await fetch(`https://boardgamegeek.com/xmlapi2/user?name=${username}`);
-            if (!resp.ok) {
-                const result = { name: '', username: username, location: '' };
-                userDetailsCache.set(username, result);
-                return result;
-            }
-            
-            const xml = await resp.text();
-            const parser = new window.DOMParser();
-            const doc = parser.parseFromString(xml, 'text/xml');
-            
-            const firstName = doc.querySelector('firstname')?.getAttribute('value') || '';
-            const lastName = doc.querySelector('lastname')?.getAttribute('value') || '';
-            const state = doc.querySelector('stateorprovince')?.getAttribute('value') || '';
-            const country = doc.querySelector('country')?.getAttribute('value') || '';
-            
-            const fullName = [firstName, lastName].filter(n => n).join(' ').trim();
-            let location = '';
-            
-            if (state && country) {
-                location = `${state}, ${country}`;
-            } else if (state) {
-                location = state;
-            } else if (country) {
-                location = country;
-            }
-            
-            const result = {
-                name: fullName,
-                username: username,
-                location: location
-            };
-            
-            userDetailsCache.set(username, result);
-            await sleep(500);
-            return result;
-        } catch (error) {
-            const result = { name: '', username: username, location: '' };
-            userDetailsCache.set(username, result);
-            return result;
-        }
-    }
-    
-    async function fetchThingDetails(objectId) {
-        if (!objectId) return {};
-        try {
-            const resp = await fetch(`https://boardgamegeek.com/xmlapi2/thing?id=${objectId}&stats=1`);
-            if (!resp.ok) return {};
-            const xml = await resp.text();
-            const parser = new window.DOMParser();
-            const doc = parser.parseFromString(xml, 'text/xml');
-            const thumb = doc.querySelector('thumbnail');
-            const year = doc.querySelector('yearpublished');
-            
-            const ranks = doc.querySelectorAll('rank');
-            let bggRank = '';
-            for (const rank of ranks) {
-                if (rank.getAttribute('name') === 'boardgame') {
-                    const rankValue = rank.getAttribute('value');
-                    bggRank = rankValue && rankValue !== 'Not Ranked' ? rankValue : '';
-                    break;
-                }
-            }
-            
-            const bayesAverage = doc.querySelector('bayesaverage');
-            const bayesValue = bayesAverage ? parseFloat(bayesAverage.getAttribute('value')).toFixed(2) : '';
-            
-            await sleep(500);
-            
-            return {
-                thumbnail: thumb ? thumb.textContent : '',
-                year: year ? year.textContent : '',
-                bggRank: bggRank,
-                bayesAverage: bayesValue
-            };
-        } catch {
-            return {};
-        }
-    }
-
-    function getRankGradientColor(rank) {
-        if (!rank || rank === 'Not Ranked') return { bg: 'rgba(128,128,128,0.9)', text: 'white' };
-        const rankNum = parseInt(rank);
-        if (rankNum <= 100) return { bg: 'rgba(76,175,80,0.9)', text: 'white' };
-        if (rankNum <= 500) return { bg: 'rgba(139,195,74,0.9)', text: 'white' };
-        if (rankNum <= 1000) return { bg: 'rgba(255,235,59,0.9)', text: 'black' };
-        if (rankNum <= 5000) return { bg: 'rgba(255,152,0,0.9)', text: 'white' };
-        return { bg: 'rgba(244,67,54,0.9)', text: 'white' };
-    }
-
-    function getBayesGradientColor(bayes) {
-        if (!bayes) return { bg: 'rgba(128,128,128,0.9)', text: 'white' };
-        const bayesNum = parseFloat(bayes);
-        if (bayesNum >= 8.0) return { bg: 'rgba(76,175,80,0.9)', text: 'white' };
-        if (bayesNum >= 7.5) return { bg: 'rgba(139,195,74,0.9)', text: 'white' };
-        if (bayesNum >= 7.0) return { bg: 'rgba(255,235,59,0.9)', text: 'black' };
-        if (bayesNum >= 6.0) return { bg: 'rgba(255,152,0,0.9)', text: 'white' };
-        return { bg: 'rgba(244,67,54,0.9)', text: 'white' };
-    }
-
-    function getTimeGradientColor(diffHours) {
-        if (diffHours < 1) return { bg: 'rgba(76,175,80,0.9)', text: 'white' };
-        if (diffHours < 6) return { bg: 'rgba(139,195,74,0.9)', text: 'white' };
-        if (diffHours < 12) return { bg: 'rgba(255,235,59,0.9)', text: 'black' };
-        if (diffHours < 24) return { bg: 'rgba(255,152,0,0.9)', text: 'white' };
-        return { bg: 'rgba(233,30,99,0.9)', text: 'white' };
-    }
-
-    async function fetchSelectedGeeklists(selectedIds) {
-        try {
-            const resp = await fetch('https://boardgamegeek.com/xmlapi2/collection?username=sportomax');
-            if (resp.ok) {
-                const xml = await resp.text();
-                const parser = new window.DOMParser();
-                const doc = parser.parseFromString(xml, 'text/xml');
-                const items = Array.from(doc.querySelectorAll('item'));
-                
-                userCollection = new Set();
-                const tempWantToPlay = new Set();
-                const tempWantToBuy = new Set();
-                const tempWantInTrade = new Set();
-                const tempPrevOwned = new Set();
-                const tempTradingAway = new Set();
-                
-                items.forEach(item => {
-                    const objectId = item.getAttribute('objectid');
-                    const status = item.querySelector('status');
-                    
-                    if (status) {
-                        if (status.getAttribute('own') === '1') userCollection.add(objectId);
-                        if (status.getAttribute('wanttoplay') === '1') tempWantToPlay.add(objectId);
-                        if (status.getAttribute('wanttobuy') === '1') tempWantToBuy.add(objectId);
-                        if (status.getAttribute('wantintrade') === '1') tempWantInTrade.add(objectId);
-                        if (status.getAttribute('prevowned') === '1') tempPrevOwned.add(objectId);
-                        const fortrade = status.getAttribute('fortrade') || '0';
-                        if (parseInt(fortrade) > 0) tempTradingAway.add(objectId);
+        document.addEventListener('DOMContentLoaded', () => {
+            /**
+             * Main application module to fetch and display BGG Geeklist data.
+             */
+            const BggGeeklistApp = {
+                // --- Configuration ---
+                config: {
+                    GEEKLIST_ID: '299817',
+                    API_THROTTLE_MS: 1500,
+                    MAX_RETRIES: 3,
+                    get GEEKLIST_API_URL() {
+                        return `https://boardgamegeek.com/xmlapi/geeklist/${this.GEEKLIST_ID}?comments=1`;
+                    },
+                    get THING_API_BASE_URL() {
+                        return 'https://boardgamegeek.com/xmlapi2/thing?stats=0&id=';
                     }
-                });
-                
-                userWantToPlay = tempWantToPlay;
-                userWantToBuy = tempWantToBuy;
-                userWantInTrade = tempWantInTrade;
-                userPrevOwned = tempPrevOwned;
-                userTradingAway = tempTradingAway;
-            }
-        } catch (error) {
-            console.error('Error fetching collection:', error);
-        }
-        
-        gamesCardWrapper.innerHTML = '<div style="text-align:center; color:#888; font-size:1.1em;" id="loadingStatus">Loading Selected Geeklists...</div>';
-        allItems = [];
-        loadedCount = 0;
-        loading = true;
-        
-        const loadingStatus = document.getElementById('loadingStatus');
-        const selectedGeeklistsToLoad = geeklists.filter(g => selectedIds.includes(g.id));
-        
-        const RETRY_DELAYS = [2000, 4000, 8000];
-        const MAX_RETRIES = 3;
-        
-        for (let g = 0; g < selectedGeeklistsToLoad.length; g++) {
-            const geeklist = selectedGeeklistsToLoad[g];
-            loadingStatus.innerHTML = `Loading ${geeklist.name}... (${g + 1}/${selectedGeeklistsToLoad.length})`;
-            
-            let retryCount = 0;
-            let success = false;
-            
-            while (retryCount < MAX_RETRIES && !success) {
-                try {
-                    const resp = await fetch(`https://boardgamegeek.com/xmlapi/geeklist/${geeklist.id}?comments=1`);
-                    
-                    const statusInfo = {
-                        200: '✅ OK',
-                        202: '⏳ Processing',
-                        300: '🔄 Redirect',
-                        400: '❌ Bad Request',
-                        404: '❓ Not Found',
-                        429: '⏸️ Rate Limited',
-                        500: '💥 Server Error',
-                        503: '🔧 Unavailable'
-                    };
-                    
-                    const statusMsg = statusInfo[resp.status] || `Status ${resp.status}`;
-                    loadingStatus.innerHTML = `${geeklist.name}: ${statusMsg} (${g + 1}/${selectedGeeklistsToLoad.length})`;
-                    
-                    if (resp.status === 202) {
-                        const delay = RETRY_DELAYS[retryCount];
-                        loadingStatus.innerHTML = `${geeklist.name}: Waiting ${delay/1000}s... (${retryCount + 1}/${MAX_RETRIES})`;
-                        retryCount++;
-                        if (retryCount < MAX_RETRIES) {
-                            await sleep(delay);
-                            continue;
-                        } else {
-                            loadingStatus.innerHTML = `${geeklist.name}: Timeout, skipping...`;
-                            await sleep(1000);
-                            break;
+                },
+
+                // --- DOM Element Cache ---
+                dom: {
+                    statusContainer: document.getElementById('status-container'),
+                    statusText: document.getElementById('status-text'),
+                    cardsContainer: document.getElementById('cards-container'),
+                    cardTemplate: document.getElementById('game-card-template'),
+                },
+
+                // --- UI Module ---
+                ui: {
+                    /**
+                     * Updates the status message displayed to the user.
+                     * @param {string} message - The text to display.
+                     * @param {'loading'|'polling'|'error'|'success'|'info'} state - The type of message.
+                     */
+                    updateStatus(message, state = 'loading') {
+                        const { statusContainer, statusText } = BggGeeklistApp.dom;
+                        statusContainer.classList.remove('hidden');
+                        statusText.textContent = message;
+
+                        // Reset styles
+                        statusContainer.className = 'text-center p-6 rounded-xl mb-8 border';
+                        const spinner = statusContainer.querySelector('svg');
+                        spinner.style.display = 'none';
+
+                        switch (state) {
+                            case 'error':
+                                statusContainer.classList.add('bg-red-100', 'border-red-300', 'text-red-800');
+                                break;
+                            case 'success':
+                                statusContainer.classList.add('bg-green-100', 'border-green-300', 'text-green-800');
+                                setTimeout(() => statusContainer.classList.add('hidden'), 2000); // Hide after 2s
+                                break;
+                            case 'polling':
+                                spinner.style.display = 'inline';
+                                statusContainer.classList.add('bg-yellow-100', 'border-yellow-300', 'text-yellow-800');
+                                break;
+                            default: // 'loading' or 'info'
+                                spinner.style.display = 'inline';
+                                statusContainer.classList.add('bg-blue-100', 'border-blue-300', 'text-blue-800');
                         }
-                    }
-                    
-                    if (!resp.ok) {
-                        loadingStatus.innerHTML = `${geeklist.name}: Error, skipping...`;
-                        await sleep(1000);
-                        break;
-                    }
-                    
-                    const xml = await resp.text();
-                    
-                    if (xml.length < 100) {
-                        loadingStatus.innerHTML = `${geeklist.name}: Empty, retrying... (${retryCount + 1}/${MAX_RETRIES})`;
-                        retryCount++;
-                        if (retryCount < MAX_RETRIES) {
-                            await sleep(RETRY_DELAYS[retryCount - 1]);
-                            continue;
-                        } else {
-                            loadingStatus.innerHTML = `${geeklist.name}: Failed, skipping...`;
-                            await sleep(1000);
-                            break;
-                        }
-                    }
-                    
-                    const parser = new window.DOMParser();
-                    const doc = parser.parseFromString(xml, 'text/xml');
-                    
-                    const parseError = doc.querySelector('parsererror');
-                    if (parseError) {
-                        loadingStatus.innerHTML = `${geeklist.name}: Parse error, retrying... (${retryCount + 1}/${MAX_RETRIES})`;
-                        retryCount++;
-                        if (retryCount < MAX_RETRIES) {
-                            await sleep(RETRY_DELAYS[retryCount - 1]);
-                            continue;
-                        } else {
-                            loadingStatus.innerHTML = `${geeklist.name}: Parse failed, skipping...`;
-                            await sleep(1000);
-                            break;
-                        }
-                    }
-                    
-                    const items = Array.from(doc.querySelectorAll('item'));
-                    loadingStatus.innerHTML = `${geeklist.name}: ✅ Loaded ${items.length} items`;
-                    
-                    for (let i = 0; i < items.length; i++) {
-                        const item = items[i];
-                        const commentNodes = Array.from(item.querySelectorAll('comment'));
-                        const commentData = commentNodes.map(comment => ({
-                            username: comment.getAttribute('username') || '',
-                            date: comment.getAttribute('date') || '',
-                            content: comment.textContent.trim() || ''
-                        }));
+                    },
+
+                    /**
+                     * Renders the game cards to the DOM.
+                     * @param {Array<Object>} items - The final list of processed items.
+                     */
+                    renderCards(items) {
+                        const { cardsContainer } = BggGeeklistApp.dom;
+                        cardsContainer.innerHTML = ''; // Clear previous content
                         
-                        const username = item.getAttribute('username') || '';
-                        
-                        const itemData = {
-                            geeklistName: geeklist.name,
-                            geeklistId: geeklist.id,
-                            itemIndex: i + 1,
-                            name: item.getAttribute('objectname') || 'Unknown',
-                            objectType: item.getAttribute('objecttype') || '',
-                            objectId: item.getAttribute('objectid') || '',
-                            postdate: item.getAttribute('postdate') || '',
-                            comments: item.getAttribute('comments') || '',
-                            commentData: commentData,
-                            username: username,
-                            userDetails: null,
-                            details: null,
-                            item
+                        if (items.length === 0) {
+                            this.updateStatus('No board game items found in this Geeklist.', 'info');
+                            return;
+                        }
+
+                        const fragment = document.createDocumentFragment();
+                        items.forEach(item => {
+                            const card = this.createCardElement(item);
+                            fragment.appendChild(card);
+                        });
+
+                        cardsContainer.appendChild(fragment);
+                    },
+
+                    /**
+                     * Creates a single card element from the template.
+                     * @param {Object} item - The game item data.
+                     * @returns {HTMLElement} The populated card element.
+                     */
+                    createCardElement(item) {
+                        const { cardTemplate } = BggGeeklistApp.dom;
+                        const cardClone = cardTemplate.content.cloneNode(true);
+
+                        const selectors = {
+                            thumbnail: '[data-template="thumbnail"]',
+                            gameName: '[data-template="gameName"]',
+                            price: '[data-template="price"]',
+                            username: '[data-template="username"]',
+                            postDate: '[data-template="postDate"]',
+                            thumbs: '[data-template="thumbs"]',
+                            comments: '[data-template="comments"]',
+                            bodyPreview: '[data-template="bodyPreview"]',
+                            bggLink: '[data-template="bggLink"]',
                         };
+
+                        const el = (selector) => cardClone.querySelector(selectors[selector]);
+
+                        el('thumbnail').src = item.thumbnail;
+                        el('thumbnail').alt = `${item.gameName} Thumbnail`;
+                        el('gameName').textContent = item.gameName;
+                        el('price').textContent = item.price;
+                        el('username').textContent = item.username;
+                        el('username').href = `https://boardgamegeek.com/user/${item.username}`;
+                        el('postDate').textContent = new Date(item.postdate).toLocaleDateString();
+                        el('thumbs').textContent = item.thumbs;
+                        el('comments').textContent = item.numcomments;
+                        el('bodyPreview').textContent = item.bodyPreview;
+                        el('bggLink').href = `https://boardgamegeek.com/geeklist/${this.config.GEEKLIST_ID}/item/${item.id}`;
                         
-                        allItems.push(itemData);
-                        
-                        if (username) {
-                            fetchUserDetails(username).then(userDetails => {
-                                itemData.userDetails = userDetails;
-                            });
+                        if (item.price.toLowerCase() === 'sold') {
+                            el('price').classList.remove('text-red-600');
+                            el('price').classList.add('text-gray-500');
+                        }
+
+                        return cardClone.firstElementChild;
+                    }
+                },
+
+                // --- API Module ---
+                api: {
+                    /**
+                     * Fetches XML from BGG, handling retries and 202 status codes.
+                     * @param {string} url - The API endpoint URL.
+                     * @param {number} retryCount - The current retry attempt.
+                     * @returns {Promise<Document>} The parsed XML document.
+                     */
+                    async fetchXmlWithRetry(url, retryCount = 0) {
+                        const { MAX_RETRIES, API_THROTTLE_MS } = BggGeeklistApp.config;
+
+                        try {
+                            if (retryCount > 0) {
+                                const waitTime = API_THROTTLE_MS * Math.pow(2, retryCount - 1); // Exponential backoff
+                                BggGeeklistApp.ui.updateStatus(`BGG is processing. Retrying in ${waitTime / 1000}s... (Attempt ${retryCount + 1})`, 'polling');
+                                await new Promise(resolve => setTimeout(resolve, waitTime));
+                            }
+
+                            const response = await fetch(url);
+                            if (response.status === 202) {
+                                throw new Error('BGG API 202: Data processing, will retry.');
+                            }
+                            if (!response.ok) {
+                                throw new Error(`HTTP error! Status: ${response.status}`);
+                            }
+
+                            const text = await response.text();
+                            const parser = new DOMParser();
+                            const xmlDoc = parser.parseFromString(text, 'application/xml');
+
+                            if (xmlDoc.getElementsByTagName('parsererror').length > 0 || !xmlDoc.documentElement) {
+                                throw new Error('Failed to parse XML response from BGG.');
+                            }
+                            return xmlDoc;
+
+                        } catch (error) {
+                            if (retryCount < MAX_RETRIES) {
+                                return this.fetchXmlWithRetry(url, retryCount + 1);
+                            }
+                            throw new Error(`Failed to fetch from BGG after ${MAX_RETRIES + 1} attempts. Please refresh. Error: ${error.message}`);
                         }
                     }
+                },
+
+                // --- Parser & Utilities Module ---
+                util: {
+                    /**
+                     * Strips BBCode and cleans text.
+                     * @param {string} text - The raw text with BBCode.
+                     * @returns {string} The cleaned text.
+                     */
+                    stripBBCode(text) {
+                        if (!text) return '';
+                        let cleaned = text
+                            .replace(/\[\/?(b|i|u|s|size|url|img|list|center|color|geeklist|thread|thing).*?\]/gi, '')
+                            .replace(/\[\/?-\]/g, '\n')
+                            .replace(/(\n\s*){2,}/g, '\n\n')
+                            .trim();
+
+                        const textarea = document.createElement('textarea');
+                        textarea.innerHTML = cleaned;
+                        return textarea.value;
+                    },
+
+                    /**
+                     * Extracts price or "SOLD" status from text.
+                     * @param {string} text - The cleaned item body text.
+                     * @returns {string} The formatted price or status.
+                     */
+                    extractPrice(text) {
+                        if (text.toLowerCase().includes('sold')) return 'SOLD';
+                        let match = text.match(/(?:BIN:?|price:?)\s*\$(\d+(\.\d{2})?)/i) || text.match(/\$(\d+(\.\d{2})?)/);
+                        return match ? `$${match[1]}` : 'N/A';
+                    },
+
+                    /**
+                     * Parses the Geeklist V1 XML.
+                     * @param {Document} xmlDoc - The XML document from the Geeklist API.
+                     * @returns {{items: Array<Object>, gameIds: Array<string>}}
+                     */
+                    parseGeeklistItems(xmlDoc) {
+                        const items = [];
+                        const gameIds = new Set();
+                        for (const node of xmlDoc.getElementsByTagName('item')) {
+                            if (node.getAttribute('subtype') !== 'boardgame') continue;
+
+                            const bodyNode = node.getElementsByTagName('body')[0];
+                            const itemBody = this.stripBBCode(bodyNode ? bodyNode.textContent : '');
+
+                            const item = {
+                                id: node.getAttribute('id'),
+                                objectid: node.getAttribute('objectid'),
+                                username: node.getAttribute('username'),
+                                postdate: node.getAttribute('postdate'),
+                                thumbs: parseInt(node.getAttribute('thumbs') || 0),
+                                numcomments: parseInt(node.getAttribute('numcomments') || 0),
+                                price: this.extractPrice(itemBody),
+                                bodyPreview: itemBody.substring(0, 150).trim() + (itemBody.length > 150 ? '...' : ''),
+                            };
+                            items.push(item);
+                            gameIds.add(item.objectid);
+                        }
+                        return { items, gameIds: Array.from(gameIds) };
+                    },
                     
-                    allItems.sort((a, b) => {
-                        const da = new Date(a.postdate);
-                        const db = new Date(b.postdate);
-                        return db - da;
-                    });
-                    
-                    renderItems();
-                    
-                    success = true;
-                    await sleep(2000);
-                } catch (e) {
-                    console.error(`Error fetching ${geeklist.name}:`, e);
-                    retryCount++;
-                    if (retryCount < MAX_RETRIES) {
-                        await sleep(RETRY_DELAYS[retryCount - 1]);
+                    /**
+                     * Parses the Thing (game details) XML.
+                     * @param {Document} xmlDoc - The XML document from the Thing API.
+                     * @returns {Object} A map of game details keyed by game ID.
+                     */
+                    parseGameDetails(xmlDoc) {
+                        const gameMap = {};
+                        for (const node of xmlDoc.getElementsByTagName('item')) {
+                            const id = node.getAttribute('id');
+                            const nameNode = node.querySelector('name[type="primary"]');
+                            const thumbnailNode = node.querySelector('thumbnail');
+                            gameMap[id] = {
+                                name: nameNode ? nameNode.getAttribute('value') : 'Unknown Game',
+                                thumbnail: thumbnailNode ? thumbnailNode.textContent : 'https://placehold.co/100x100?text=No+Img',
+                            };
+                        }
+                        return gameMap;
+                    }
+                },
+
+                /**
+                 * Main application entry point.
+                 */
+                async init() {
+                    try {
+                        // 1. Fetch and parse Geeklist
+                        this.ui.updateStatus('Fetching Geeklist data...');
+                        const geeklistXml = await this.api.fetchXmlWithRetry(this.config.GEEKLIST_API_URL);
+                        const { items, gameIds } = this.util.parseGeeklistItems(geeklistXml);
+
+                        if (gameIds.length === 0) {
+                            this.ui.updateStatus('No board games found in the list.', 'info');
+                            return;
+                        }
+
+                        this.ui.updateStatus(`Found ${items.length} games. Fetching details...`);
+                        await new Promise(resolve => setTimeout(resolve, this.config.API_THROTTLE_MS));
+
+                        // 2. Fetch and parse Thing details
+                        const thingApiUrl = this.config.THING_API_BASE_URL + gameIds.join(',');
+                        const thingXml = await this.api.fetchXmlWithRetry(thingApiUrl);
+                        const gameDetailsMap = this.util.parseGameDetails(thingXml);
+
+                        // 3. Merge data
+                        const finalItems = items.map(item => ({
+                            ...item,
+                            gameName: gameDetailsMap[item.objectid]?.name || 'Unknown',
+                            thumbnail: gameDetailsMap[item.objectid]?.thumbnail || 'https://placehold.co/100x100?text=No+Img'
+                        })).sort((a, b) => new Date(b.postdate) - new Date(a.postdate));
+
+                        // 4. Render
+                        this.ui.renderCards(finalItems);
+                        this.ui.updateStatus(`Successfully loaded ${finalItems.length} items!`, 'success');
+
+                    } catch (error) {
+                        console.error('An error occurred during initialization:', error);
+                        this.ui.updateStatus(error.message, 'error');
                     }
                 }
-            }
-        }
-        
-        loading = false;
-        selectedGeeklists = new Set(selectedIds);
-        updateSellerSuggestions();
-        
-        const finalLoadingStatus = document.getElementById('loadingStatus');
-        if (finalLoadingStatus) {
-            finalLoadingStatus.remove();
-        }
-        
-        populateApiAccessPanel(selectedGeeklistsToLoad);
-        document.getElementById('apiAccessBtn').style.display = 'block';
-        renderItems();
-    }
-
-    function updateSellerSuggestions(searchTerm = '') {
-        const sellers = new Set();
-        allItems.forEach(item => {
-            const seller = item.item.getAttribute('username');
-            if (seller && seller.trim()) {
-                sellers.add(seller.trim());
-            }
-        });
-        
-        const filteredSellers = Array.from(sellers)
-            .filter(seller => searchTerm === '' || seller.toLowerCase().includes(searchTerm.toLowerCase()))
-            .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
-        
-        return filteredSellers;
-    }
-
-    function showSellerSuggestions(searchTerm = '') {
-        const suggestionsDiv = document.getElementById('sellerSuggestions');
-        const filteredSellers = updateSellerSuggestions(searchTerm);
-        
-        if (filteredSellers.length === 0 || (searchTerm === '' && filteredSellers.length > 20)) {
-            suggestionsDiv.style.display = 'none';
-            return;
-        }
-        
-        const sellersToShow = filteredSellers.slice(0, 10);
-        suggestionsDiv.innerHTML = '';
-        
-        if (currentSellerFilter) {
-            const clearOption = document.createElement('div');
-            clearOption.style.padding = '0.5em 1em';
-            clearOption.style.cursor = 'pointer';
-            clearOption.style.borderBottom = '1px solid #eee';
-            clearOption.style.fontStyle = 'italic';
-            clearOption.style.color = '#666';
-            clearOption.textContent = 'Clear seller filter';
-            clearOption.onclick = () => {
-                document.getElementById('sellerFilterInput').value = '';
-                currentSellerFilter = '';
-                suggestionsDiv.style.display = 'none';
-                loadedCount = 0;
-                renderItems(filterInput.value.trim());
             };
-            suggestionsDiv.appendChild(clearOption);
-        }
-        
-        sellersToShow.forEach(seller => {
-            const option = document.createElement('div');
-            option.style.padding = '0.5em 1em';
-            option.style.cursor = 'pointer';
-            option.style.borderBottom = '1px solid #eee';
-            option.textContent = seller;
-            
-            const count = allItems.filter(item => {
-                const itemSeller = item.item.getAttribute('username') || '';
-                return itemSeller.trim() === seller;
-            }).length;
-            
-            const countSpan = document.createElement('span');
-            countSpan
+
+            // Start the application
+            BggGeeklistApp.init();
+        });
+    </script>
+</body>
+</html>
