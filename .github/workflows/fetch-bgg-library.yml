@@ -3,7 +3,7 @@ name: Fetch BGG Library Data
 on:
   schedule:
     # Run daily at 2 AM UTC
-    - cron: '0 2 * * *'
+    - cron: "0 */12 * * *"
   workflow_dispatch: # Allows manual triggering
 
 jobs:
