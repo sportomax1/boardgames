@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VFM Geeklist</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f7;
+            padding: 16px;
+            padding-bottom: 80px;
+        }
+        
+        .header {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            color: #1d1d1f;
+            margin-bottom: 8px;
+        }
+        
+        .stats {
+            display: flex;
+            gap: 16px;
+            font-size: 14px;
+            color: #6e6e73;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 12px;
+        }
+        
+        .game-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1d1d1f;
+            margin-bottom: 4px;
+        }
+        
+        .username {
+            font-size: 14px;
+            color: #0066cc;
+            margin-bottom: 8px;
+        }
+        
+        .sold-badge {
+            background: #ff3b30;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .available-badge {
+            background: #34c759;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .price {
+            font-size: 22px;
+            font-weight: 700;
+            color: #1d1d1f;
+            margin: 8px 0;
+        }
+        
+        .meta-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #e5e5e7;
+            font-size: 12px;
+            color: #6e6e73;
+        }
+        
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .meta-label {
+            font-weight: 600;
+        }
+        
+        .body-text {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #e5e5e7;
+            font-size: 14px;
+            color: #1d1d1f;
+            line-height: 1.5;
+        }
+        
+        .comments-section {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #e5e5e7;
+        }
+        
+        .comments-count {
+            font-size: 13px;
+            font-weight: 600;
+            color: #6e6e73;
+            margin-bottom: 8px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6e6e73;
+        }
+        
+        .error {
+            background: #ff3b30;
+            color: white;
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>VFM Geeklist</h1>
+        <div class="stats">
+            <span id="totalItems">Loading...</span>
+        </div>
+    </div>
+    
+    <div id="content">
+        <div class="loading">Loading items...</div>
+    </div>
+
+    <script>
+        async function loadGeekList() {
+            try {
+                const response = await fetch('vfm25.xml');
+                const text = await response.text();
+                const parser = new DOMParser();
+                const xml = parser.parseFromString(text, 'text/xml');
+                
+                const items = xml.querySelectorAll('item');
+                const contentDiv = document.getElementById('content');
+                
+                if (items.length === 0) {
+                    contentDiv.innerHTML = '<div class="error">No items found in the geeklist.</div>';
+                    return;
+                }
+                
+                document.getElementById('totalItems').textContent = `${items.length} items`;
+                contentDiv.innerHTML = '';
+                
+                items.forEach(item => {
+                    const card = createCard(item);
+                    contentDiv.appendChild(card);
+                });
+                
+            } catch (error) {
+                document.getElementById('content').innerHTML = 
+                    `<div class="error">Error loading data: ${error.message}</div>`;
+            }
+        }
+        
+        function createCard(item) {
+            const card = document.createElement('div');
+            card.className = 'card';
+            
+            const itemId = item.getAttribute('id');
+            const objectId = item.getAttribute('objectid');
+            const objectName = item.getAttribute('objectname');
+            const username = item.getAttribute('username');
+            const postDate = item.getAttribute('postdate');
+            const editDate = item.getAttribute('editdate');
+            const thumbs = item.getAttribute('thumbs') || '0';
+            const sold = item.getAttribute('sold') === '1';
+            const priceAttr = item.getAttribute('price');
+            const currency = item.getAttribute('currency') || 'USD';
+            
+            const bodyText = item.querySelector('body')?.textContent || '';
+            const comments = item.querySelectorAll('comment');
+            const commentCount = comments.length;
+            
+            // Extract price from body if not in attributes
+            let displayPrice = priceAttr;
+            if (!displayPrice) {
+                const priceMatch = bodyText.match(/\$(\d+(?:\.\d{2})?)/);
+                if (priceMatch) {
+                    displayPrice = priceMatch[1];
+                }
+            }
+            
+            const formattedPrice = displayPrice ? 
+                `$${displayPrice} ${currency !== 'USD' ? currency : ''}`.trim() : 
+                'Price not listed';
+            
+            const formattedPostDate = new Date(postDate).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric'
+            });
+            
+            const formattedEditDate = editDate ? new Date(editDate).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric'
+            }) : 'N/A';
+            
+            card.innerHTML = `
+                <div class="card-header">
+                    <div>
+                        <div class="game-name">${objectName}</div>
+                        <div class="username">@${username}</div>
+                    </div>
+                    <div class="${sold ? 'sold-badge' : 'available-badge'}">
+                        ${sold ? 'SOLD' : 'AVAILABLE'}
+                    </div>
+                </div>
+                
+                <div class="price">${formattedPrice}</div>
+                
+                <div class="meta-info">
+                    <div class="meta-item">
+                        <span class="meta-label">Item ID:</span>
+                        <span>${itemId}</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Object ID:</span>
+                        <span>${objectId}</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Posted:</span>
+                        <span>${formattedPostDate}</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Edited:</span>
+                        <span>${formattedEditDate}</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">👍 Thumbs:</span>
+                        <span>${thumbs}</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">💬 Comments:</span>
+                        <span>${commentCount}</span>
+                    </div>
+                </div>
+                
+                ${bodyText ? `<div class="body-text">${escapeHtml(bodyText.substring(0, 200))}${bodyText.length > 200 ? '...' : ''}</div>` : ''}
+            `;
+            
+            return card;
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Load data on page load
+        loadGeekList();
+        
+        // Reload every 5 minutes
+        setInterval(loadGeekList, 5 * 60 * 1000);
+    </script>
+</body>
+</html>
