@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BGG GeekList Viewer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <div class="container mx-auto p-4 md:p-8">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-900">GeekList Viewer</h1>
+            <p class="text-gray-600 mt-2">Displaying items from GeekList #299817</p>
+        </header>
+
+        <!-- Loading Spinner -->
+        <div id="loader" class="flex justify-center items-center h-64">
+            <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500"></div>
+        </div>
+
+        <!-- Error Message -->
+        <div id="error-message" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative" role="alert">
+            <strong class="font-bold">Error!</strong>
+            <span class="block sm:inline" id="error-text"></span>
+        </div>
+
+        <!-- Card Container -->
+        <div id="geeklist-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <!-- Cards will be injected here by JavaScript -->
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchAndDisplayGeekList();
+        });
+
+        async function fetchAndDisplayGeekList() {
+            const loader = document.getElementById('loader');
+            const container = document.getElementById('geeklist-container');
+            const errorMessage = document.getElementById('error-message');
+            const errorText = document.getElementById('error-text');
+            
+            // BGG API doesn't support CORS, so we use a proxy
+            const GEEKLIST_ID = '299817';
+            const PROXY_URL = 'https://api.allorigins.win/raw?url=';
+            const API_URL_GEEKLIST = `${PROXY_URL}https://boardgamegeek.com/xmlapi/geeklist/${GEEKLIST_ID}?comments=1`;
+
+            try {
+                // 1. Fetch and parse the main GeekList data
+                const response = await fetch(API_URL_GEEKLIST);
+                if (!response.ok) {
+                    throw new Error(`Network response was not ok: ${response.statusText}`);
+                }
+                const xmlText = await response.text();
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(xmlText, "application/xml");
+
+                if (xmlDoc.getElementsByTagName("parsererror").length) {
+                    throw new Error('Failed to parse GeekList XML.');
+                }
+
+                const items = Array.from(xmlDoc.getElementsByTagName('item'));
+                
+                let processedItems = items.map(item => {
+                    const body = item.getElementsByTagName('body')[0]?.textContent || '';
+                    return {
+                        id: item.getAttribute('id'),
+                        objectid: item.getAttribute('objectid'),
+                        username: item.getAttribute('username'),
+                        postdate: item.getAttribute('postdate'),
+                        editdate: item.getAttribute('editdate'),
+                        thumbs: item.getAttribute('thumbs'),
+                        numcomments: item.getElementsByTagName('comment').length,
+                        body: body,
+                        // Prioritize objectname, fallback to parsing the body
+                        gameName: item.getAttribute('objectname') || parseGameName(body),
+                        price: parsePrice(body)
+                    };
+                });
+                
+                // 2. Sort items by postdate descending
+                processedItems.sort((a, b) => new Date(b.postdate) - new Date(a.postdate));
+
+                // 3. Fetch game details for all items in batched calls
+                const objectIds = processedItems.map(item => item.objectid).filter(id => id).join(',');
+                const gameDetails = await fetchGameDetails(objectIds);
+                
+                // 4. Render the cards
+                loader.style.display = 'none';
+                processedItems.forEach(item => {
+                    const card = createItemCard(item, gameDetails[item.objectid]);
+                    container.appendChild(card);
+                });
+
+            } catch (error) {
+                console.error("Failed to fetch or process geeklist:", error);
+                loader.style.display = 'none';
+                errorText.textContent = error.message;
+                errorMessage.classList.remove('hidden');
+            }
+        }
+
+        async function fetchGameDetails(ids) {
+            if (!ids) return {};
+            const PROXY_URL = 'https://api.allorigins.win/raw?url=';
+            const BATCH_SIZE = 20;
+            const idArray = ids.split(',');
+            const gameDetailsMap = {};
+
+            // Split IDs into chunks for batch processing
+            const idChunks = [];
+            for (let i = 0; i < idArray.length; i += BATCH_SIZE) {
+                idChunks.push(idArray.slice(i, i + BATCH_SIZE));
+            }
+
+            // Fetch details for each chunk in parallel
+            try {
+                await Promise.all(idChunks.map(async (chunk) => {
+                    const chunkIds = chunk.join(',');
+                    const API_URL_THING = `${PROXY_URL}https://www.boardgamegeek.com/xmlapi2/thing?type=boardgame&id=${chunkIds}`;
+                    const response = await fetch(API_URL_THING);
+                    if (!response.ok) {
+                        console.error(`Thing API response not OK for IDs: ${chunkIds}`);
+                        return; // Skip this chunk on error
+                    }
+                    const xmlText = await response.text();
+                    const parser = new DOMParser();
+                    const xmlDoc = parser.parseFromString(xmlText, "application/xml");
+
+                    if (xmlDoc.getElementsByTagName("parsererror").length) {
+                        console.error(`Failed to parse Thing XML for IDs: ${chunkIds}`);
+                        return; // Skip this chunk on error
+                    }
+                    
+                    const items = xmlDoc.getElementsByTagName('item');
+                    Array.from(items).forEach(item => {
+                        const id = item.getAttribute('id');
+                        const imageUrl = item.getElementsByTagName('image')[0]?.textContent;
+                        if (id && imageUrl) {
+                            gameDetailsMap[id] = imageUrl;
+                        }
+                    });
+                }));
+                return gameDetailsMap;
+            } catch (error) {
+                console.error("Could not fetch game details:", error);
+                return {}; // Return empty map on error so the page can still render
+            }
+        }
+        
+        // Helper function to parse game name from BBCode
+        function parseGameName(body) {
+            const match = body.match(/\[b\](.*?)\[\/b\]/);
+            return match ? match[1] : 'N/A';
+        }
+
+        // Helper function to parse price from the body
+        function parsePrice(body) {
+            const binMatch = body.match(/BIN:\s*\$?(\d+(\.\d{2})?)/i);
+            if (binMatch) return `$${binMatch[1]}`;
+
+            const soldMatch = body.match(/Sold for\s*\$?(\d+(\.\d{2})?)/i);
+            if (soldMatch) return `Sold for $${soldMatch[1]}`;
+            
+            const buyItNowMatch = body.match(/Buy it Now:\s*\$?(\d+(\.\d{2})?)/i);
+            if (buyItNowMatch) return `$${buyItNowMatch[1]}`;
+
+            return null; // Return null if no price is found
+        }
+        
+        // Helper function to format dates
+        function formatDate(dateString) {
+            if (!dateString) return 'N/A';
+            return new Date(dateString).toLocaleString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: true
+            });
+        }
+
+        function createItemCard(item, imageUrl) {
+            const card = document.createElement('div');
+            card.className = 'bg-white rounded-lg shadow-md overflow-hidden transform hover:scale-105 transition-transform duration-300 flex flex-col';
+
+            const placeholderImg = `https://placehold.co/300x200/e2e8f0/64748b?text=${encodeURIComponent(item.gameName)}`;
+
+            let priceTag = '';
+            if (item.price) {
+                 priceTag = `<div class="absolute top-2 right-2 bg-green-500 text-white text-sm font-semibold py-1 px-3 rounded-full shadow-md">${item.price}</div>`;
+            }
+
+            card.innerHTML = `
+                <div class="relative">
+                    <img src="${imageUrl || placeholderImg}" alt="Board Game: ${item.gameName}" class="w-full h-48 object-cover" onerror="this.onerror=null;this.src='${placeholderImg}';">
+                    ${priceTag}
+                </div>
+                <div class="p-4 flex flex-col flex-grow">
+                    <h3 class="text-xl font-bold mb-2 flex-grow">${item.gameName}</h3>
+                    <div class="text-sm text-gray-600 mb-4">
+                        <p><strong>Seller:</strong> ${item.username}</p>
+                        <p><strong>Posted:</strong> ${formatDate(item.postdate)}</p>
+                        <p><strong>Last Edit:</strong> ${formatDate(item.editdate)}</p>
+                        <div class="text-xs text-gray-500 mt-2 border-t pt-2">
+                            <p><strong>Item ID:</strong> ${item.id} &bull; <strong>Object ID:</strong> ${item.objectid}</p>
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center text-sm font-medium text-gray-700 border-t pt-3 mt-auto">
+                        <div class="flex items-center">
+                            <svg class="w-5 h-5 text-yellow-500 mr-1" fill="currentColor" viewBox="0 0 20 20"><path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.43a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.962-1.608l1.2-6A2 2 0 0015.562 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.8 2.4L6.8 7.933a4 4 0 00-.865.8L6 10.333z"></path></svg>
+                            <span>${item.thumbs} Thumbs</span>
+                        </div>
+                        <div class="flex items-center">
+                            <svg class="w-5 h-5 text-blue-500 mr-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 5v8a2 2 0 01-2 2h-5l-5 4v-4H4a2 2 0 01-2-2V5a2 2 0 012-2h12a2 2 0 012 2zM7 8H5v2h2V8zm2 0h2v2H9V8zm6 0h-2v2h2V8z" clip-rule="evenodd"></path></svg>
+                            <span>${item.numcomments} Comments</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            return card;
+        }
+
+    </script>
+</body>
+</html>
+
+
