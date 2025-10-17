@@ -1,0 +1,51 @@
+name: Fetch BGG VFM Geeklist 24
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 0 1 * *"
+
+permissions:
+  contents: write
+
+jobs:
+  fetch-bgg:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Fetch BGG VFM geeklist XML with retry logic
+        run: |
+          MAX_RETRIES=5
+          RETRY_COUNT=0
+          
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] Attempt $((RETRY_COUNT + 1)) of $MAX_RETRIES..."
+            curl -L "https://boardgamegeek.com/xmlapi/geeklist/342440?comments=1" -o vfm24bgg.xml
+            
+            # Check if the response contains the "accepted and will be processed" message
+            if grep -q "Your request for this geeklist has been accepted and will be processed" vfm25.xml; then
+              echo "[$(date '+%Y-%m-%d %H:%M:%S')] Geeklist is being processed by BGG. Waiting 31 seconds before retry..."
+              RETRY_COUNT=$((RETRY_COUNT + 1))
+              if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+                sleep 31
+                echo "[$(date '+%Y-%m-%d %H:%M:%S')] Wait complete, retrying now..."
+              fi
+            else
+              echo "[$(date '+%Y-%m-%d %H:%M:%S')] Geeklist data retrieved successfully!"
+              break
+            fi
+          done
+          
+          if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] Max retries reached. BGG may still be processing the geeklist."
+          fi
+
+      - name: Commit and push results
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add vfm25.xml
+          git commit -m "Update VFM geeklist" || echo "No changes to commit"
+          git push
