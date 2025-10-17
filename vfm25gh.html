@@ -34,9 +34,60 @@
         
         .stats {
             display: flex;
-            gap: 16px;
+            flex-direction: column;
+            gap: 4px;
             font-size: 14px;
             color: #6e6e73;
+            margin-bottom: 16px;
+        }
+        
+        .search-section {
+            margin-top: 16px;
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e5e7;
+            border-radius: 8px;
+            font-size: 16px;
+            margin-bottom: 8px;
+            font-family: inherit;
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: #007aff;
+        }
+        
+        .search-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .search-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        
+        .search-btn:active {
+            opacity: 0.7;
+        }
+        
+        .btn-filter {
+            background: #007aff;
+            color: white;
+        }
+        
+        .btn-clear {
+            background: #6e6e73;
+            color: white;
         }
         
         .card {
@@ -170,7 +221,6 @@
             width: 100%;
             max-height: 80vh;
             overflow-y: auto;
-            animation: slideUp 0.3s;
         }
         
         .modal-header {
@@ -254,6 +304,17 @@
             margin-bottom: 16px;
         }
         
+        .filter-active {
+            background: #ff9500;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-top: 8px;
+            display: inline-block;
+        }
+        
         @keyframes fadeIn {
             from { opacity: 0; }
             to { opacity: 1; }
@@ -270,6 +331,23 @@
         <h1>VFM Geeklist</h1>
         <div class="stats">
             <span id="totalItems">Loading...</span>
+            <span id="lastUpdate">Last updated: --</span>
+            <span id="timeSince">Updated -- ago</span>
+        </div>
+        <div id="filterBadge"></div>
+        
+        <div class="search-section">
+            <input 
+                type="text" 
+                id="searchInput" 
+                class="search-input" 
+                placeholder="Search by username..."
+                value="sportomax"
+            >
+            <div class="search-buttons">
+                <button class="search-btn btn-filter" onclick="applyFilter()">Filter</button>
+                <button class="search-btn btn-clear" onclick="clearFilter()">Show All</button>
+            </div>
         </div>
     </div>
     
@@ -289,6 +367,10 @@
 
     <script>
         let allItems = [];
+        let filteredItems = [];
+        let currentFilter = '';
+        let lastUpdateTime = null;
+        let timeSinceInterval = null;
         
         async function loadGeekList() {
             try {
@@ -296,6 +378,15 @@
                 const text = await response.text();
                 const parser = new DOMParser();
                 const xml = parser.parseFromString(text, 'text/xml');
+                
+                // Get last modified time from response headers or use current time
+                const lastModified = response.headers.get('last-modified');
+                lastUpdateTime = lastModified ? new Date(lastModified) : new Date();
+                updateTimeDisplay();
+                
+                // Start interval to update "time since"
+                if (timeSinceInterval) clearInterval(timeSinceInterval);
+                timeSinceInterval = setInterval(updateTimeSince, 60000); // Update every minute
                 
                 const items = xml.querySelectorAll('item');
                 const contentDiv = document.getElementById('content');
@@ -314,18 +405,102 @@
                         return dateB - dateA;
                     });
                 
-                document.getElementById('totalItems').textContent = `${allItems.length} items`;
-                contentDiv.innerHTML = '';
-                
-                allItems.forEach((item, index) => {
-                    const card = createCard(item, index);
-                    contentDiv.appendChild(card);
-                });
+                // Apply current filter if exists
+                if (currentFilter) {
+                    applyFilter();
+                } else {
+                    displayItems(allItems);
+                }
                 
             } catch (error) {
                 document.getElementById('content').innerHTML = 
                     `<div class="error">Error loading data: ${error.message}</div>`;
             }
+        }
+        
+        function updateTimeDisplay() {
+            if (!lastUpdateTime) return;
+            
+            const formatted = lastUpdateTime.toLocaleString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            
+            document.getElementById('lastUpdate').textContent = `Last updated: ${formatted}`;
+            updateTimeSince();
+        }
+        
+        function updateTimeSince() {
+            if (!lastUpdateTime) return;
+            
+            const now = new Date();
+            const diffMs = now - lastUpdateTime;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMins / 60);
+            const diffDays = Math.floor(diffHours / 24);
+            
+            let timeSinceText;
+            if (diffDays > 0) {
+                timeSinceText = `${diffDays}d ${diffHours % 24}h ago`;
+            } else if (diffHours > 0) {
+                timeSinceText = `${diffHours}h ${diffMins % 60}m ago`;
+            } else {
+                timeSinceText = `${diffMins}m ago`;
+            }
+            
+            document.getElementById('timeSince').textContent = `Updated ${timeSinceText}`;
+        }
+        
+        function applyFilter() {
+            const searchValue = document.getElementById('searchInput').value.trim().toLowerCase();
+            if (!searchValue) {
+                clearFilter();
+                return;
+            }
+            
+            currentFilter = searchValue;
+            
+            filteredItems = allItems.filter(item => {
+                const username = item.getAttribute('username')?.toLowerCase() || '';
+                const bodyText = item.querySelector('body')?.textContent?.toLowerCase() || '';
+                const comments = Array.from(item.querySelectorAll('comment'));
+                const commentText = comments.map(c => c.getAttribute('username')?.toLowerCase() + ' ' + c.textContent?.toLowerCase()).join(' ');
+                
+                return username.includes(searchValue) || 
+                       bodyText.includes(searchValue) || 
+                       commentText.includes(searchValue);
+            });
+            
+            displayItems(filteredItems);
+            document.getElementById('filterBadge').innerHTML = 
+                `<div class="filter-active">Filtered by: ${searchValue}</div>`;
+        }
+        
+        function clearFilter() {
+            currentFilter = '';
+            document.getElementById('filterBadge').innerHTML = '';
+            displayItems(allItems);
+        }
+        
+        function displayItems(items) {
+            const contentDiv = document.getElementById('content');
+            
+            if (items.length === 0) {
+                contentDiv.innerHTML = '<div class="loading">No items match your filter.</div>';
+                document.getElementById('totalItems').textContent = '0 items';
+                return;
+            }
+            
+            document.getElementById('totalItems').textContent = `${items.length} items`;
+            contentDiv.innerHTML = '';
+            
+            items.forEach((item, index) => {
+                const card = createCard(item, index);
+                contentDiv.appendChild(card);
+            });
         }
         
         function createCard(item, index) {
@@ -424,7 +599,8 @@
         }
         
         function showDetails(index) {
-            const item = allItems[index];
+            const items = currentFilter ? filteredItems : allItems;
+            const item = items[index];
             const objectName = item.getAttribute('objectname');
             const bodyText = item.querySelector('body')?.textContent || 'No details available';
             
@@ -434,7 +610,8 @@
         }
         
         function showComments(index) {
-            const item = allItems[index];
+            const items = currentFilter ? filteredItems : allItems;
+            const item = items[index];
             const objectName = item.getAttribute('objectname');
             const comments = item.querySelectorAll('comment');
             
@@ -497,6 +674,13 @@
         document.getElementById('modal').addEventListener('click', function(e) {
             if (e.target === this) {
                 closeModal();
+            }
+        });
+        
+        // Allow Enter key to trigger filter
+        document.getElementById('searchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                applyFilter();
             }
         });
         
