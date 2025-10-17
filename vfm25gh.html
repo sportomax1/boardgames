@@ -100,9 +100,29 @@
         
         .card-header {
             display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        
+        .game-thumbnail {
+            width: 80px;
+            height: 80px;
+            border-radius: 8px;
+            object-fit: cover;
+            background: #e5e5e7;
+            flex-shrink: 0;
+        }
+        
+        .card-info {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .card-top-row {
+            display: flex;
             justify-content: space-between;
             align-items: start;
-            margin-bottom: 12px;
+            margin-bottom: 4px;
         }
         
         .game-name {
@@ -110,12 +130,20 @@
             font-weight: 600;
             color: #1d1d1f;
             margin-bottom: 4px;
+            line-height: 1.3;
         }
         
         .username {
             font-size: 14px;
             color: #0066cc;
             margin-bottom: 8px;
+        }
+        
+        .badge-group {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 4px;
         }
         
         .sold-badge {
@@ -134,6 +162,12 @@
             border-radius: 12px;
             font-size: 12px;
             font-weight: 600;
+        }
+        
+        .time-since {
+            font-size: 11px;
+            color: #6e6e73;
+            white-space: nowrap;
         }
         
         .price {
@@ -371,22 +405,25 @@
         let currentFilter = '';
         let lastUpdateTime = null;
         let timeSinceInterval = null;
+        let thumbnailCache = {};
+        let pendingThumbnails = new Set();
         
         async function loadGeekList() {
             try {
-                const response = await fetch('vfm25.xml');
+                const response = await fetch('vfm25.xml?t=' + Date.now());
                 const text = await response.text();
                 const parser = new DOMParser();
                 const xml = parser.parseFromString(text, 'text/xml');
                 
-                // Get last modified time from response headers or use current time
-                const lastModified = response.headers.get('last-modified');
-                lastUpdateTime = lastModified ? new Date(lastModified) : new Date();
+                // Parse the pubdate from the XML geeklist root
+                const geeklist = xml.querySelector('geeklist');
+                const pubdate = geeklist?.getAttribute('postdate');
+                lastUpdateTime = pubdate ? new Date(pubdate) : new Date();
                 updateTimeDisplay();
                 
                 // Start interval to update "time since"
                 if (timeSinceInterval) clearInterval(timeSinceInterval);
-                timeSinceInterval = setInterval(updateTimeSince, 60000); // Update every minute
+                timeSinceInterval = setInterval(updateTimeSince, 60000);
                 
                 const items = xml.querySelectorAll('item');
                 const contentDiv = document.getElementById('content');
@@ -412,10 +449,70 @@
                     displayItems(allItems);
                 }
                 
+                // Load thumbnails for visible items
+                loadVisibleThumbnails();
+                
             } catch (error) {
                 document.getElementById('content').innerHTML = 
                     `<div class="error">Error loading data: ${error.message}</div>`;
             }
+        }
+        
+        async function loadVisibleThumbnails() {
+            const cards = document.querySelectorAll('.card');
+            const objectIds = [];
+            
+            cards.forEach(card => {
+                const rect = card.getBoundingClientRect();
+                const isVisible = rect.top < window.innerHeight + 500 && rect.bottom > -500;
+                
+                if (isVisible) {
+                    const objectId = card.dataset.objectid;
+                    if (objectId && !thumbnailCache[objectId] && !pendingThumbnails.has(objectId)) {
+                        objectIds.push(objectId);
+                        pendingThumbnails.add(objectId);
+                    }
+                }
+            });
+            
+            if (objectIds.length > 0) {
+                // Process in batches of 20
+                for (let i = 0; i < objectIds.length; i += 20) {
+                    const batch = objectIds.slice(i, i + 20);
+                    fetchThumbnails(batch);
+                }
+            }
+        }
+        
+        async function fetchThumbnails(objectIds) {
+            try {
+                const idsParam = objectIds.join(',');
+                const response = await fetch(`https://boardgamegeek.com/xmlapi2/thing?id=${idsParam}&type=boardgame`);
+                const text = await response.text();
+                const parser = new DOMParser();
+                const xml = parser.parseFromString(text, 'text/xml');
+                
+                const items = xml.querySelectorAll('item');
+                items.forEach(item => {
+                    const id = item.getAttribute('id');
+                    const thumbnail = item.querySelector('thumbnail')?.textContent;
+                    if (thumbnail) {
+                        thumbnailCache[id] = thumbnail;
+                        updateThumbnail(id, thumbnail);
+                    }
+                    pendingThumbnails.delete(id);
+                });
+            } catch (error) {
+                console.error('Error fetching thumbnails:', error);
+                objectIds.forEach(id => pendingThumbnails.delete(id));
+            }
+        }
+        
+        function updateThumbnail(objectId, thumbnailUrl) {
+            const imgs = document.querySelectorAll(`img[data-objectid="${objectId}"]`);
+            imgs.forEach(img => {
+                img.src = thumbnailUrl;
+            });
         }
         
         function updateTimeDisplay() {
@@ -452,6 +549,23 @@
             }
             
             document.getElementById('timeSince').textContent = `Updated ${timeSinceText}`;
+        }
+        
+        function getTimeSincePosted(postDate) {
+            const now = new Date();
+            const posted = new Date(postDate);
+            const diffMs = now - posted;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMins / 60);
+            const diffDays = Math.floor(diffHours / 24);
+            
+            if (diffDays > 0) {
+                return `${diffDays}d ago`;
+            } else if (diffHours > 0) {
+                return `${diffHours}h ago`;
+            } else {
+                return `${diffMins}m ago`;
+            }
         }
         
         function applyFilter() {
@@ -501,6 +615,9 @@
                 const card = createCard(item, index);
                 contentDiv.appendChild(card);
             });
+            
+            // Load thumbnails after rendering
+            setTimeout(() => loadVisibleThumbnails(), 100);
         }
         
         function createCard(item, index) {
@@ -518,9 +635,13 @@
             const priceAttr = item.getAttribute('price');
             const currency = item.getAttribute('currency') || 'USD';
             
+            card.dataset.objectid = objectId;
+            
             const bodyText = item.querySelector('body')?.textContent || '';
             const comments = item.querySelectorAll('comment');
             const commentCount = comments.length;
+            
+            const timeSince = getTimeSincePosted(postDate);
             
             // Extract price from body if not in attributes
             let displayPrice = priceAttr;
@@ -549,14 +670,24 @@
                 year: 'numeric'
             }) : 'N/A';
             
+            const thumbnailUrl = thumbnailCache[objectId] || '';
+            
             card.innerHTML = `
                 <div class="card-header">
-                    <div>
-                        <div class="game-name">${objectName}</div>
-                        <div class="username">@${username}</div>
-                    </div>
-                    <div class="${sold ? 'sold-badge' : 'available-badge'}">
-                        ${sold ? 'SOLD' : 'AVAILABLE'}
+                    <img src="${thumbnailUrl}" alt="${objectName}" class="game-thumbnail" data-objectid="${objectId}">
+                    <div class="card-info">
+                        <div class="card-top-row">
+                            <div>
+                                <div class="game-name">${objectName}</div>
+                                <div class="username">@${username}</div>
+                            </div>
+                            <div class="badge-group">
+                                <div class="${sold ? 'sold-badge' : 'available-badge'}">
+                                    ${sold ? 'SOLD' : 'AVAILABLE'}
+                                </div>
+                                <div class="time-since">${timeSince}</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 
@@ -653,7 +784,6 @@
         }
         
         function formatBodyText(text) {
-            // Basic BBCode formatting
             let formatted = escapeHtml(text);
             formatted = formatted.replace(/\[B\](.*?)\[\/B\]/gi, '<strong>$1</strong>');
             formatted = formatted.replace(/\[I\](.*?)\[\/I\]/gi, '<em>$1</em>');
@@ -670,24 +800,24 @@
             return div.innerHTML;
         }
         
-        // Close modal when clicking outside
         document.getElementById('modal').addEventListener('click', function(e) {
             if (e.target === this) {
                 closeModal();
             }
         });
         
-        // Allow Enter key to trigger filter
         document.getElementById('searchInput').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 applyFilter();
             }
         });
         
-        // Load data on page load
-        loadGeekList();
+        // Load more thumbnails on scroll
+        window.addEventListener('scroll', () => {
+            loadVisibleThumbnails();
+        });
         
-        // Reload every 5 minutes
+        loadGeekList();
         setInterval(loadGeekList, 5 * 60 * 1000);
     </script>
 </body>
