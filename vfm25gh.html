@@ -113,26 +113,131 @@
             font-weight: 600;
         }
         
-        .body-text {
+        .button-group {
+            display: flex;
+            gap: 8px;
             margin-top: 12px;
-            padding-top: 12px;
-            border-top: 1px solid #e5e5e7;
+        }
+        
+        .btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        
+        .btn:active {
+            opacity: 0.7;
+        }
+        
+        .btn-details {
+            background: #007aff;
+            color: white;
+        }
+        
+        .btn-comments {
+            background: #5856d6;
+            color: white;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            animation: fadeIn 0.2s;
+        }
+        
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+            animation: slideUp 0.3s;
+        }
+        
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid #e5e5e7;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            background: white;
+            border-radius: 16px 16px 0 0;
+        }
+        
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1d1d1f;
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 28px;
+            color: #6e6e73;
+            cursor: pointer;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-body {
+            padding: 20px;
+            font-size: 15px;
+            line-height: 1.6;
+            color: #1d1d1f;
+        }
+        
+        .comment-item {
+            padding: 12px;
+            background: #f5f5f7;
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+        
+        .comment-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        
+        .comment-user {
+            font-weight: 600;
+            color: #0066cc;
+        }
+        
+        .comment-date {
+            color: #6e6e73;
+        }
+        
+        .comment-text {
             font-size: 14px;
             color: #1d1d1f;
-            line-height: 1.5;
-        }
-        
-        .comments-section {
-            margin-top: 12px;
-            padding-top: 12px;
-            border-top: 1px solid #e5e5e7;
-        }
-        
-        .comments-count {
-            font-size: 13px;
-            font-weight: 600;
-            color: #6e6e73;
-            margin-bottom: 8px;
         }
         
         .loading {
@@ -148,6 +253,16 @@
             border-radius: 12px;
             margin-bottom: 16px;
         }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes slideUp {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
     </style>
 </head>
 <body>
@@ -162,7 +277,19 @@
         <div class="loading">Loading items...</div>
     </div>
 
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title" id="modalTitle"></div>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody"></div>
+        </div>
+    </div>
+
     <script>
+        let allItems = [];
+        
         async function loadGeekList() {
             try {
                 const response = await fetch('vfm25.xml');
@@ -178,11 +305,20 @@
                     return;
                 }
                 
-                document.getElementById('totalItems').textContent = `${items.length} items`;
+                // Filter out rules (objectid 340938) and sort by postdate desc
+                allItems = Array.from(items)
+                    .filter(item => item.getAttribute('objectid') !== '340938')
+                    .sort((a, b) => {
+                        const dateA = new Date(a.getAttribute('postdate'));
+                        const dateB = new Date(b.getAttribute('postdate'));
+                        return dateB - dateA;
+                    });
+                
+                document.getElementById('totalItems').textContent = `${allItems.length} items`;
                 contentDiv.innerHTML = '';
                 
-                items.forEach(item => {
-                    const card = createCard(item);
+                allItems.forEach((item, index) => {
+                    const card = createCard(item, index);
                     contentDiv.appendChild(card);
                 });
                 
@@ -192,7 +328,7 @@
             }
         }
         
-        function createCard(item) {
+        function createCard(item, index) {
             const card = document.createElement('div');
             card.className = 'card';
             
@@ -227,7 +363,9 @@
             const formattedPostDate = new Date(postDate).toLocaleDateString('en-US', {
                 month: 'short',
                 day: 'numeric',
-                year: 'numeric'
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
             });
             
             const formattedEditDate = editDate ? new Date(editDate).toLocaleDateString('en-US', {
@@ -276,10 +414,77 @@
                     </div>
                 </div>
                 
-                ${bodyText ? `<div class="body-text">${escapeHtml(bodyText.substring(0, 200))}${bodyText.length > 200 ? '...' : ''}</div>` : ''}
+                <div class="button-group">
+                    <button class="btn btn-details" onclick="showDetails(${index})">Details</button>
+                    <button class="btn btn-comments" onclick="showComments(${index})">Comments (${commentCount})</button>
+                </div>
             `;
             
             return card;
+        }
+        
+        function showDetails(index) {
+            const item = allItems[index];
+            const objectName = item.getAttribute('objectname');
+            const bodyText = item.querySelector('body')?.textContent || 'No details available';
+            
+            document.getElementById('modalTitle').textContent = objectName;
+            document.getElementById('modalBody').innerHTML = `<div>${formatBodyText(bodyText)}</div>`;
+            document.getElementById('modal').classList.add('active');
+        }
+        
+        function showComments(index) {
+            const item = allItems[index];
+            const objectName = item.getAttribute('objectname');
+            const comments = item.querySelectorAll('comment');
+            
+            document.getElementById('modalTitle').textContent = `Comments - ${objectName}`;
+            
+            if (comments.length === 0) {
+                document.getElementById('modalBody').innerHTML = '<p style="color: #6e6e73;">No comments yet.</p>';
+            } else {
+                let commentsHtml = '';
+                comments.forEach(comment => {
+                    const username = comment.getAttribute('username');
+                    const date = comment.getAttribute('date');
+                    const text = comment.textContent.trim();
+                    const formattedDate = new Date(date).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                    
+                    commentsHtml += `
+                        <div class="comment-item">
+                            <div class="comment-header">
+                                <span class="comment-user">@${username}</span>
+                                <span class="comment-date">${formattedDate}</span>
+                            </div>
+                            <div class="comment-text">${escapeHtml(text)}</div>
+                        </div>
+                    `;
+                });
+                document.getElementById('modalBody').innerHTML = commentsHtml;
+            }
+            
+            document.getElementById('modal').classList.add('active');
+        }
+        
+        function closeModal() {
+            document.getElementById('modal').classList.remove('active');
+        }
+        
+        function formatBodyText(text) {
+            // Basic BBCode formatting
+            let formatted = escapeHtml(text);
+            formatted = formatted.replace(/\[B\](.*?)\[\/B\]/gi, '<strong>$1</strong>');
+            formatted = formatted.replace(/\[I\](.*?)\[\/I\]/gi, '<em>$1</em>');
+            formatted = formatted.replace(/\[U\](.*?)\[\/U\]/gi, '<u>$1</u>');
+            formatted = formatted.replace(/\[-\](.*?)\[\/-\]/gi, '<del>$1</del>');
+            formatted = formatted.replace(/\[url=(.*?)\](.*?)\[\/url\]/gi, '<a href="$1" target="_blank" style="color: #0066cc;">$2</a>');
+            formatted = formatted.replace(/\n/g, '<br>');
+            return formatted;
         }
         
         function escapeHtml(text) {
@@ -287,6 +492,13 @@
             div.textContent = text;
             return div.innerHTML;
         }
+        
+        // Close modal when clicking outside
+        document.getElementById('modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
         
         // Load data on page load
         loadGeekList();
