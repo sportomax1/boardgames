@@ -1,4 +1,47 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<message>
-	Your request for this geeklist has been accepted and will be processed.  Please try again later for access.
-</message>
+name: Fetch BGG VFM Geeklist
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/30 * * * *"
+
+permissions:
+  contents: write
+
+jobs:
+  fetch-bgg:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Fetch BGG VFM geeklist XML
+        run: |
+          MAX_RETRIES=5
+          RETRY_COUNT=0
+          
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+            curl -L "https://boardgamegeek.com/xmlapi/geeklist/363504?comments=1" -o vfm25.xml
+            
+            # Check if the response contains the "accepted and will be processed" message
+            if grep -q "Your request for this geeklist has been accepted and will be processed" vfm25.xml; then
+              echo "Geeklist is being processed by BGG. Waiting 15 seconds before retry..."
+              sleep 15
+              RETRY_COUNT=$((RETRY_COUNT + 1))
+            else
+              echo "Geeklist data retrieved successfully!"
+              break
+            fi
+          done
+          
+          if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
+            echo "Max retries reached. Using latest response."
+          fi
+
+      - name: Commit and push results
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add vfm25.xml
+          git commit -m "Update VFM geeklist" || echo "No changes to commit"
+          git push
