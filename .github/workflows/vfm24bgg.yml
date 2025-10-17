@@ -25,7 +25,7 @@ jobs:
             curl -L "https://boardgamegeek.com/xmlapi/geeklist/342440?comments=1" -o vfm24bgg.xml
             
             # Check if the response contains the "accepted and will be processed" message
-            if grep -q "Your request for this geeklist has been accepted and will be processed" vfm25.xml; then
+            if grep -q "Your request for this geeklist has been accepted and will be processed" vfm24bgg.xml; then
               echo "[$(date '+%Y-%m-%d %H:%M:%S')] Geeklist is being processed by BGG. Waiting 31 seconds before retry..."
               RETRY_COUNT=$((RETRY_COUNT + 1))
               if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
@@ -46,6 +46,6 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add vfm24.xml
+          git add vfm24bgg.xml
           git commit -m "Update VFM geeklist" || echo "No changes to commit"
           git push
