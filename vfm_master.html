@@ -633,8 +633,8 @@
                 fileStats = {};
                 geeklistIds = {};
                 
-                // Load all XML files
-                for (const fileInfo of xmlFiles) {
+                // Load all XML files in parallel
+                const loadPromises = xmlFiles.map(async (fileInfo) => {
                     const fileName = fileInfo.name;
                     updateProgress(fileName, 'loading');
                     
@@ -644,6 +644,10 @@
                         if (!response.ok) {
                             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                         }
+                        
+                        // Get file modification date from response headers
+                        const lastModified = response.headers.get('Last-Modified');
+                        let fileDate = lastModified ? new Date(lastModified) : null;
                         
                         const text = await response.text();
                         
@@ -666,10 +670,15 @@
                             throw new Error('No geeklist element found in XML');
                         }
                         
-                        const pubdate = geeklist?.getAttribute('postdate');
-                        let fileDate = null;
-                        if (pubdate) {
-                            fileDate = new Date(pubdate);
+                        // If we couldn't get Last-Modified header, try pubdate from XML
+                        if (!fileDate) {
+                            const pubdate = geeklist?.getAttribute('postdate');
+                            if (pubdate) {
+                                fileDate = new Date(pubdate);
+                            }
+                        }
+                        
+                        if (fileDate) {
                             fileStats[fileName] = { date: fileDate, count: 0 };
                         }
                         
@@ -683,8 +692,6 @@
                             item.setAttribute('geeklist-id', fileInfo.geeklistId);
                         });
                         
-                        allLoadedItems.push(...itemsArray);
-                        
                         // Filter and count valid items
                         const validCount = itemsArray.filter(item => item.getAttribute('objectid') !== '340938').length;
                         if (fileStats[fileName]) {
@@ -693,9 +700,40 @@
                         
                         updateProgress(fileName, 'success', validCount, fileDate);
                         console.log(`✓ Successfully loaded ${fileName}: ${validCount} items`);
+                        
+                        return itemsArray;
                     } catch (error) {
                         console.error(`✗ Error loading ${fileName}:`, error.message);
                         updateProgress(fileName, 'error');
+                        return [];
+                    }
+                });
+                
+                // Wait for all files to load and start displaying as soon as first file is ready
+                for (const promise of loadPromises) {
+                    const items = await promise;
+                    if (items.length > 0) {
+                        // Add items to allItems and display immediately
+                        const filteredNewItems = items.filter(item => item.getAttribute('objectid') !== '340938');
+                        allLoadedItems.push(...filteredNewItems);
+                        
+                        // Sort and update display
+                        allItems = allLoadedItems.sort((a, b) => {
+                            const dateA = new Date(a.getAttribute('postdate'));
+                            const dateB = new Date(b.getAttribute('postdate'));
+                            return dateB - dateA;
+                        });
+                        
+                        // If this is the first batch, start displaying
+                        if (displayedItems.length === 0) {
+                            currentPage = 0;
+                            displayedItems = [];
+                            if (currentFilter) {
+                                applyFilter();
+                            } else {
+                                loadMoreItems();
+                            }
+                        }
                     }
                 }
                 
@@ -706,20 +744,16 @@
                     return;
                 }
                 
-                // Filter out rules (objectid 340938) and sort by postdate desc
-                allItems = allLoadedItems
-                    .filter(item => item.getAttribute('objectid') !== '340938')
-                    .sort((a, b) => {
-                        const dateA = new Date(a.getAttribute('postdate'));
-                        const dateB = new Date(b.getAttribute('postdate'));
-                        return dateB - dateA;
-                    });
+                // Final sort after all items loaded
+                allItems = allLoadedItems.sort((a, b) => {
+                    const dateA = new Date(a.getAttribute('postdate'));
+                    const dateB = new Date(b.getAttribute('postdate'));
+                    return dateB - dateA;
+                });
                 
-                // Reset pagination
+                // Refresh display with complete data
                 currentPage = 0;
                 displayedItems = [];
-                
-                // Apply current filter if exists
                 if (currentFilter) {
                     applyFilter();
                 } else {
@@ -970,8 +1004,9 @@
             
             const thumbnailUrl = thumbnailCache[objectId] || '';
             
-            // Build BGG URL
-            const bggUrl = `https://boardgamegeek.com/geeklist/${geeklistId}?itemid=${itemId}`;
+            // Build BGG URLs
+            const geeklistUrl = `https://boardgamegeek.com/geeklist/${geeklistId}?itemid=${itemId}`;
+            const gameUrl = `https://boardgamegeek.com/boardgame/${objectId}`;
             
             card.innerHTML = `
                 <div class="card-header">
@@ -1023,8 +1058,9 @@
                 </div>
                 
                 <div class="button-group">
-                    <a href="${bggUrl}" target="_blank" class="btn btn-link">View on BGG</a>
-                    <button class="btn btn-details" onclick="showDetails(${index})">Details</button>
+                    <a href="${geeklistUrl}" target="_blank" class="btn btn-link">GeekListing</a>
+                    <a href="${gameUrl}" target="_blank" class="btn btn-details">Game Page</a>
+                    <button class="btn btn-details" onclick="showDetails(${index})" style="background: #ff9500;">Details</button>
                     <button class="btn btn-comments" onclick="showComments(${index})">Comments (${commentCount})</button>
                 </div>
             `;
