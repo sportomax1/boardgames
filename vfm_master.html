@@ -923,4 +923,145 @@
                                     ${sold ? 'SOLD' : 'AVAILABLE'}
                                 </div>
                                 <div class="time-since">${timeSince}</div>
-                            </div
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="price">${formattedPrice}</div>
+                
+                <div class="meta-info">
+                    <div class="meta-item">
+                        <span class="meta-label">Item ID:</span>
+                        <span>${itemId}</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Object ID:</span>
+                        <span>${objectId}</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Posted:</span>
+                        <span>${formattedPostDate}</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Edited:</span>
+                        <span>${formattedEditDate}</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">👍 Thumbs:</span>
+                        <span>${thumbs}</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">💬 Comments:</span>
+                        <span>${commentCount}</span>
+                    </div>
+                </div>
+                
+                <div class="button-group">
+                    <button class="btn btn-details" onclick="showDetails(${index})">Details</button>
+                    <button class="btn btn-comments" onclick="showComments(${index})">Comments (${commentCount})</button>
+                </div>
+            `;
+            
+            return card;
+        }
+        
+        function showDetails(index) {
+            const items = currentFilter ? filteredItems : allItems;
+            const item = items[index];
+            const objectName = item.getAttribute('objectname');
+            const bodyText = item.querySelector('body')?.textContent || 'No details available';
+            
+            document.getElementById('modalTitle').textContent = objectName;
+            document.getElementById('modalBody').innerHTML = `<div>${formatBodyText(bodyText)}</div>`;
+            document.getElementById('modal').classList.add('active');
+        }
+        
+        function showComments(index) {
+            const items = currentFilter ? filteredItems : allItems;
+            const item = items[index];
+            const objectName = item.getAttribute('objectname');
+            const comments = item.querySelectorAll('comment');
+            
+            document.getElementById('modalTitle').textContent = `Comments - ${objectName}`;
+            
+            if (comments.length === 0) {
+                document.getElementById('modalBody').innerHTML = '<p style="color: #6e6e73;">No comments yet.</p>';
+            } else {
+                let commentsHtml = '';
+                comments.forEach(comment => {
+                    const username = comment.getAttribute('username');
+                    const date = comment.getAttribute('date');
+                    const text = comment.textContent.trim();
+                    const formattedDate = new Date(date).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                    
+                    commentsHtml += `
+                        <div class="comment-item">
+                            <div class="comment-header">
+                                <span class="comment-user">@${username}</span>
+                                <span class="comment-date">${formattedDate}</span>
+                            </div>
+                            <div class="comment-text">${escapeHtml(text)}</div>
+                        </div>
+                    `;
+                });
+                document.getElementById('modalBody').innerHTML = commentsHtml;
+            }
+            
+            document.getElementById('modal').classList.add('active');
+        }
+        
+        function closeModal() {
+            document.getElementById('modal').classList.remove('active');
+        }
+        
+        function formatBodyText(text) {
+            let formatted = escapeHtml(text);
+            formatted = formatted.replace(/\[B\](.*?)\[\/B\]/gi, '<strong>$1</strong>');
+            formatted = formatted.replace(/\[I\](.*?)\[\/I\]/gi, '<em>$1</em>');
+            formatted = formatted.replace(/\[U\](.*?)\[\/U\]/gi, '<u>$1</u>');
+            formatted = formatted.replace(/\[-\](.*?)\[\/-\]/gi, '<del>$1</del>');
+            formatted = formatted.replace(/\[url=(.*?)\](.*?)\[\/url\]/gi, '<a href="$1" target="_blank" style="color: #0066cc;">$2</a>');
+            formatted = formatted.replace(/\n/g, '<br>');
+            return formatted;
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        document.getElementById('modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+        
+        document.getElementById('userSearchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                applyFilter();
+            }
+        });
+        
+        document.getElementById('gameSearchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                applyFilter();
+            }
+        });
+        
+        // Load more thumbnails on scroll
+        window.addEventListener('scroll', () => {
+            loadVisibleThumbnails();
+        });
+        
+        loadGeekList();
+        setInterval(loadGeekList, 5 * 60 * 1000);
+    </script>
+</body>
+</html>
