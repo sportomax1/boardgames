@@ -24,6 +24,9 @@
             padding: 20px;
             margin-bottom: 16px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
         
         .header h1 {
@@ -56,9 +59,20 @@
             font-size: 13px;
         }
         
+        .progress-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
         .progress-label {
             font-weight: 600;
             color: #1d1d1f;
+        }
+        
+        .progress-date {
+            font-size: 11px;
+            color: #6e6e73;
         }
         
         .progress-count {
@@ -295,10 +309,18 @@
             font-weight: 600;
             cursor: pointer;
             transition: opacity 0.2s;
+            text-decoration: none;
+            color: white;
+            text-align: center;
         }
         
         .btn:active {
             opacity: 0.7;
+        }
+        
+        .btn-link {
+            background: #34c759;
+            color: white;
         }
         
         .btn-details {
@@ -412,6 +434,13 @@
             color: #6e6e73;
         }
         
+        .loading-more {
+            text-align: center;
+            padding: 20px;
+            color: #6e6e73;
+            font-size: 14px;
+        }
+        
         .error {
             background: #ff3b30;
             color: white;
@@ -447,8 +476,6 @@
         <h1>VFM Geeklist</h1>
         <div class="stats">
             <span id="totalItems">Loading...</span>
-            <span id="lastUpdate">Last updated: --</span>
-            <span id="timeSince">Updated -- ago</span>
         </div>
         
         <div class="progress-container" id="progressContainer"></div>
@@ -495,6 +522,10 @@
     <div id="content">
         <div class="loading">Loading items...</div>
     </div>
+    
+    <div id="loadingMore" class="loading-more" style="display: none;">
+        Loading more items...
+    </div>
 
     <div id="modal" class="modal">
         <div class="modal-content">
@@ -509,19 +540,22 @@
     <script>
         let allItems = [];
         let filteredItems = [];
+        let displayedItems = [];
         let currentFilter = '';
         let currentSearchType = 'user';
         let currentMatchType = 'contains';
-        let lastUpdateTime = null;
-        let timeSinceInterval = null;
         let thumbnailCache = {};
         let pendingThumbnails = new Set();
         let fileStats = {};
+        let itemsPerPage = 50;
+        let currentPage = 0;
+        let isLoadingMore = false;
+        let geeklistIds = {};
         
         const xmlFiles = [
-            { name: 'vfm25.xml', label: 'VFM 2025' },
-            { name: 'vfm24bgg.xml', label: 'VFM 2024' },
-            { name: 'vfm23bgg.xml', label: 'VFM 2023' }
+            { name: 'vfm25.xml', label: 'VFM 2025', geeklistId: '342440' },
+            { name: 'vfm24bgg.xml', label: 'VFM 2024', geeklistId: '325630' },
+            { name: 'vfm23bgg.xml', label: 'VFM 2023', geeklistId: '310347' }
         ];
         
         function setSearchType(type) {
@@ -546,7 +580,7 @@
             });
         }
         
-        function updateProgress(fileName, status, count = 0) {
+        function updateProgress(fileName, status, count = 0, lastUpdate = null) {
             const progressContainer = document.getElementById('progressContainer');
             let progressItem = document.getElementById(`progress-${fileName}`);
             
@@ -569,9 +603,24 @@
                 statusHtml = '<span class="progress-status progress-error">✗ Failed</span>';
             }
             
+            let dateHtml = '';
+            if (lastUpdate) {
+                const formatted = lastUpdate.toLocaleString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                dateHtml = `<div class="progress-date">Updated: ${formatted}</div>`;
+            }
+            
             progressItem.innerHTML = `
-                <div>
-                    <span class="progress-label">${label}</span>
+                <div class="progress-left">
+                    <div>
+                        <span class="progress-label">${label}</span>
+                        ${dateHtml}
+                    </div>
                     ${statusHtml}
                 </div>
                 <span class="progress-count">${count > 0 ? `${count} items` : ''}</span>
@@ -581,8 +630,8 @@
         async function loadGeekList() {
             try {
                 const allLoadedItems = [];
-                let mostRecentDate = null;
                 fileStats = {};
+                geeklistIds = {};
                 
                 // Load all XML files
                 for (const fileInfo of xmlFiles) {
@@ -591,19 +640,37 @@
                     
                     try {
                         const response = await fetch(fileName + '?t=' + Date.now());
+                        
+                        if (!response.ok) {
+                            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                        }
+                        
                         const text = await response.text();
+                        
+                        if (!text || text.trim().length === 0) {
+                            throw new Error('Empty response');
+                        }
+                        
                         const parser = new DOMParser();
                         const xml = parser.parseFromString(text, 'text/xml');
                         
+                        // Check for XML parsing errors
+                        const parserError = xml.querySelector('parsererror');
+                        if (parserError) {
+                            throw new Error('XML parsing error: ' + parserError.textContent);
+                        }
+                        
                         // Parse the pubdate from the XML geeklist root
                         const geeklist = xml.querySelector('geeklist');
+                        if (!geeklist) {
+                            throw new Error('No geeklist element found in XML');
+                        }
+                        
                         const pubdate = geeklist?.getAttribute('postdate');
+                        let fileDate = null;
                         if (pubdate) {
-                            const date = new Date(pubdate);
-                            fileStats[fileName] = { date: date, count: 0 };
-                            if (!mostRecentDate || date > mostRecentDate) {
-                                mostRecentDate = date;
-                            }
+                            fileDate = new Date(pubdate);
+                            fileStats[fileName] = { date: fileDate, count: 0 };
                         }
                         
                         const items = xml.querySelectorAll('item');
@@ -613,27 +680,24 @@
                         itemsArray.forEach(item => {
                             item.setAttribute('source-file', fileName);
                             item.setAttribute('source-label', fileInfo.label);
+                            item.setAttribute('geeklist-id', fileInfo.geeklistId);
                         });
                         
                         allLoadedItems.push(...itemsArray);
                         
                         // Filter and count valid items
                         const validCount = itemsArray.filter(item => item.getAttribute('objectid') !== '340938').length;
-                        fileStats[fileName].count = validCount;
+                        if (fileStats[fileName]) {
+                            fileStats[fileName].count = validCount;
+                        }
                         
-                        updateProgress(fileName, 'success', validCount);
+                        updateProgress(fileName, 'success', validCount, fileDate);
+                        console.log(`✓ Successfully loaded ${fileName}: ${validCount} items`);
                     } catch (error) {
-                        console.error(`Error loading ${fileName}:`, error);
+                        console.error(`✗ Error loading ${fileName}:`, error.message);
                         updateProgress(fileName, 'error');
                     }
                 }
-                
-                lastUpdateTime = mostRecentDate || new Date();
-                updateTimeDisplay();
-                
-                // Start interval to update "time since"
-                if (timeSinceInterval) clearInterval(timeSinceInterval);
-                timeSinceInterval = setInterval(updateTimeSince, 60000);
                 
                 const contentDiv = document.getElementById('content');
                 
@@ -651,20 +715,67 @@
                         return dateB - dateA;
                     });
                 
+                // Reset pagination
+                currentPage = 0;
+                displayedItems = [];
+                
                 // Apply current filter if exists
                 if (currentFilter) {
                     applyFilter();
                 } else {
-                    displayItems(allItems);
+                    loadMoreItems();
                 }
-                
-                // Load thumbnails for visible items
-                loadVisibleThumbnails();
                 
             } catch (error) {
                 document.getElementById('content').innerHTML = 
                     `<div class="error">Error loading data: ${error.message}</div>`;
             }
+        }
+        
+        function loadMoreItems() {
+            if (isLoadingMore) return;
+            
+            isLoadingMore = true;
+            const loadingMoreDiv = document.getElementById('loadingMore');
+            loadingMoreDiv.style.display = 'block';
+            
+            const items = currentFilter ? filteredItems : allItems;
+            const startIdx = currentPage * itemsPerPage;
+            const endIdx = Math.min(startIdx + itemsPerPage, items.length);
+            const itemsToAdd = items.slice(startIdx, endIdx);
+            
+            if (itemsToAdd.length === 0) {
+                loadingMoreDiv.style.display = 'none';
+                isLoadingMore = false;
+                return;
+            }
+            
+            const contentDiv = document.getElementById('content');
+            
+            // Clear content if this is the first page
+            if (currentPage === 0) {
+                contentDiv.innerHTML = '';
+                displayedItems = [];
+            }
+            
+            itemsToAdd.forEach((item, index) => {
+                const card = createCard(item, startIdx + index);
+                contentDiv.appendChild(card);
+                displayedItems.push(item);
+            });
+            
+            currentPage++;
+            
+            // Update total count
+            document.getElementById('totalItems').textContent = 
+                `Showing ${displayedItems.length} of ${items.length} items`;
+            
+            // Load thumbnails after rendering
+            setTimeout(() => {
+                loadVisibleThumbnails();
+                loadingMoreDiv.style.display = 'none';
+                isLoadingMore = false;
+            }, 100);
         }
         
         async function loadVisibleThumbnails() {
@@ -722,42 +833,6 @@
             imgs.forEach(img => {
                 img.src = thumbnailUrl;
             });
-        }
-        
-        function updateTimeDisplay() {
-            if (!lastUpdateTime) return;
-            
-            const formatted = lastUpdateTime.toLocaleString('en-US', {
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-            
-            document.getElementById('lastUpdate').textContent = `Last updated: ${formatted}`;
-            updateTimeSince();
-        }
-        
-        function updateTimeSince() {
-            if (!lastUpdateTime) return;
-            
-            const now = new Date();
-            const diffMs = now - lastUpdateTime;
-            const diffMins = Math.floor(diffMs / 60000);
-            const diffHours = Math.floor(diffMins / 60);
-            const diffDays = Math.floor(diffHours / 24);
-            
-            let timeSinceText;
-            if (diffDays > 0) {
-                timeSinceText = `${diffDays}d ${diffHours % 24}h ago`;
-            } else if (diffHours > 0) {
-                timeSinceText = `${diffHours}h ${diffMins % 60}m ago`;
-            } else {
-                timeSinceText = `${diffMins}m ago`;
-            }
-            
-            document.getElementById('timeSince').textContent = `Updated ${timeSinceText}`;
         }
         
         function getTimeSincePosted(postDate) {
@@ -819,7 +894,10 @@
                 });
             }
             
-            displayItems(filteredItems);
+            // Reset pagination and display filtered items
+            currentPage = 0;
+            displayedItems = [];
+            loadMoreItems();
             
             const filterType = currentSearchType === 'user' ? 'User' : `Game (${currentMatchType})`;
             document.getElementById('filterBadge').innerHTML = 
@@ -831,28 +909,11 @@
             document.getElementById('filterBadge').innerHTML = '';
             document.getElementById('userSearchInput').value = '';
             document.getElementById('gameSearchInput').value = '';
-            displayItems(allItems);
-        }
-        
-        function displayItems(items) {
-            const contentDiv = document.getElementById('content');
             
-            if (items.length === 0) {
-                contentDiv.innerHTML = '<div class="loading">No items match your filter.</div>';
-                document.getElementById('totalItems').textContent = '0 items';
-                return;
-            }
-            
-            document.getElementById('totalItems').textContent = `${items.length} items`;
-            contentDiv.innerHTML = '';
-            
-            items.forEach((item, index) => {
-                const card = createCard(item, index);
-                contentDiv.appendChild(card);
-            });
-            
-            // Load thumbnails after rendering
-            setTimeout(() => loadVisibleThumbnails(), 100);
+            // Reset pagination and display all items
+            currentPage = 0;
+            displayedItems = [];
+            loadMoreItems();
         }
         
         function createCard(item, index) {
@@ -870,6 +931,7 @@
             const priceAttr = item.getAttribute('price');
             const currency = item.getAttribute('currency') || 'USD';
             const sourceLabel = item.getAttribute('source-label') || 'Unknown';
+            const geeklistId = item.getAttribute('geeklist-id');
             
             card.dataset.objectid = objectId;
             
@@ -889,7 +951,7 @@
             }
             
             const formattedPrice = displayPrice ? 
-                `$${displayPrice} ${currency !== 'USD' ? currency : ''}`.trim() : 
+                `${displayPrice} ${currency !== 'USD' ? currency : ''}`.trim() : 
                 'Price not listed';
             
             const formattedPostDate = new Date(postDate).toLocaleDateString('en-US', {
@@ -907,6 +969,9 @@
             }) : 'N/A';
             
             const thumbnailUrl = thumbnailCache[objectId] || '';
+            
+            // Build BGG URL
+            const bggUrl = `https://boardgamegeek.com/geeklist/${geeklistId}?itemid=${itemId}`;
             
             card.innerHTML = `
                 <div class="card-header">
@@ -958,6 +1023,7 @@
                 </div>
                 
                 <div class="button-group">
+                    <a href="${bggUrl}" target="_blank" class="btn btn-link">View on BGG</a>
                     <button class="btn btn-details" onclick="showDetails(${index})">Details</button>
                     <button class="btn btn-comments" onclick="showComments(${index})">Comments (${commentCount})</button>
                 </div>
@@ -967,7 +1033,7 @@
         }
         
         function showDetails(index) {
-            const items = currentFilter ? filteredItems : allItems;
+            const items = displayedItems;
             const item = items[index];
             const objectName = item.getAttribute('objectname');
             const bodyText = item.querySelector('body')?.textContent || 'No details available';
@@ -978,7 +1044,7 @@
         }
         
         function showComments(index) {
-            const items = currentFilter ? filteredItems : allItems;
+            const items = displayedItems;
             const item = items[index];
             const objectName = item.getAttribute('objectname');
             const comments = item.querySelectorAll('comment');
@@ -1037,6 +1103,24 @@
             return div.innerHTML;
         }
         
+        // Infinite scroll
+        function handleScroll() {
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            const scrollHeight = document.documentElement.scrollHeight;
+            const clientHeight = document.documentElement.clientHeight;
+            
+            // Load more when user is 500px from bottom
+            if (scrollTop + clientHeight >= scrollHeight - 500 && !isLoadingMore) {
+                const items = currentFilter ? filteredItems : allItems;
+                if (displayedItems.length < items.length) {
+                    loadMoreItems();
+                }
+            }
+            
+            // Load thumbnails for visible items
+            loadVisibleThumbnails();
+        }
+        
         document.getElementById('modal').addEventListener('click', function(e) {
             if (e.target === this) {
                 closeModal();
@@ -1055,9 +1139,13 @@
             }
         });
         
-        // Load more thumbnails on scroll
+        // Scroll listener with debouncing
+        let scrollTimeout;
         window.addEventListener('scroll', () => {
-            loadVisibleThumbnails();
+            if (scrollTimeout) {
+                clearTimeout(scrollTimeout);
+            }
+            scrollTimeout = setTimeout(handleScroll, 100);
         });
         
         loadGeekList();
