@@ -1,4 +1,4 @@
-name: Fetch BGG VFM Geeklist
+name: Fetch BGG VFM Geeklist 25
 
 on:
   workflow_dispatch:
@@ -22,10 +22,10 @@ jobs:
           
           while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
             echo "[$(date '+%Y-%m-%d %H:%M:%S')] Attempt $((RETRY_COUNT + 1)) of $MAX_RETRIES..."
-            curl -L "https://boardgamegeek.com/xmlapi/geeklist/363504?comments=1" -o vfm25.xml
+            curl -L "https://boardgamegeek.com/xmlapi/geeklist/363504?comments=1" -o vfm25bgg.xml
             
             # Check if the response contains the "accepted and will be processed" message
-            if grep -q "Your request for this geeklist has been accepted and will be processed" vfm25.xml; then
+            if grep -q "Your request for this geeklist has been accepted and will be processed" vfm25bgg.xml; then
               echo "[$(date '+%Y-%m-%d %H:%M:%S')] Geeklist is being processed by BGG. Waiting 31 seconds before retry..."
               RETRY_COUNT=$((RETRY_COUNT + 1))
               if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
@@ -46,6 +46,6 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add vfm25.xml
+          git add vfm25bgg.xml
           git commit -m "Update VFM geeklist" || echo "No changes to commit"
           git push
