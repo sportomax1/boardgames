@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VFM Geeklist</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f7;
+            padding: 16px;
+            padding-bottom: 80px;
+        }
+        
+        .header {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            color: #1d1d1f;
+            margin-bottom: 8px;
+        }
+        
+        .stats {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            font-size: 14px;
+            color: #6e6e73;
+            margin-bottom: 16px;
+        }
+        
+        .progress-container {
+            margin-bottom: 16px;
+        }
+        
+        .progress-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: #f5f5f7;
+            border-radius: 8px;
+            margin-bottom: 6px;
+            font-size: 13px;
+        }
+        
+        .progress-label {
+            font-weight: 600;
+            color: #1d1d1f;
+        }
+        
+        .progress-count {
+            color: #6e6e73;
+        }
+        
+        .progress-status {
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin-left: 8px;
+        }
+        
+        .progress-loading {
+            background: #ff9500;
+            color: white;
+        }
+        
+        .progress-success {
+            background: #34c759;
+            color: white;
+        }
+        
+        .progress-error {
+            background: #ff3b30;
+            color: white;
+        }
+        
+        .search-section {
+            margin-top: 16px;
+        }
+        
+        .search-type-buttons {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        
+        .search-type-btn {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #e5e5e7;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            background: white;
+            color: #1d1d1f;
+            transition: all 0.2s;
+        }
+        
+        .search-type-btn.active {
+            background: #007aff;
+            color: white;
+            border-color: #007aff;
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e5e7;
+            border-radius: 8px;
+            font-size: 16px;
+            margin-bottom: 8px;
+            font-family: inherit;
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: #007aff;
+        }
+        
+        .search-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .search-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        
+        .search-btn:active {
+            opacity: 0.7;
+        }
+        
+        .btn-filter {
+            background: #007aff;
+            color: white;
+        }
+        
+        .btn-clear {
+            background: #6e6e73;
+            color: white;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .card-header {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        
+        .game-thumbnail {
+            width: 80px;
+            height: 80px;
+            border-radius: 8px;
+            object-fit: cover;
+            background: #e5e5e7;
+            flex-shrink: 0;
+        }
+        
+        .card-info {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .card-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 4px;
+        }
+        
+        .game-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1d1d1f;
+            margin-bottom: 4px;
+            line-height: 1.3;
+        }
+        
+        .username {
+            font-size: 14px;
+            color: #0066cc;
+            margin-bottom: 8px;
+        }
+        
+        .geeklist-badge {
+            display: inline-block;
+            background: #5856d6;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-top: 4px;
+        }
+        
+        .badge-group {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 4px;
+        }
+        
+        .sold-badge {
+            background: #ff3b30;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .available-badge {
+            background: #34c759;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .time-since {
+            font-size: 11px;
+            color: #6e6e73;
+            white-space: nowrap;
+        }
+        
+        .price {
+            font-size: 22px;
+            font-weight: 700;
+            color: #1d1d1f;
+            margin: 8px 0;
+        }
+        
+        .meta-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #e5e5e7;
+            font-size: 12px;
+            color: #6e6e73;
+        }
+        
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .meta-label {
+            font-weight: 600;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        
+        .btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        
+        .btn:active {
+            opacity: 0.7;
+        }
+        
+        .btn-details {
+            background: #007aff;
+            color: white;
+        }
+        
+        .btn-comments {
+            background: #5856d6;
+            color: white;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            animation: fadeIn 0.2s;
+        }
+        
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid #e5e5e7;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            background: white;
+            border-radius: 16px 16px 0 0;
+        }
+        
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1d1d1f;
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 28px;
+            color: #6e6e73;
+            cursor: pointer;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-body {
+            padding: 20px;
+            font-size: 15px;
+            line-height: 1.6;
+            color: #1d1d1f;
+        }
+        
+        .comment-item {
+            padding: 12px;
+            background: #f5f5f7;
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+        
+        .comment-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        
+        .comment-user {
+            font-weight: 600;
+            color: #0066cc;
+        }
+        
+        .comment-date {
+            color: #6e6e73;
+        }
+        
+        .comment-text {
+            font-size: 14px;
+            color: #1d1d1f;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6e6e73;
+        }
+        
+        .error {
+            background: #ff3b30;
+            color: white;
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+        }
+        
+        .filter-active {
+            background: #ff9500;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-top: 8px;
+            display: inline-block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes slideUp {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>VFM Geeklist</h1>
+        <div class="stats">
+            <span id="totalItems">Loading...</span>
+            <span id="lastUpdate">Last updated: --</span>
+            <span id="timeSince">Updated -- ago</span>
+        </div>
+        
+        <div class="progress-container" id="progressContainer"></div>
+        
+        <div id="filterBadge"></div>
+        
+        <div class="search-section">
+            <div class="search-type-buttons">
+                <button class="search-type-btn active" data-type="user" onclick="setSearchType('user')">User Search</button>
+                <button class="search-type-btn" data-type="game" onclick="setSearchType('game')">Game Search</button>
+            </div>
+            
+            <div id="userSearchSection">
+                <input 
+                    type="text" 
+                    id="userSearchInput" 
+                    class="search-input" 
+                    placeholder="Search by username..."
+                    value="sportomax"
+                >
+            </div>
+            
+            <div id="gameSearchSection" style="display: none;">
+                <input 
+                    type="text" 
+                    id="gameSearchInput" 
+                    class="search-input" 
+                    placeholder="Search by game name..."
+                >
+                <div class="search-type-buttons" style="margin-bottom: 8px;">
+                    <button class="search-type-btn active" data-match="contains" onclick="setMatchType('contains')">Contains</button>
+                    <button class="search-type-btn" data-match="exact" onclick="setMatchType('exact')">Exact Match</button>
+                    <button class="search-type-btn" data-match="starts" onclick="setMatchType('starts')">Starts With</button>
+                </div>
+            </div>
+            
+            <div class="search-buttons">
+                <button class="search-btn btn-filter" onclick="applyFilter()">Filter</button>
+                <button class="search-btn btn-clear" onclick="clearFilter()">Show All</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="content">
+        <div class="loading">Loading items...</div>
+    </div>
+
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title" id="modalTitle"></div>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody"></div>
+        </div>
+    </div>
+
+    <script>
+        let allItems = [];
+        let filteredItems = [];
+        let currentFilter = '';
+        let currentSearchType = 'user';
+        let currentMatchType = 'contains';
+        let lastUpdateTime = null;
+        let timeSinceInterval = null;
+        let thumbnailCache = {};
+        let pendingThumbnails = new Set();
+        let fileStats = {};
+        
+        const xmlFiles = [
+            { name: 'vfm25.xml', label: 'VFM 2025' },
+            { name: 'vfm24bgg.xml', label: 'VFM 2024' },
+            { name: 'vfm23bgg.xml', label: 'VFM 2023' }
+        ];
+        
+        function setSearchType(type) {
+            currentSearchType = type;
+            document.querySelectorAll('.search-type-btn[data-type]').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.type === type);
+            });
+            
+            if (type === 'user') {
+                document.getElementById('userSearchSection').style.display = 'block';
+                document.getElementById('gameSearchSection').style.display = 'none';
+            } else {
+                document.getElementById('userSearchSection').style.display = 'none';
+                document.getElementById('gameSearchSection').style.display = 'block';
+            }
+        }
+        
+        function setMatchType(type) {
+            currentMatchType = type;
+            document.querySelectorAll('.search-type-btn[data-match]').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.match === type);
+            });
+        }
+        
+        function updateProgress(fileName, status, count = 0) {
+            const progressContainer = document.getElementById('progressContainer');
+            let progressItem = document.getElementById(`progress-${fileName}`);
+            
+            if (!progressItem) {
+                progressItem = document.createElement('div');
+                progressItem.id = `progress-${fileName}`;
+                progressItem.className = 'progress-item';
+                progressContainer.appendChild(progressItem);
+            }
+            
+            const fileInfo = xmlFiles.find(f => f.name === fileName);
+            const label = fileInfo ? fileInfo.label : fileName;
+            
+            let statusHtml = '';
+            if (status === 'loading') {
+                statusHtml = '<span class="progress-status progress-loading">Loading...</span>';
+            } else if (status === 'success') {
+                statusHtml = '<span class="progress-status progress-success">✓ Loaded</span>';
+            } else if (status === 'error') {
+                statusHtml = '<span class="progress-status progress-error">✗ Failed</span>';
+            }
+            
+            progressItem.innerHTML = `
+                <div>
+                    <span class="progress-label">${label}</span>
+                    ${statusHtml}
+                </div>
+                <span class="progress-count">${count > 0 ? `${count} items` : ''}</span>
+            `;
+        }
+        
+        async function loadGeekList() {
+            try {
+                const allLoadedItems = [];
+                let mostRecentDate = null;
+                fileStats = {};
+                
+                // Load all XML files
+                for (const fileInfo of xmlFiles) {
+                    const fileName = fileInfo.name;
+                    updateProgress(fileName, 'loading');
+                    
+                    try {
+                        const response = await fetch(fileName + '?t=' + Date.now());
+                        const text = await response.text();
+                        const parser = new DOMParser();
+                        const xml = parser.parseFromString(text, 'text/xml');
+                        
+                        // Parse the pubdate from the XML geeklist root
+                        const geeklist = xml.querySelector('geeklist');
+                        const pubdate = geeklist?.getAttribute('postdate');
+                        if (pubdate) {
+                            const date = new Date(pubdate);
+                            fileStats[fileName] = { date: date, count: 0 };
+                            if (!mostRecentDate || date > mostRecentDate) {
+                                mostRecentDate = date;
+                            }
+                        }
+                        
+                        const items = xml.querySelectorAll('item');
+                        const itemsArray = Array.from(items);
+                        
+                        // Tag each item with its source file
+                        itemsArray.forEach(item => {
+                            item.setAttribute('source-file', fileName);
+                            item.setAttribute('source-label', fileInfo.label);
+                        });
+                        
+                        allLoadedItems.push(...itemsArray);
+                        
+                        // Filter and count valid items
+                        const validCount = itemsArray.filter(item => item.getAttribute('objectid') !== '340938').length;
+                        fileStats[fileName].count = validCount;
+                        
+                        updateProgress(fileName, 'success', validCount);
+                    } catch (error) {
+                        console.error(`Error loading ${fileName}:`, error);
+                        updateProgress(fileName, 'error');
+                    }
+                }
+                
+                lastUpdateTime = mostRecentDate || new Date();
+                updateTimeDisplay();
+                
+                // Start interval to update "time since"
+                if (timeSinceInterval) clearInterval(timeSinceInterval);
+                timeSinceInterval = setInterval(updateTimeSince, 60000);
+                
+                const contentDiv = document.getElementById('content');
+                
+                if (allLoadedItems.length === 0) {
+                    contentDiv.innerHTML = '<div class="error">No items found in any geeklist.</div>';
+                    return;
+                }
+                
+                // Filter out rules (objectid 340938) and sort by postdate desc
+                allItems = allLoadedItems
+                    .filter(item => item.getAttribute('objectid') !== '340938')
+                    .sort((a, b) => {
+                        const dateA = new Date(a.getAttribute('postdate'));
+                        const dateB = new Date(b.getAttribute('postdate'));
+                        return dateB - dateA;
+                    });
+                
+                // Apply current filter if exists
+                if (currentFilter) {
+                    applyFilter();
+                } else {
+                    displayItems(allItems);
+                }
+                
+                // Load thumbnails for visible items
+                loadVisibleThumbnails();
+                
+            } catch (error) {
+                document.getElementById('content').innerHTML = 
+                    `<div class="error">Error loading data: ${error.message}</div>`;
+            }
+        }
+        
+        async function loadVisibleThumbnails() {
+            const cards = document.querySelectorAll('.card');
+            const objectIds = [];
+            
+            cards.forEach(card => {
+                const rect = card.getBoundingClientRect();
+                const isVisible = rect.top < window.innerHeight + 500 && rect.bottom > -500;
+                
+                if (isVisible) {
+                    const objectId = card.dataset.objectid;
+                    if (objectId && !thumbnailCache[objectId] && !pendingThumbnails.has(objectId)) {
+                        objectIds.push(objectId);
+                        pendingThumbnails.add(objectId);
+                    }
+                }
+            });
+            
+            if (objectIds.length > 0) {
+                // Process in batches of 20
+                for (let i = 0; i < objectIds.length; i += 20) {
+                    const batch = objectIds.slice(i, i + 20);
+                    fetchThumbnails(batch);
+                }
+            }
+        }
+        
+        async function fetchThumbnails(objectIds) {
+            try {
+                const idsParam = objectIds.join(',');
+                const response = await fetch(`https://boardgamegeek.com/xmlapi2/thing?id=${idsParam}&type=boardgame`);
+                const text = await response.text();
+                const parser = new DOMParser();
+                const xml = parser.parseFromString(text, 'text/xml');
+                
+                const items = xml.querySelectorAll('item');
+                items.forEach(item => {
+                    const id = item.getAttribute('id');
+                    const thumbnail = item.querySelector('thumbnail')?.textContent;
+                    if (thumbnail) {
+                        thumbnailCache[id] = thumbnail;
+                        updateThumbnail(id, thumbnail);
+                    }
+                    pendingThumbnails.delete(id);
+                });
+            } catch (error) {
+                console.error('Error fetching thumbnails:', error);
+                objectIds.forEach(id => pendingThumbnails.delete(id));
+            }
+        }
+        
+        function updateThumbnail(objectId, thumbnailUrl) {
+            const imgs = document.querySelectorAll(`img[data-objectid="${objectId}"]`);
+            imgs.forEach(img => {
+                img.src = thumbnailUrl;
+            });
+        }
+        
+        function updateTimeDisplay() {
+            if (!lastUpdateTime) return;
+            
+            const formatted = lastUpdateTime.toLocaleString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            
+            document.getElementById('lastUpdate').textContent = `Last updated: ${formatted}`;
+            updateTimeSince();
+        }
+        
+        function updateTimeSince() {
+            if (!lastUpdateTime) return;
+            
+            const now = new Date();
+            const diffMs = now - lastUpdateTime;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMins / 60);
+            const diffDays = Math.floor(diffHours / 24);
+            
+            let timeSinceText;
+            if (diffDays > 0) {
+                timeSinceText = `${diffDays}d ${diffHours % 24}h ago`;
+            } else if (diffHours > 0) {
+                timeSinceText = `${diffHours}h ${diffMins % 60}m ago`;
+            } else {
+                timeSinceText = `${diffMins}m ago`;
+            }
+            
+            document.getElementById('timeSince').textContent = `Updated ${timeSinceText}`;
+        }
+        
+        function getTimeSincePosted(postDate) {
+            const now = new Date();
+            const posted = new Date(postDate);
+            const diffMs = now - posted;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMins / 60);
+            const diffDays = Math.floor(diffHours / 24);
+            
+            if (diffDays > 0) {
+                return `${diffDays}d ago`;
+            } else if (diffHours > 0) {
+                return `${diffHours}h ago`;
+            } else {
+                return `${diffMins}m ago`;
+            }
+        }
+        
+        function applyFilter() {
+            let searchValue = '';
+            
+            if (currentSearchType === 'user') {
+                searchValue = document.getElementById('userSearchInput').value.trim().toLowerCase();
+            } else {
+                searchValue = document.getElementById('gameSearchInput').value.trim().toLowerCase();
+            }
+            
+            if (!searchValue) {
+                clearFilter();
+                return;
+            }
+            
+            currentFilter = searchValue;
+            
+            if (currentSearchType === 'user') {
+                filteredItems = allItems.filter(item => {
+                    const username = item.getAttribute('username')?.toLowerCase() || '';
+                    const bodyText = item.querySelector('body')?.textContent?.toLowerCase() || '';
+                    const comments = Array.from(item.querySelectorAll('comment'));
+                    const commentText = comments.map(c => c.getAttribute('username')?.toLowerCase() + ' ' + c.textContent?.toLowerCase()).join(' ');
+                    
+                    return username.includes(searchValue) || 
+                           bodyText.includes(searchValue) || 
+                           commentText.includes(searchValue);
+                });
+            } else {
+                // Game search
+                filteredItems = allItems.filter(item => {
+                    const gameName = item.getAttribute('objectname')?.toLowerCase() || '';
+                    
+                    if (currentMatchType === 'exact') {
+                        return gameName === searchValue;
+                    } else if (currentMatchType === 'starts') {
+                        return gameName.startsWith(searchValue);
+                    } else {
+                        return gameName.includes(searchValue);
+                    }
+                });
+            }
+            
+            displayItems(filteredItems);
+            
+            const filterType = currentSearchType === 'user' ? 'User' : `Game (${currentMatchType})`;
+            document.getElementById('filterBadge').innerHTML = 
+                `<div class="filter-active">Filtered by ${filterType}: ${searchValue}</div>`;
+        }
+        
+        function clearFilter() {
+            currentFilter = '';
+            document.getElementById('filterBadge').innerHTML = '';
+            document.getElementById('userSearchInput').value = '';
+            document.getElementById('gameSearchInput').value = '';
+            displayItems(allItems);
+        }
+        
+        function displayItems(items) {
+            const contentDiv = document.getElementById('content');
+            
+            if (items.length === 0) {
+                contentDiv.innerHTML = '<div class="loading">No items match your filter.</div>';
+                document.getElementById('totalItems').textContent = '0 items';
+                return;
+            }
+            
+            document.getElementById('totalItems').textContent = `${items.length} items`;
+            contentDiv.innerHTML = '';
+            
+            items.forEach((item, index) => {
+                const card = createCard(item, index);
+                contentDiv.appendChild(card);
+            });
+            
+            // Load thumbnails after rendering
+            setTimeout(() => loadVisibleThumbnails(), 100);
+        }
+        
+        function createCard(item, index) {
+            const card = document.createElement('div');
+            card.className = 'card';
+            
+            const itemId = item.getAttribute('id');
+            const objectId = item.getAttribute('objectid');
+            const objectName = item.getAttribute('objectname');
+            const username = item.getAttribute('username');
+            const postDate = item.getAttribute('postdate');
+            const editDate = item.getAttribute('editdate');
+            const thumbs = item.getAttribute('thumbs') || '0';
+            const sold = item.getAttribute('sold') === '1';
+            const priceAttr = item.getAttribute('price');
+            const currency = item.getAttribute('currency') || 'USD';
+            const sourceLabel = item.getAttribute('source-label') || 'Unknown';
+            
+            card.dataset.objectid = objectId;
+            
+            const bodyText = item.querySelector('body')?.textContent || '';
+            const comments = item.querySelectorAll('comment');
+            const commentCount = comments.length;
+            
+            const timeSince = getTimeSincePosted(postDate);
+            
+            // Extract price from body if not in attributes
+            let displayPrice = priceAttr;
+            if (!displayPrice) {
+                const priceMatch = bodyText.match(/\$(\d+(?:\.\d{2})?)/);
+                if (priceMatch) {
+                    displayPrice = priceMatch[1];
+                }
+            }
+            
+            const formattedPrice = displayPrice ? 
+                `$${displayPrice} ${currency !== 'USD' ? currency : ''}`.trim() : 
+                'Price not listed';
+            
+            const formattedPostDate = new Date(postDate).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            
+            const formattedEditDate = editDate ? new Date(editDate).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric'
+            }) : 'N/A';
+            
+            const thumbnailUrl = thumbnailCache[objectId] || '';
+            
+            card.innerHTML = `
+                <div class="card-header">
+                    <img src="${thumbnailUrl}" alt="${objectName}" class="game-thumbnail" data-objectid="${objectId}">
+                    <div class="card-info">
+                        <div class="card-top-row">
+                            <div>
+                                <div class="game-name">${objectName}</div>
+                                <div class="username">@${username}</div>
+                                <div class="geeklist-badge">${sourceLabel}</div>
+                            </div>
+                            <div class="badge-group">
+                                <div class="${sold ? 'sold-badge' : 'available-badge'}">
+                                    ${sold ? 'SOLD' : 'AVAILABLE'}
+                                </div>
+                                <div class="time-since">${timeSince}</div>
+                            </div
