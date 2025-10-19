@@ -67,44 +67,24 @@
             background: #f5f5f5;
         }
         
-        .rank { 
+        .tile-data { 
             position: absolute; 
-            top: 1px; 
-            left: 1px; 
             background: rgba(0,0,0,0.8); 
             color: white; 
-            font-size: 8px; 
+            font-size: 7px; 
             padding: 1px 2px; 
             border-radius: 2px; 
             font-weight: bold; 
             z-index: 10;
+            line-height: 1.2;
         }
         
-        .category { 
-            position: absolute; 
-            top: 1px; 
-            right: 1px; 
-            font-size: 8px; 
-            padding: 1px 3px; 
-            border-radius: 2px; 
-            font-weight: bold; 
-            z-index: 10;
-        }
+        .top-left { top: 1px; left: 1px; }
+        .top-right { top: 1px; right: 1px; }
+        .bottom-left { bottom: 1px; left: 1px; }
+        .bottom-right { bottom: 1px; right: 1px; }
         
-        .category-perfect, .category-best { 
-            background: #4caf50; 
-            color: white; 
-        }
-        
-        .category-recommended { 
-            background: #ffeb3b; 
-            color: black; 
-        }
-        
-        .bayes { 
-            position: absolute; 
-            bottom: 1px; 
-            right: 1px; 
+        .bayes-circle { 
             width: 16px; 
             height: 16px; 
             border-radius: 50%; 
@@ -115,21 +95,6 @@
             font-weight: bold; 
             color: black; 
             text-shadow: 0 0 2px rgba(255,255,255,0.8);
-            z-index: 10;
-        }
-        
-        .player-votes { 
-            position: absolute; 
-            bottom: 1px; 
-            left: 1px; 
-            background: rgba(0,0,0,0.8); 
-            color: white; 
-            font-size: 8px; 
-            padding: 1px 2px; 
-            border-radius: 2px; 
-            font-weight: bold; 
-            z-index: 10;
-            line-height: 1.1;
         }
         
         .loading {
@@ -201,6 +166,74 @@
             }
         }
 
+        function formatValue(game, field) {
+            if (!field || field === 'none') return '';
+            
+            switch(field) {
+                case 'rank':
+                    return game.rank || '#';
+                case 'bayes':
+                    return game.bayesAverage ? game.bayesAverage.toFixed(1) : '';
+                case 'rating':
+                    return game.rating ? game.rating.toFixed(1) : '';
+                case 'numplays':
+                    return game.numPlays || '0';
+                case 'weight':
+                    return game.weight ? game.weight.toFixed(1) : '';
+                case 'avgweight':
+                    return game.avgWeight ? game.avgWeight.toFixed(1) : '';
+                case 'average':
+                    return game.average ? game.average.toFixed(1) : '';
+                case 'year':
+                    return game.year || '';
+                case 'playingtime':
+                    return game.playingTime ? game.playingTime + 'm' : '';
+                case 'minplayers':
+                    return game.minPlayers || '';
+                case 'maxplayers':
+                    return game.maxPlayers || '';
+                case 'players':
+                    return `${game.minPlayers || '?'}-${game.maxPlayers || '?'}`;
+                case 'numowned':
+                    return game.numOwned || '';
+                case 'pricepaid':
+                    return game.pricePaid ? '$' + game.pricePaid.toFixed(0) : '';
+                case 'invlocation':
+                    return game.invLocation || '';
+                case 'quantity':
+                    return game.quantity || '1';
+                default:
+                    return '';
+            }
+        }
+
+        function getBayesColor(bayes) {
+            const score = Math.max(0, Math.min(10, bayes));
+            let red, green, blue = 0;
+            
+            if (score < 2) {
+                red = 200 + Math.round(55 * (score / 2));
+                green = Math.round(20 * (score / 2));
+            } else if (score < 4) {
+                red = 255;
+                green = Math.round(80 * ((score - 2) / 2));
+            } else if (score < 5.5) {
+                red = 255;
+                green = 80 + Math.round(95 * ((score - 4) / 1.5));
+            } else if (score < 7) {
+                red = 255;
+                green = 175 + Math.round(80 * ((score - 5.5) / 1.5));
+            } else if (score < 8.5) {
+                red = 255 - Math.round(100 * ((score - 7) / 1.5));
+                green = 255;
+            } else {
+                red = 155 - Math.round(155 * ((score - 8.5) / 1.5));
+                green = 255;
+            }
+            
+            return `rgb(${red}, ${green}, ${blue})`;
+        }
+
         function initializePrintView() {
             try {
                 const printData = getPrintData();
@@ -210,18 +243,37 @@
                     return;
                 }
                 
-                const { username, playerCount, games, printOptions = {} } = printData;
+                const { username, games, printOptions = {}, sortMode = 'bayes' } = printData;
                 
                 const options = {
                     topLeft: 'rank',
-                    topRight: 'category',
-                    bottomLeft: 'playerVotes', 
+                    topRight: 'none',
+                    bottomLeft: 'none',
                     bottomRight: 'bayes',
                     ...printOptions
                 };
                 
                 const header = document.getElementById('header');
-                header.textContent = `${username} - Top 120 Games${playerCount && playerCount !== 'All' ? ` (${playerCount} Players)` : ''}`;
+                const sortModeLabels = {
+                    'bayes': 'Bayes Average',
+                    'rating': 'My Rating',
+                    'numplays': 'Number of Plays',
+                    'weight': 'My Weight',
+                    'avgweight': 'BGG Avg Weight',
+                    'rank': 'BGG Rank',
+                    'average': 'BGG Average',
+                    'year': 'Year',
+                    'playingtime': 'Playing Time',
+                    'minplayers': 'Min Players',
+                    'maxplayers': 'Max Players',
+                    'numowned': 'Number Owned',
+                    'pricepaid': 'Price Paid',
+                    'acquisitiondate': 'Acquisition Date',
+                    'invlocation': 'Location',
+                    'quantity': 'Quantity',
+                    'name': 'Name'
+                };
+                header.textContent = `${username} - Top 120 Games (Sorted by: ${sortModeLabels[sortMode] || sortMode})`;
                 
                 const footer = document.getElementById('customFooter');
                 const now = new Date();
@@ -238,78 +290,81 @@
                     if (i < top120.length && top120[i]) {
                         const game = top120[i];
                         
-                        if (options.topLeft === 'rank') {
-                            const rank = document.createElement('div');
-                            rank.className = 'rank';
-                            rank.textContent = i + 1;
-                            tile.appendChild(rank);
-                        }
-                        
-                        if (options.topRight === 'category' && game.category !== 'supported') {
-                            const category = document.createElement('div');
-                            category.className = `category category-${game.category}`;
-                            const categoryMap = {
-                                'perfect': 'P',
-                                'best': 'B', 
-                                'recommended': 'R'
-                            };
-                            category.textContent = categoryMap[game.category];
-                            tile.appendChild(category);
-                        }
-                        
-                        if (options.bottomRight === 'bayes' && game.bayesAverage && game.bayesAverage > 0) {
-                            const bayes = document.createElement('div');
-                            bayes.className = 'bayes';
+                        // Top Left
+                        if (options.topLeft !== 'none') {
+                            const topLeft = document.createElement('div');
+                            topLeft.className = 'tile-data top-left';
                             
-                            const score = Math.max(0, Math.min(10, game.bayesAverage));
-                            let red, green, blue = 0;
-                            
-                            if (score < 2) {
-                                red = 200 + Math.round(55 * (score / 2));
-                                green = Math.round(20 * (score / 2));
-                            } else if (score < 4) {
-                                red = 255;
-                                green = Math.round(80 * ((score - 2) / 2));
-                            } else if (score < 5.5) {
-                                red = 255;
-                                green = 80 + Math.round(95 * ((score - 4) / 1.5));
-                            } else if (score < 7) {
-                                red = 255;
-                                green = 175 + Math.round(80 * ((score - 5.5) / 1.5));
-                            } else if (score < 8.5) {
-                                red = 255 - Math.round(100 * ((score - 7) / 1.5));
-                                green = 255;
+                            if (options.topLeft === 'rank') {
+                                topLeft.textContent = i + 1;
+                            } else if (options.topLeft === 'bayes' && game.bayesAverage > 0) {
+                                topLeft.className = 'tile-data top-left bayes-circle';
+                                topLeft.style.backgroundColor = getBayesColor(game.bayesAverage);
+                                topLeft.textContent = game.bayesAverage.toFixed(1);
                             } else {
-                                red = 155 - Math.round(155 * ((score - 8.5) / 1.5));
-                                green = 255;
+                                topLeft.textContent = formatValue(game, options.topLeft);
                             }
                             
-                            bayes.style.backgroundColor = `rgb(${red}, ${green}, ${blue})`;
-                            bayes.textContent = Math.ceil(game.bayesAverage * 10) / 10;
-                            tile.appendChild(bayes);
+                            if (topLeft.textContent) {
+                                tile.appendChild(topLeft);
+                            }
                         }
                         
-                        if (options.bottomLeft === 'playerVotes' && game.playerVotes && game.playerVotes.length > 0) {
-                            const playerVotes = document.createElement('div');
-                            playerVotes.className = 'player-votes';
+                        // Top Right
+                        if (options.topRight !== 'none') {
+                            const topRight = document.createElement('div');
+                            topRight.className = 'tile-data top-right';
                             
-                            const currentPlayerVotes = game.playerVotes.find(vote => 
-                                vote.playerCount === parseInt(playerCount)
-                            );
-                            
-                            if (currentPlayerVotes) {
-                                const best = currentPlayerVotes.best || 0;
-                                const recommended = currentPlayerVotes.recommended || 0;
-                                const notRecommended = currentPlayerVotes.notRecommended || 0;
-                                
-                                playerVotes.innerHTML = `B:${best}<br>R:${recommended}<br>N:${notRecommended}`;
+                            if (options.topRight === 'bayes' && game.bayesAverage > 0) {
+                                topRight.className = 'tile-data top-right bayes-circle';
+                                topRight.style.backgroundColor = getBayesColor(game.bayesAverage);
+                                topRight.textContent = game.bayesAverage.toFixed(1);
                             } else {
-                                playerVotes.innerHTML = 'B:0<br>R:0<br>N:0';
+                                topRight.textContent = formatValue(game, options.topRight);
                             }
                             
-                            tile.appendChild(playerVotes);
+                            if (topRight.textContent) {
+                                tile.appendChild(topRight);
+                            }
                         }
                         
+                        // Bottom Left
+                        if (options.bottomLeft !== 'none') {
+                            const bottomLeft = document.createElement('div');
+                            bottomLeft.className = 'tile-data bottom-left';
+                            
+                            if (options.bottomLeft === 'bayes' && game.bayesAverage > 0) {
+                                bottomLeft.className = 'tile-data bottom-left bayes-circle';
+                                bottomLeft.style.backgroundColor = getBayesColor(game.bayesAverage);
+                                bottomLeft.textContent = game.bayesAverage.toFixed(1);
+                            } else {
+                                bottomLeft.textContent = formatValue(game, options.bottomLeft);
+                            }
+                            
+                            if (bottomLeft.textContent) {
+                                tile.appendChild(bottomLeft);
+                            }
+                        }
+                        
+                        // Bottom Right
+                        if (options.bottomRight !== 'none') {
+                            const bottomRight = document.createElement('div');
+                            bottomRight.className = 'tile-data bottom-right';
+                            
+                            if (options.bottomRight === 'bayes' && game.bayesAverage > 0) {
+                                bottomRight.className = 'tile-data bottom-right bayes-circle';
+                                bottomRight.style.backgroundColor = getBayesColor(game.bayesAverage);
+                                bottomRight.textContent = game.bayesAverage.toFixed(1);
+                            } else {
+                                bottomRight.textContent = formatValue(game, options.bottomRight);
+                            }
+                            
+                            if (bottomRight.textContent) {
+                                tile.appendChild(bottomRight);
+                            }
+                        }
+                        
+                        // Add game thumbnail
                         if (game.thumbnail) {
                             const img = document.createElement('img');
                             img.src = game.thumbnail;
