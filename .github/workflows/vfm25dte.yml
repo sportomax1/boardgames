@@ -1,4 +1,4 @@
-name: Fetch BGG Spring VFM Geeklist 25
+name: Fetch DTE VFM Geeklist 25
 
 on:
   workflow_dispatch:
