@@ -82,6 +82,21 @@
                         <label>Show:</label>
                         <select id="topLeft">
                             <option value="rank" selected>Rank Number</option>
+                            <option value="bayes">Bayes Average</option>
+                            <option value="rating">My Rating</option>
+                            <option value="numplays">Num Plays</option>
+                            <option value="weight">My Weight</option>
+                            <option value="avgweight">BGG Avg Weight</option>
+                            <option value="average">BGG Average</option>
+                            <option value="year">Year</option>
+                            <option value="playingtime">Playing Time</option>
+                            <option value="minplayers">Min Players</option>
+                            <option value="maxplayers">Max Players</option>
+                            <option value="players">Players Range</option>
+                            <option value="numowned">Num Owned</option>
+                            <option value="pricepaid">Price Paid</option>
+                            <option value="invlocation">Location</option>
+                            <option value="quantity">Quantity</option>
                             <option value="none">Nothing</option>
                         </select>
                     </div>
@@ -93,6 +108,21 @@
                         <label>Show:</label>
                         <select id="topRight">
                             <option value="none" selected>Nothing</option>
+                            <option value="bayes">Bayes Average</option>
+                            <option value="rating">My Rating</option>
+                            <option value="numplays">Num Plays</option>
+                            <option value="weight">My Weight</option>
+                            <option value="avgweight">BGG Avg Weight</option>
+                            <option value="average">BGG Average</option>
+                            <option value="year">Year</option>
+                            <option value="playingtime">Playing Time</option>
+                            <option value="minplayers">Min Players</option>
+                            <option value="maxplayers">Max Players</option>
+                            <option value="players">Players Range</option>
+                            <option value="numowned">Num Owned</option>
+                            <option value="pricepaid">Price Paid</option>
+                            <option value="invlocation">Location</option>
+                            <option value="quantity">Quantity</option>
                         </select>
                     </div>
                 </div>
@@ -103,6 +133,21 @@
                         <label>Show:</label>
                         <select id="bottomLeft">
                             <option value="none" selected>Nothing</option>
+                            <option value="bayes">Bayes Average</option>
+                            <option value="rating">My Rating</option>
+                            <option value="numplays">Num Plays</option>
+                            <option value="weight">My Weight</option>
+                            <option value="avgweight">BGG Avg Weight</option>
+                            <option value="average">BGG Average</option>
+                            <option value="year">Year</option>
+                            <option value="playingtime">Playing Time</option>
+                            <option value="minplayers">Min Players</option>
+                            <option value="maxplayers">Max Players</option>
+                            <option value="players">Players Range</option>
+                            <option value="numowned">Num Owned</option>
+                            <option value="pricepaid">Price Paid</option>
+                            <option value="invlocation">Location</option>
+                            <option value="quantity">Quantity</option>
                         </select>
                     </div>
                 </div>
@@ -113,6 +158,20 @@
                         <label>Show:</label>
                         <select id="bottomRight">
                             <option value="bayes" selected>Bayes Average</option>
+                            <option value="rating">My Rating</option>
+                            <option value="numplays">Num Plays</option>
+                            <option value="weight">My Weight</option>
+                            <option value="avgweight">BGG Avg Weight</option>
+                            <option value="average">BGG Average</option>
+                            <option value="year">Year</option>
+                            <option value="playingtime">Playing Time</option>
+                            <option value="minplayers">Min Players</option>
+                            <option value="maxplayers">Max Players</option>
+                            <option value="players">Players Range</option>
+                            <option value="numowned">Num Owned</option>
+                            <option value="pricepaid">Price Paid</option>
+                            <option value="invlocation">Location</option>
+                            <option value="quantity">Quantity</option>
                             <option value="none">Nothing</option>
                         </select>
                     </div>
@@ -501,7 +560,7 @@
             
             localStorage.setItem('bgg_print_data', JSON.stringify(printData));
             
-            const baseUrl = window.location.href.replace(/[^\/]*$/, 'menu-print.html');
+            const baseUrl = window.location.href.replace(/[^\/]*$/, 'private_print.html');
             const printUrl = baseUrl + '?t=' + Date.now();
             
             window.open(printUrl, '_blank');
