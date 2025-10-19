@@ -542,13 +542,15 @@
                 ...printOptions
             };
             
-            const gamesData = currentSortedGames.slice(0, 120).map(game => ({
-                name: game.name,
-                thumbnail: game.thumbnail,
-                category: 'supported',
-                bayesAverage: game.bayesAverage || 0,
-                playerVotes: []
-            }));
+      //      const gamesData = currentSortedGames.slice(0, 120).map(game => ({
+      //          name: game.name,
+      //          thumbnail: game.thumbnail,
+      //          category: 'supported',
+       //         bayesAverage: game.bayesAverage || 0,
+       //         playerVotes: []
+        //    }));
+
+            const gamesData = currentSortedGames.slice(0, 120);
 
             const currentSortMode = document.getElementById('sortBy')?.value || 'bayes';
             
