@@ -549,6 +549,8 @@
                 bayesAverage: game.bayesAverage || 0,
                 playerVotes: []
             }));
+
+            const currentSortMode = document.getElementById('sortBy')?.value || 'bayes';
             
             const printData = {
                 username: 'Sportomax',
