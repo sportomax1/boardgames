@@ -35,6 +35,14 @@ jobs:
               fi
             else
               echo "[$(date '+%Y-%m-%d %H:%M:%S')] Geeklist data retrieved successfully!"
+              
+              # Add apirundate to the XML header
+              CURRENT_DATE=$(date -u '+%a, %d %b %Y %H:%M:%S +0000')
+              CURRENT_TIMESTAMP=$(date +%s)
+              
+              # Insert apirundate after the opening geeklist tag
+              sed -i "/<geeklist id=/a <apirundate>$CURRENT_DATE</apirundate>\n<apirundate_timestamp>$CURRENT_TIMESTAMP</apirundate_timestamp>" vfm25bgg.xml
+              
               SUCCESS=true
               break
             fi
