@@ -555,7 +555,8 @@
                 playerCount: 'All',
                 games: gamesData,
                 printOptions: options,
-                timestamp: Date.now()
+                timestamp: Date.now(),
+                sortMode: currentSortMode
             };
             
             localStorage.setItem('bgg_print_data', JSON.stringify(printData));
