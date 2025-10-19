@@ -743,7 +743,7 @@
             }
         }
         
-        function updateProgress(fileName, status, count = 0, apiRunDate = null) {
+        function updateProgress(fileName, status, count = 0, apirundate_timestamp = null) {
             const progressContainer = document.getElementById('progressContainer');
             let progressItem = document.getElementById(`progress-${fileName}`);
             
@@ -770,7 +770,7 @@
                 statusClass = 'status-failed';
             }
             
-            const date = apiRunDate || new Date();
+            const date = apirundate_timestamp || new Date();
             const dateStr = formatDateTime(date);
             const timeDiff = getTimeDifference(date);
             const countStr = String(count).padStart(4);
@@ -814,19 +814,19 @@
                         }
                         
                         // Try to get API run date from XML comment or postdate
-                        let apiRunDate = null;
+                        let apirundate_timestamp = null;
                         const firstComment = xml.evaluate('//comment()[contains(., "API")]', xml, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
                         if (firstComment) {
                             const dateMatch = firstComment.textContent.match(/(\d{4}-\d{2}-\d{2}[T\s]\d{2}:\d{2})/);
                             if (dateMatch) {
-                                apiRunDate = new Date(dateMatch[1]);
+                                apirundate_timestamp = new Date(dateMatch[1]);
                             }
                         }
                         
-                        if (!apiRunDate) {
+                        if (!apirundate_timestamp) {
                             const postdate = geeklist.getAttribute('postdate');
                             if (postdate) {
-                                apiRunDate = new Date(postdate);
+                                apirundate_timestamp = new Date(postdate);
                             }
                         }
                         
@@ -841,7 +841,7 @@
                         
                         const validCount = itemsArray.filter(item => item.getAttribute('objectid') !== '340938').length;
                         
-                        updateProgress(fileName, 'success', validCount, apiRunDate);
+                        updateProgress(fileName, 'success', validCount, apirundate_timestamp);
                         console.log(`✓ Successfully loaded ${fileName}: ${validCount} items`);
                         
                         return itemsArray;
