@@ -1,0 +1,64 @@
+name: Fetch BGG Spring VFM Geeklist 24
+
+on:
+  workflow_dispatch:
+  schedule:
+   - cron: "0 0 1 * *"
+
+permissions:
+  contents: write
+
+jobs:
+  fetch-bgg:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Fetch BGG VFM geeklist XML with retry logic
+        run: |
+          MAX_RETRIES=5
+          RETRY_COUNT=0
+          SUCCESS=false
+          
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] Attempt $((RETRY_COUNT + 1)) of $MAX_RETRIES..."
+            curl -L "https://boardgamegeek.com/xmlapi/geeklist/331341?comments=1" -o vfm24spr.xml
+            
+            # Check if the response contains the "accepted and will be processed" message
+            if grep -q "Your request for this geeklist has been accepted and will be processed" vfm24spr.xml; then
+              echo "[$(date '+%Y-%m-%d %H:%M:%S')] Geeklist is being processed by BGG. Waiting 32 seconds before retry..."
+              RETRY_COUNT=$((RETRY_COUNT + 1))
+              if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+                sleep 32
+                echo "[$(date '+%Y-%m-%d %H:%M:%S')] Wait complete, retrying now..."
+              fi
+            else
+              echo "[$(date '+%Y-%m-%d %H:%M:%S')] Geeklist data retrieved successfully!"
+              
+              # Add apirundate to the XML header
+              CURRENT_DATE=$(date -u '+%a, %d %b %Y %H:%M:%S +0000')
+              CURRENT_TIMESTAMP=$(date +%s)
+              
+              # Insert apirundate after the opening geeklist tag
+              sed -i "/<geeklist id=/a <apirundate>$CURRENT_DATE</apirundate>\n<apirundate_timestamp>$CURRENT_TIMESTAMP</apirundate_timestamp>" vfm24spr.xml
+              
+              SUCCESS=true
+              break
+            fi
+          done
+          
+          if [ "$SUCCESS" = false ]; then
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] FAILED: All retries exhausted without successful data retrieval."
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] File will NOT be committed or updated."
+            rm -f vfm24spr.xml  # Remove the failed response file
+            exit 1  # Exit with error to prevent commit step
+          fi
+
+      - name: Commit and push results
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add vfm24spr.xml
+          git commit -m "Update VFM geeklist" || echo "No changes to commit"
+          git push
