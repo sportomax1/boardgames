@@ -1,4 +1,4 @@
-name: Fetch DTW VFM Geeklist 25
+name: Fetch DTW VFM Geeklist 24
 
 on:
   workflow_dispatch:
