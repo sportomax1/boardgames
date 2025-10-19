@@ -1,624 +1,468 @@
-<!-- (Place this where the previous file left off — or just replace the entire file with this single-file app) -->
-<!doctype html>
+<!DOCTYPE html>
+
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>CSV → XML (iPhone friendly)</title>
-  <meta name="description" content="Drag/drop or upload CSV and convert to XML. Mobile-first design.">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BGG Collection Converter</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-  <style>
-    :root{
-      --bg:#0f1724;
-      --card:#0b1220;
-      --accent:#6ee7b7;
-      --muted:#94a3b8;
-      --glass: rgba(255,255,255,0.03);
-      --radius:16px;
-      --maxw:780px;
-      --gap:14px;
-    }
-
-    body{
-      margin:0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-      background: linear-gradient(180deg,#041025 0%, #07172a 100%);
-      color: #e6eef6;
-      min-height:100vh;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      padding: env(safe-area-inset-top) 16px calc(env(safe-area-inset-bottom) + 24px) 16px;
+```
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+        color: #333;
     }
 
-    .wrap{
-      width:100%;
-      max-width:var(--maxw);
-      display:flex;
-      flex-direction:column;
-      gap:var(--gap);
+    .container {
+        max-width: 428px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 24px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        overflow: hidden;
     }
 
-    header{
-      display:flex;
-      gap:12px;
-      align-items:center;
-      padding:16px;
-      border-radius:12px;
-      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
-      box-shadow: 0 6px 20px rgba(2,6,23,0.6), inset 0 1px 0 rgba(255,255,255,0.02);
+    .header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 24px 20px;
+        text-align: center;
+        color: white;
     }
 
-    .brand{
-      display:flex;
-      gap:12px;
-      align-items:center;
-      flex:1;
-    }
-    .logo{
-      width:52px;
-      height:52px;
-      border-radius:12px;
-      background:linear-gradient(135deg,var(--accent),#60a5fa);
-      display:grid;
-      place-items:center;
-      font-weight:700;
-      color:#05222a;
-      box-shadow: 0 6px 20px rgba(16,185,129,0.08);
-      flex-shrink:0;
-    }
-    h1{ font-size:18px; margin:0; letter-spacing:-0.2px; }
-    p.lead{ margin:0; color:var(--muted); font-size:13px; }
-
-    .card{
-      background: linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.01));
-      border-radius: var(--radius);
-      padding:14px;
-      box-shadow: 0 8px 40px rgba(2,6,23,0.5);
-      border: 1px solid rgba(255,255,255,0.02);
+    .header h1 {
+        font-size: 24px;
+        font-weight: 700;
+        margin-bottom: 8px;
     }
 
-    .drop{
-      border-radius:12px;
-      padding:16px;
-      display:flex;
-      gap:12px;
-      align-items:center;
-      justify-content:space-between;
-      background: linear-gradient(90deg, rgba(255,255,255,0.01), rgba(255,255,255,0.00));
-      border: 1px dashed rgba(255,255,255,0.04);
-      min-height:84px;
-      transition: transform .12s ease, border-color .12s ease, background .12s ease;
-      touch-action:manipulation;
-    }
-    .drop.dragover{ transform: translateY(-4px); border-color: rgba(110,231,183,0.6); background: rgba(110,231,183,0.02); }
-    .drop .left{ display:flex; gap:12px; align-items:center; flex:1; min-width:0; }
-    .icon{
-      width:52px; height:52px; border-radius:10px; display:grid;place-items:center;
-      background: linear-gradient(135deg, rgba(110,231,183,0.12), rgba(96,165,250,0.06));
-      color:var(--accent); font-size:22px;
-      flex-shrink:0;
-    }
-    .info{ min-width:0; }
-    .info strong{ display:block; font-size:15px; margin-bottom:2px; }
-    .info span{ color:var(--muted); font-size:13px; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
-
-    .controls{ display:flex; gap:10px; align-items:center; }
-    button, .file-btn{
-      appearance:none; border:0; outline:0;
-      background: linear-gradient(90deg,var(--accent),#60a5fa);
-      color:#05222a; padding:12px 14px; border-radius:12px; font-weight:600;
-      box-shadow: 0 6px 18px rgba(16,185,129,0.12); cursor:pointer;
-    }
-    .file-btn{ background:transparent; color:var(--accent); border:1px solid rgba(110,231,183,0.12); padding:10px 12px; font-weight:600;}
-    .small-btn{ padding:8px 10px; border-radius:10px; font-size:14px; }
-    .hint{ color:var(--muted); font-size:13px; margin-top:8px; }
-
-    .preview{
-      overflow:auto;
-      max-height:240px;
-      border-radius:10px;
-      border:1px solid rgba(255,255,255,0.02);
-      margin-top:8px;
-      background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.005));
-    }
-    table{ width:100%; border-collapse:collapse; font-size:13px; }
-    th, td{ padding:8px 10px; border-bottom:1px dashed rgba(255,255,255,0.02); text-align:left; vertical-align:top; min-width:80px; }
-    th{ position:sticky; top:0; background: rgba(0,0,0,0.35); color:var(--accent); font-weight:700; font-size:13px; }
-
-    textarea.xml-out{
-      width:100%; min-height:160px; padding:12px; border-radius:10px; resize:vertical;
-      background:linear-gradient(180deg, rgba(2,6,23,0.6), rgba(2,6,23,0.4));
-      color:#dffaf0; border:1px solid rgba(255,255,255,0.02);
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", monospace;
-      font-size:12px;
+    .header p {
+        font-size: 14px;
+        opacity: 0.9;
     }
 
-    footer.row{ display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
-    .muted{ color:var(--muted); font-size:13px; }
-
-    @media (max-width:420px){
-      .logo{ width:46px; height:46px; font-size:15px; border-radius:10px; }
-      .drop{ flex-direction:column; align-items:stretch; gap:8px; min-height:120px; }
-      .controls{ width:100%; justify-content:space-between; }
-      th, td{ font-size:12px; padding:8px; }
+    .content {
+        padding: 24px 20px;
     }
-  </style>
+
+    .section {
+        margin-bottom: 24px;
+    }
+
+    .section-title {
+        font-size: 16px;
+        font-weight: 600;
+        margin-bottom: 12px;
+        color: #333;
+    }
+
+    .button-group {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 16px;
+    }
+
+    .btn {
+        flex: 1;
+        padding: 14px 20px;
+        border: none;
+        border-radius: 12px;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        text-align: center;
+        display: block;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+    .btn-primary:active {
+        transform: scale(0.97);
+    }
+
+    .btn-secondary {
+        background: #f0f0f0;
+        color: #333;
+    }
+
+    .btn-secondary:active {
+        background: #e0e0e0;
+    }
+
+    .username-input {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+
+    .username-input input {
+        flex: 1;
+        padding: 14px 16px;
+        border: 2px solid #e0e0e0;
+        border-radius: 12px;
+        font-size: 15px;
+        transition: border-color 0.3s;
+    }
+
+    .username-input input:focus {
+        outline: none;
+        border-color: #667eea;
+    }
+
+    .dropzone {
+        border: 3px dashed #d0d0d0;
+        border-radius: 16px;
+        padding: 40px 20px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background: #fafafa;
+    }
+
+    .dropzone.dragover {
+        border-color: #667eea;
+        background: #f0f4ff;
+    }
+
+    .dropzone-icon {
+        font-size: 48px;
+        margin-bottom: 12px;
+    }
+
+    .dropzone-text {
+        font-size: 16px;
+        font-weight: 500;
+        color: #666;
+        margin-bottom: 8px;
+    }
+
+    .dropzone-subtext {
+        font-size: 13px;
+        color: #999;
+    }
+
+    #fileInput {
+        display: none;
+    }
+
+    .result-box {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 16px;
+        margin-top: 16px;
+        display: none;
+    }
+
+    .result-box.show {
+        display: block;
+    }
+
+    .result-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+    }
+
+    .result-title {
+        font-weight: 600;
+        color: #333;
+    }
+
+    .result-actions {
+        display: flex;
+        gap: 8px;
+    }
+
+    .btn-small {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-copy {
+        background: #4CAF50;
+        color: white;
+    }
+
+    .btn-copy:active {
+        background: #45a049;
+    }
+
+    .btn-download {
+        background: #2196F3;
+        color: white;
+    }
+
+    .btn-download:active {
+        background: #0b7dda;
+    }
+
+    .xml-preview {
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 12px;
+        max-height: 200px;
+        overflow-y: auto;
+        font-family: 'Courier New', monospace;
+        font-size: 12px;
+        color: #333;
+        white-space: pre-wrap;
+        word-break: break-all;
+    }
+
+    .status {
+        padding: 12px 16px;
+        border-radius: 8px;
+        font-size: 14px;
+        margin-top: 12px;
+        display: none;
+    }
+
+    .status.show {
+        display: block;
+    }
+
+    .status.success {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .status.error {
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    .status.info {
+        background: #d1ecf1;
+        color: #0c5460;
+    }
+
+    .divider {
+        height: 1px;
+        background: #e0e0e0;
+        margin: 24px 0;
+    }
+</style>
+```
+
 </head>
 <body>
-  <div class="wrap" role="main">
-    <header class="card" aria-hidden="false">
-      <div class="brand">
-        <div class="logo">CSV→XML</div>
-        <div>
-          <h1>CSV → XML Converter</h1>
-          <p class="lead">Drop a CSV or choose a file. Converts to XML you can copy or download. Fast, mobile-first. 🚀</p>
-        </div>
-      </div>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <button id="sampleBtn" class="file-btn small-btn" title="Download sample CSV">Sample CSV</button>
-      </div>
-    </header>
-
-    <section class="card" aria-label="CSV input area">
-      <div id="drop" class="drop" tabindex="0">
-        <div class="left">
-          <div class="icon">📄</div>
-          <div class="info">
-            <strong id="dropTitle">Drop CSV here</strong>
-            <span id="dropSub">Or tap "Choose file" — supports quoted fields, newlines in fields.</span>
-          </div>
+    <div class="container">
+        <div class="header">
+            <h1>🎲 BGG Collection</h1>
+            <p>CSV to XML Converter</p>
         </div>
 
-        <div class="controls" aria-hidden="false">
-          <input id="fileInput" accept=".csv,text/csv" type="file" style="display:none" />
-          <label for="fileInput" class="file-btn small-btn" role="button">Choose file</label>
-          <button id="clearBtn" class="file-btn small-btn" style="display:none;background:transparent;color:var(--muted);border:1px solid rgba(255,255,255,0.03)">Clear</button>
-        </div>
-      </div>
-
-      <div class="hint">Headers on first row become XML element names. Names sanitized to valid XML tags. See preview below.</div>
-    </section>
-
-    <section class="card" aria-label="Preview and XML">
-      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
-        <div style="flex:1; min-width:220px;">
-          <div class="muted">Preview (first 50 rows)</div>
-          <div id="preview" class="preview" aria-live="polite">
-            <table id="tblPreview" hidden><thead></thead><tbody></tbody></table>
-            <div id="noPreview" style="padding:18px;color:var(--muted)">No CSV loaded yet.</div>
-          </div>
+```
+    <div class="content">
+        <!-- BGG Export Section -->
+        <div class="section">
+            <div class="section-title">Export from BoardGameGeek</div>
+            <div class="username-input">
+                <input type="text" id="usernameInput" placeholder="Username" value="Sportomax">
+            </div>
+            <div class="button-group">
+                <a href="#" class="btn btn-primary" id="downloadAllBtn">Download All</a>
+                <a href="#" class="btn btn-secondary" id="downloadOwnedBtn">Download Owned</a>
+            </div>
+            <div class="status" id="exportStatus"></div>
         </div>
 
-        <div style="width:1px;background:rgba(255,255,255,0.02);height:120px"></div>
+        <div class="divider"></div>
 
-        <div style="flex:1;min-width:220px;">
-          <div class="muted">XML Output</div>
-          <textarea id="xmlOut" class="xml-out" readonly placeholder="XML will appear here..."></textarea>
-
-          <div style="display:flex;gap:8px;margin-top:8px;align-items:center;">
-            <button id="copyBtn" class="small-btn" disabled>Copy XML</button>
-            <button id="downloadBtn" class="small-btn" disabled>Download XML</button>
-            <button id="optionsBtn" class="file-btn small-btn">Options</button>
-            <div style="flex:1"></div>
-            <div id="status" class="muted">Ready</div>
-          </div>
+        <!-- Upload Section -->
+        <div class="section">
+            <div class="section-title">Convert CSV to XML</div>
+            <div class="dropzone" id="dropzone">
+                <div class="dropzone-icon">📁</div>
+                <div class="dropzone-text">Drop CSV file here</div>
+                <div class="dropzone-subtext">or tap to browse</div>
+            </div>
+            <input type="file" id="fileInput" accept=".csv">
+            <div class="status" id="uploadStatus"></div>
         </div>
-      </div>
-    </section>
 
-    <section class="card" aria-label="Options" id="optionsCard" style="display:none;">
-      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
-        <label class="muted">Root element:
-          <input id="rootName" value="rows" style="margin-left:8px;padding:6px;border-radius:8px;border:1px solid rgba(255,255,255,0.02);background:transparent;color:inherit" />
-        </label>
+        <!-- Result Section -->
+        <div class="result-box" id="resultBox">
+            <div class="result-header">
+                <div class="result-title">XML Output</div>
+                <div class="result-actions">
+                    <button class="btn-small btn-copy" id="copyBtn">Copy</button>
+                    <button class="btn-small btn-download" id="downloadBtn">Download</button>
+                </div>
+            </div>
+            <div class="xml-preview" id="xmlPreview"></div>
+        </div>
+    </div>
+</div>
 
-        <label class="muted">Row element:
-          <input id="rowName" value="row" style="margin-left:8px;padding:6px;border-radius:8px;border:1px solid rgba(255,255,255,0.02);background:transparent;color:inherit" />
-        </label>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+<script>
+    let xmlData = '';
+    let filename = 'collection.xml';
 
-        <label class="muted">Use attributes instead of elements:
-          <input id="useAttrs" type="checkbox" style="margin-left:8px" />
-        </label>
+    // Update download links
+    function updateDownloadLinks() {
+        const username = document.getElementById('usernameInput').value || 'Sportomax';
+        const allUrl = `https://boardgamegeek.com/geekcollection.php?action=exportcsv&subtype=boardgame&username=${username}&all=1`;
+        const ownedUrl = `https://boardgamegeek.com/geekcollection.php?action=exportcsv&subtype=boardgame&username=${username}`;
+        
+        document.getElementById('downloadAllBtn').href = allUrl;
+        document.getElementById('downloadOwnedBtn').href = ownedUrl;
+    }
 
-        <div style="flex:1"></div>
-        <button id="applyOpts" class="file-btn small-btn">Apply</button>
-      </div>
-    </section>
+    // Initialize download links
+    updateDownloadLinks();
+    document.getElementById('usernameInput').addEventListener('input', updateDownloadLinks);
 
-    <footer class="card row" aria-hidden="false">
-      <div>
-        <div class="muted">Tip: If a header contains spaces or punctuation, they'll be sanitized to valid XML names (spaces → underscore).</div>
-      </div>
-      <div style="display:flex;gap:10px;align-items:center;">
-        <div class="muted">Made for iPhone • Zip 80134 🧭</div>
-      </div>
-    </footer>
-  </div>
+    // Show status message
+    function showStatus(elementId, message, type) {
+        const status = document.getElementById(elementId);
+        status.textContent = message;
+        status.className = `status show ${type}`;
+        setTimeout(() => {
+            status.classList.remove('show');
+        }, 3000);
+    }
 
-  <script>
-    /* -------------------------
-       Utilities / CSV parser
-       Robust, supports quoted fields with commas and newlines.
-       ------------------------- */
+    // CSV to XML conversion
+    function csvToXml(csvData) {
+        const parsed = Papa.parse(csvData, {
+            header: true,
+            skipEmptyLines: true
+        });
 
-    function parseCSV(text){
-      const rows = [];
-      let cur = '';
-      let row = [];
-      let inQuotes = false;
-      let i = 0;
+        if (parsed.errors.length > 0) {
+            throw new Error('CSV parsing error: ' + parsed.errors[0].message);
+        }
 
-      while (i < text.length) {
-        const ch = text[i];
+        let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+        xml += '<collection>\n';
 
-        if (inQuotes) {
-          if (ch === '"') {
-            // lookahead: double quote -> escaped quote
-            if (text[i+1] === '"') {
-              cur += '"';
-              i += 2;
-              continue;
-            } else {
-              inQuotes = false;
-              i++;
-              continue;
+        parsed.data.forEach(row => {
+            xml += '  <item>\n';
+            for (const [key, value] of Object.entries(row)) {
+                const cleanKey = key.trim().replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
+                const cleanValue = String(value || '')
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&apos;');
+                xml += `    <${cleanKey}>${cleanValue}</${cleanKey}>\n`;
             }
-          } else {
-            cur += ch;
-            i++;
-            continue;
-          }
-        } else {
-          if (ch === '"') {
-            inQuotes = true;
-            i++;
-            continue;
-          }
-          if (ch === ',') {
-            row.push(cur);
-            cur = '';
-            i++;
-            continue;
-          }
-          if (ch === '\r') {
-            // handle \r\n or lone \r
-            if (text[i+1] === '\n') i++;
-            row.push(cur);
-            cur = '';
-            rows.push(row);
-            row = [];
-            i++;
-            continue;
-          }
-          if (ch === '\n') {
-            row.push(cur);
-            cur = '';
-            rows.push(row);
-            row = [];
-            i++;
-            continue;
-          }
-          cur += ch;
-          i++;
-          continue;
+            xml += '  </item>\n';
+        });
+
+        xml += '</collection>';
+        return xml;
+    }
+
+    // Process file
+    function processFile(file) {
+        if (!file.name.endsWith('.csv')) {
+            showStatus('uploadStatus', 'Please upload a CSV file', 'error');
+            return;
         }
-      }
 
-      // final cell
-      if (inQuotes) {
-        // unclosed quote - we'll still push what we have
-      }
-      row.push(cur);
-      // avoid adding an extra blank line at end
-      if (!(row.length === 1 && row[0] === '' && rows.length > 0)) {
-        rows.push(row);
-      } else if (rows.length === 0 && !(row.length === 1 && row[0] === '')) {
-        rows.push(row);
-      }
-      return rows;
+        filename = file.name.replace('.csv', '.xml');
+        showStatus('uploadStatus', 'Processing...', 'info');
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                xmlData = csvToXml(e.target.result);
+                document.getElementById('xmlPreview').textContent = xmlData.substring(0, 1000) + (xmlData.length > 1000 ? '\n...' : '');
+                document.getElementById('resultBox').classList.add('show');
+                showStatus('uploadStatus', '✓ Conversion successful!', 'success');
+            } catch (error) {
+                showStatus('uploadStatus', 'Error: ' + error.message, 'error');
+            }
+        };
+        reader.readAsText(file);
     }
 
-    function escapeXml(unsafe){
-      if (unsafe === null || unsafe === undefined) return '';
-      return String(unsafe)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&apos;');
-    }
-
-    function sanitizeTagName(name){
-      let s = String(name || '').trim();
-      if (s === '') s = 'field';
-      s = s.replace(/[^A-Za-z0-9_\-.:]/g, '_');
-      if (!/^[A-Za-z_]/.test(s)) s = 'f_' + s;
-      if (/^xmlns/i.test(s)) s = 'f_' + s;
-      return s;
-    }
-
-    function rowsToXml(rows, opts = {}){
-      if (!rows || rows.length === 0) return '';
-      const root = opts.rootName || 'rows';
-      const rowName = opts.rowName || 'row';
-      const useAttrs = !!opts.useAttrs;
-
-      const headers = rows[0].map(h => sanitizeTagName(h || 'field'));
-      const out = [];
-      out.push('<?xml version="1.0" encoding="UTF-8"?>');
-      out.push(`<${root}>`);
-      for (let r = 1; r < rows.length; r++){
-        const cells = rows[r];
-        if (cells.every(c => c === '' || c === null || c === undefined)) continue;
-
-        if (useAttrs){
-          const pairs = [];
-          for (let c = 0; c < headers.length; c++){
-            const val = c < cells.length ? cells[c] : '';
-            pairs.push(`${headers[c]}="${escapeXml(val)}"`);
-          }
-          out.push(`  <${rowName} ${pairs.join(' ')} />`);
-        } else {
-          out.push(`  <${rowName}>`);
-          for (let c = 0; c < headers.length; c++){
-            const tag = headers[c];
-            const val = c < cells.length ? cells[c] : '';
-            out.push(`    <${tag}>${escapeXml(val)}</${tag}>`);
-          }
-          out.push(`  </${rowName}>`);
-        }
-      }
-      out.push(`</${root}>`);
-      return out.join('\n');
-    }
-
-    /* -------------------------
-       DOM + interactions
-       ------------------------- */
-
-    const drop = document.getElementById('drop');
+    // Drag and drop
+    const dropzone = document.getElementById('dropzone');
     const fileInput = document.getElementById('fileInput');
-    const tblPreview = document.getElementById('tblPreview');
-    const noPreview = document.getElementById('noPreview');
-    const xmlOut = document.getElementById('xmlOut');
-    const copyBtn = document.getElementById('copyBtn');
-    const downloadBtn = document.getElementById('downloadBtn');
-    const clearBtn = document.getElementById('clearBtn');
-    const status = document.getElementById('status');
-    const optionsBtn = document.getElementById('optionsBtn');
-    const optionsCard = document.getElementById('optionsCard');
-    const applyOpts = document.getElementById('applyOpts');
-    const rootName = document.getElementById('rootName');
-    const rowName = document.getElementById('rowName');
-    const useAttrs = document.getElementById('useAttrs');
-    const sampleBtn = document.getElementById('sampleBtn');
 
-    let lastRows = null;
-    let lastXml = '';
+    dropzone.addEventListener('click', () => fileInput.click());
 
-    function setStatus(txt, short = false){
-      status.textContent = txt;
-      if (!short) {
-        setTimeout(()=> { if (status.textContent === txt) status.textContent = 'Ready'; }, 2500);
-      }
-    }
+    dropzone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropzone.classList.add('dragover');
+    });
 
-    function showPreview(rows){
-      if (!rows || rows.length === 0){
-        tblPreview.hidden = true;
-        noPreview.hidden = false;
-        return;
-      }
-      const thead = tblPreview.querySelector('thead');
-      const tbody = tblPreview.querySelector('tbody');
-      thead.innerHTML = '';
-      tbody.innerHTML = '';
+    dropzone.addEventListener('dragleave', () => {
+        dropzone.classList.remove('dragover');
+    });
 
-      // header row:
-      const headerRow = document.createElement('tr');
-      const headers = rows[0];
-      headers.forEach(h => {
-        const th = document.createElement('th');
-        th.textContent = h || '';
-        headerRow.appendChild(th);
-      });
-      thead.appendChild(headerRow);
-
-      const max = Math.min(rows.length - 1, 50); // show up to 50 rows
-      for (let r = 1; r <= max; r++){
-        const tr = document.createElement('tr');
-        const row = rows[r];
-        for (let c = 0; c < headers.length; c++){
-          const td = document.createElement('td');
-          td.textContent = (c < row.length) ? row[c] : '';
-          tr.appendChild(td);
+    dropzone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropzone.classList.remove('dragover');
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            processFile(files[0]);
         }
-        tbody.appendChild(tr);
-      }
-
-      tblPreview.hidden = false;
-      noPreview.hidden = true;
-    }
-
-    function enableActions(enabled){
-      copyBtn.disabled = !enabled;
-      downloadBtn.disabled = !enabled;
-      clearBtn.style.display = enabled ? 'inline-block' : 'none';
-    }
-
-    function generateXmlAndShow(rows){
-      const opts = { rootName: rootName.value.trim() || 'rows', rowName: rowName.value.trim() || 'row', useAttrs: useAttrs.checked };
-      try {
-        const xml = rowsToXml(rows, opts);
-        lastRows = rows;
-        lastXml = xml;
-        xmlOut.value = xml;
-        showPreview(rows);
-        enableActions(true);
-        setStatus('Converted ✔', false);
-      } catch (e) {
-        setStatus('Conversion error', false);
-        xmlOut.value = 'Error: ' + (e && e.message ? e.message : e);
-        enableActions(false);
-      }
-    }
-
-    function loadTextAsCsv(text){
-      setStatus('Parsing CSV...', true);
-      const rows = parseCSV(text);
-      if (!rows || rows.length === 0) {
-        setStatus('No rows found', false);
-        enableActions(false);
-        return;
-      }
-      generateXmlAndShow(rows);
-    }
-
-    function loadFile(file){
-      if (!file) return;
-      setStatus('Reading file...', true);
-      const reader = new FileReader();
-      reader.onload = function(e){
-        loadTextAsCsv(String(e.target.result));
-      };
-      reader.onerror = function(){
-        setStatus('File read error', false);
-      };
-      reader.readAsText(file, 'UTF-8');
-    }
-
-    // Drag & drop handlers
-    ['dragenter','dragover'].forEach(ev => {
-      drop.addEventListener(ev, (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        drop.classList.add('dragover');
-      });
-    });
-    ['dragleave','dragend','drop'].forEach(ev => {
-      drop.addEventListener(ev, (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        drop.classList.remove('dragover');
-      });
-    });
-    drop.addEventListener('drop', (e) => {
-      const dt = e.dataTransfer;
-      if (!dt) return;
-      const item = dt.files && dt.files[0];
-      if (item) {
-        loadFile(item);
-      } else {
-        setStatus('No file dropped', false);
-      }
     });
 
-    // File input change
     fileInput.addEventListener('change', (e) => {
-      const f = e.target.files && e.target.files[0];
-      if (f) loadFile(f);
-      // reset input so same file can be re-selected later if needed
-      fileInput.value = '';
+        if (e.target.files.length > 0) {
+            processFile(e.target.files[0]);
+        }
     });
 
-    // Copy
-    copyBtn.addEventListener('click', async () => {
-      try {
-        await navigator.clipboard.writeText(lastXml || xmlOut.value);
-        setStatus('Copied to clipboard ✅', false);
-      } catch (e) {
-        setStatus('Copy failed — tap and hold the text to select', false);
-      }
+    // Copy button
+    document.getElementById('copyBtn').addEventListener('click', () => {
+        navigator.clipboard.writeText(xmlData).then(() => {
+            showStatus('uploadStatus', '✓ Copied to clipboard!', 'success');
+        }).catch(() => {
+            showStatus('uploadStatus', 'Failed to copy', 'error');
+        });
     });
 
-    // Download XML
-    downloadBtn.addEventListener('click', () => {
-      const xml = lastXml || xmlOut.value || '';
-      if (!xml) { setStatus('Nothing to download', false); return; }
-      const blob = new Blob([xml], { type: 'application/xml' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = (rootName.value.trim() || 'rows') + '.xml';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-      setStatus('Download started', false);
+    // Download button
+    document.getElementById('downloadBtn').addEventListener('click', () => {
+        const blob = new Blob([xmlData], { type: 'text/xml' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showStatus('uploadStatus', '✓ Download started!', 'success');
     });
 
-    // Clear
-    clearBtn.addEventListener('click', () => {
-      lastRows = null;
-      lastXml = '';
-      xmlOut.value = '';
-      tblPreview.querySelector('thead').innerHTML = '';
-      tblPreview.querySelector('tbody').innerHTML = '';
-      tblPreview.hidden = true;
-      noPreview.hidden = false;
-      enableActions(false);
-      setStatus('Cleared', false);
+    // Add click handlers for export buttons
+    document.getElementById('downloadAllBtn').addEventListener('click', (e) => {
+        showStatus('exportStatus', 'Opening BGG export page...', 'info');
     });
 
-    // Options panel toggle & apply
-    optionsBtn.addEventListener('click', () => {
-      const showing = optionsCard.style.display !== 'none';
-      optionsCard.style.display = showing ? 'none' : 'block';
-      optionsBtn.textContent = showing ? 'Options' : 'Hide';
+    document.getElementById('downloadOwnedBtn').addEventListener('click', (e) => {
+        showStatus('exportStatus', 'Opening BGG export page...', 'info');
     });
+</script>
+```
 
-    applyOpts.addEventListener('click', () => {
-      if (!lastRows) {
-        setStatus('No CSV loaded', false);
-        return;
-      }
-      generateXmlAndShow(lastRows);
-    });
-
-    // Keyboard accessibility for drop area (Enter opens file picker)
-    drop.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        fileInput.click();
-      }
-    });
-
-    // Sample CSV download
-    sampleBtn.addEventListener('click', () => {
-      const sample = [
-        'Name,Email,Notes',
-        '"Kevin","kevin@example.com","Loves board games, hockey, and spreadsheets"',
-        '"Jane Doe","jane@example.com","Multi-line note: Line1\nLine2, with comma"',
-        '"Bob","bob@example.com","Escaped quote: ""hello"""'
-      ].join('\\n');
-      const blob = new Blob([sample], { type: 'text/csv' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'sample.csv';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-      setStatus('Sample CSV downloaded', false);
-    });
-
-    // Helpful hint: if user pastes CSV text into page, parse it
-    window.addEventListener('paste', (e) => {
-      const text = (e.clipboardData || window.clipboardData).getData('text');
-      if (text && text.includes(',')) {
-        // small heuristic to avoid accidental parses — user likely pasting CSV
-        loadTextAsCsv(text);
-      }
-    });
-
-    // Initialize
-    enableActions(false);
-    setStatus('Ready', true);
-
-    // Optional: allow dropping by tapping area on iPhone (opens file picker)
-    drop.addEventListener('click', () => fileInput.click());
-  </script>
 </body>
 </html>
