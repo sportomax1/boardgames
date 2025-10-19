@@ -1,4 +1,4 @@
-name: Fetch DTE VFM Geeklist 24
+name: Fetch DTE VFM Geeklist 23
 
 on:
   workflow_dispatch:
