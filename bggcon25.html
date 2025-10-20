@@ -4,269 +4,235 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BGG Game Library</title>
+    <!-- Load Inter font for aesthetics -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --bg-light: #f9fafb;
         }
-
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
             min-height: 100vh;
-            padding: 20px;
+            padding: 1rem;
         }
-
         .container {
             max-width: 1400px;
-            margin: 0 auto;
         }
-
-        h1 {
-            color: white;
-            text-align: center;
-            margin-bottom: 30px;
-            font-size: 2.5em;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-        }
-
-        .stats {
-            background: rgba(255,255,255,0.95);
-            padding: 20px;
-            border-radius: 12px;
-            margin-bottom: 30px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
-            display: flex;
-            justify-content: space-around;
-            flex-wrap: wrap;
-            gap: 20px;
-        }
-
-        .stat-item {
-            text-align: center;
-        }
-
-        .stat-number {
-            font-size: 2em;
-            font-weight: bold;
-            color: #667eea;
-        }
-
-        .stat-label {
-            color: #666;
-            font-size: 0.9em;
-            margin-top: 5px;
-        }
-
-        .filters {
-            background: rgba(255,255,255,0.95);
-            padding: 20px;
-            border-radius: 12px;
-            margin-bottom: 30px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
-        }
-
-        .filter-group {
-            display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-
-        .filter-group input, .filter-group select {
-            padding: 10px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            font-size: 1em;
-            flex: 1;
-            min-width: 200px;
-        }
-
-        .filter-group input:focus, .filter-group select:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        .games-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 25px;
-            margin-bottom: 30px;
-        }
-
+        /* Custom scrollbar for better appearance */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-light); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: var(--primary-color); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--secondary-color); }
         .game-card {
-            background: white;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
-
         .game-card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 12px 36px rgba(0,0,0,0.25);
+            transform: translateY(-4px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
         }
-
         .game-image {
-            width: 100%;
-            height: 200px;
-            object-fit: cover;
             background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #999;
-            font-size: 3em;
         }
-
-        .game-image img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
+        .loader-ring {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #ffffff;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
         }
-
-        .game-info {
-            padding: 20px;
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
-
-        .game-name {
-            font-size: 1.2em;
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 10px;
-            line-height: 1.3;
-        }
-
-        .game-details {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-            margin-top: 12px;
-            font-size: 0.9em;
-            color: #666;
-        }
-
-        .detail-item {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .detail-label {
-            font-weight: 600;
-            color: #667eea;
-        }
-
-        .badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.8em;
-            font-weight: 600;
-            margin-top: 10px;
-        }
-
-        .badge-available {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        .badge-checked-out {
-            background: #f8d7da;
-            color: #721c24;
-        }
-
-        .badge-condition {
-            background: #d1ecf1;
-            color: #0c5460;
-            margin-left: 5px;
-        }
-
-        .loading {
-            text-align: center;
-            color: white;
-            font-size: 1.5em;
-            padding: 50px;
-        }
-
-        .error {
-            background: #f8d7da;
-            color: #721c24;
-            padding: 20px;
-            border-radius: 12px;
-            margin: 20px auto;
-            max-width: 600px;
-            text-align: center;
-        }
-
-        @media (max-width: 768px) {
-            .games-grid {
-                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            }
-            
-            h1 {
-                font-size: 1.8em;
-            }
+        /* Modal Backdrop */
+        .modal-backdrop {
+            background-color: rgba(0, 0, 0, 0.5);
         }
     </style>
 </head>
-<body>
-    <div class="container">
-        <h1>🎲 Board Game Library</h1>
-        
-        <div class="stats" id="stats">
-            <div class="stat-item">
-                <div class="stat-number" id="totalGames">-</div>
-                <div class="stat-label">Total Games</div>
+<body class="p-4 sm:p-6 md:p-10">
+    <div class="container mx-auto">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl sm:text-4xl font-extrabold text-white mb-2 text-shadow-lg">
+                🎲 BGG Game Library
+            </h1>
+            <p class="text-white opacity-90">Infinite Scroll & Dynamic Filtering</p>
+        </header>
+
+        <!-- Stats Section -->
+        <div class="stats bg-white bg-opacity-95 p-4 md:p-6 rounded-xl shadow-2xl mb-8 flex flex-wrap justify-around gap-4">
+            <div class="text-center">
+                <div class="text-3xl font-bold text-gray-800" id="totalGames">-</div>
+                <div class="text-sm text-gray-600">Total Games</div>
             </div>
-            <div class="stat-item">
-                <div class="stat-number" id="availableGames">-</div>
-                <div class="stat-label">Available</div>
+            <div class="text-center">
+                <div class="text-3xl font-bold text-green-600" id="availableGames">-</div>
+                <div class="text-sm text-gray-600">Available</div>
             </div>
-            <div class="stat-item">
-                <div class="stat-number" id="checkedOutGames">-</div>
-                <div class="stat-label">Checked Out</div>
+            <div class="text-center">
+                <div class="text-3xl font-bold text-red-600" id="checkedOutGames">-</div>
+                <div class="text-sm text-gray-600">Checked Out</div>
             </div>
         </div>
 
-        <div class="filters">
-            <div class="filter-group">
-                <input type="text" id="searchInput" placeholder="🔍 Search games...">
-                <select id="statusFilter">
+        <!-- Filter and Controls Section -->
+        <div class="controls bg-white bg-opacity-95 p-4 md:p-6 rounded-xl shadow-2xl mb-8">
+            <div class="flex flex-col md:flex-row gap-4 items-end">
+                <input type="text" id="searchInput" placeholder="🔍 Search by name..."
+                       class="flex-1 w-full md:w-auto p-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150">
+
+                <select id="statusFilter" class="p-3 border-2 border-gray-300 rounded-lg transition duration-150">
                     <option value="all">All Status</option>
                     <option value="available">Available</option>
                     <option value="checked-out">Checked Out</option>
                 </select>
-                <select id="sortBy">
-                    <option value="name">Sort by Name</option>
-                    <option value="checkouts">Sort by Popularity</option>
-                    <option value="players">Sort by Players</option>
+
+                <select id="sortByField" class="p-3 border-2 border-gray-300 rounded-lg transition duration-150">
+                    <option value="name">Name</option>
+                    <option value="lastUpdated">Last Update (Default)</option>
+                    <option value="checkoutCount">Popularity (Checkouts)</option>
+                    <option value="minPlayers">Min Players</option>
+                    <option value="minPlayTime">Min Play Time</option>
                 </select>
+
+                <button id="sortDirectionToggle" class="p-3 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition duration-150 font-bold flex items-center justify-center">
+                    <span id="sortDirectionIcon">↓</span>
+                </button>
+
+                <button id="openSettingsButton" class="p-3 bg-gray-700 text-white rounded-lg hover:bg-gray-800 transition duration-150 font-bold flex items-center justify-center">
+                    ⚙️ Fields
+                </button>
             </div>
         </div>
 
-        <div id="loading" class="loading">Loading games...</div>
-        <div id="error" class="error" style="display: none;"></div>
-        <div id="gamesGrid" class="games-grid"></div>
+        <!-- Games Grid -->
+        <div id="gamesGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <!-- Game cards will be appended here -->
+        </div>
+
+        <!-- Loading Indicator for Infinite Scroll -->
+        <div id="loading" class="text-center py-8 text-white text-lg font-semibold">
+            <div class="flex justify-center items-center space-x-2">
+                <div class="loader-ring"></div>
+                <span>Loading more games...</span>
+            </div>
+        </div>
+
+        <div id="noMoreGames" class="text-center py-8 text-white opacity-75 text-lg font-semibold hidden">
+            End of Library.
+        </div>
+
+        <div id="error" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl relative mt-8 hidden" role="alert">
+            <strong class="font-bold">Error:</strong>
+            <span class="block sm:inline" id="errorMessage"></span>
+        </div>
+    </div>
+
+    <!-- Field Selection Modal -->
+    <div id="settingsModal" class="fixed inset-0 z-50 flex items-center justify-center modal-backdrop hidden">
+        <div class="bg-white rounded-xl shadow-2xl p-6 w-11/12 max-w-md transform transition-all duration-300 scale-95 opacity-0" id="settingsContent">
+            <h2 class="text-2xl font-bold mb-4 text-gray-800">Card Display Fields</h2>
+            <p class="text-sm text-gray-500 mb-4">Select the details you want to see on each game card.</p>
+            <div id="fieldCheckboxes" class="grid grid-cols-2 gap-3 mb-6">
+                <!-- Checkboxes will be inserted here by JavaScript -->
+            </div>
+            <button id="closeSettingsButton" class="w-full py-3 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 font-bold transition duration-150">
+                Done
+            </button>
+        </div>
     </div>
 
     <script>
+        // --- Configuration Constants ---
+        const BGG_API_URL = 'https://boardgamegeek.com/xmlapi2/thing';
+        const XML_FILE = 'bggcon.xml';
+        const GAMES_PER_PAGE = 20;
+
+        // --- Global State ---
         let allGames = [];
+        let filteredGames = [];
+        let visibleGames = [];
         let gameImages = {};
+        let currentPage = 0;
+        let isLoading = false;
+        let isLastPage = false;
+        let sortDirection = 'desc'; // Default: Descending
+        let sortBy = 'lastUpdated'; // Default: lastUpdated (simulated)
+
+        const defaultVisibleFields = {
+            players: true,
+            playtime: true,
+            checkouts: true,
+            publisher: false,
+            catalogNumber: false,
+            location: false
+        };
+        let visibleFields = { ...defaultVisibleFields };
+
+        const allFields = {
+            name: { label: 'Name', type: 'string', alwaysVisible: true, sortable: true },
+            lastUpdated: { label: 'Last Updated', type: 'date', sortable: true, defaultSort: true },
+            isCheckedOut: { label: 'Status', type: 'boolean', alwaysVisible: true, sortable: true },
+            condition: { label: 'Condition', type: 'string', sortable: true },
+            minPlayers: { label: 'Min Players', type: 'number', sortable: true },
+            maxPlayers: { label: 'Max Players', type: 'number', sortable: true },
+            minPlayTime: { label: 'Min Time (min)', type: 'number', sortable: true },
+            maxPlayTime: { label: 'Max Time (min)', type: 'number', sortable: true },
+            publisher: { label: 'Publisher', type: 'string', sortable: true },
+            checkoutCount: { label: 'Checkouts', type: 'number', sortable: true },
+            catalogNumber: { label: 'Catalog #', type: 'string', sortable: true },
+            location: { label: 'Location', type: 'string', sortable: true },
+        };
+
+        // --- DOM Elements ---
+        const gamesGrid = document.getElementById('gamesGrid');
+        const loadingIndicator = document.getElementById('loading');
+        const noMoreGamesIndicator = document.getElementById('noMoreGames');
+        const searchInput = document.getElementById('searchInput');
+        const statusFilter = document.getElementById('statusFilter');
+        const sortByFieldSelect = document.getElementById('sortByField');
+        const sortDirectionToggle = document.getElementById('sortDirectionToggle');
+        const sortDirectionIcon = document.getElementById('sortDirectionIcon');
+        const settingsModal = document.getElementById('settingsModal');
+        const settingsContent = document.getElementById('settingsContent');
+        const fieldCheckboxes = document.getElementById('fieldCheckboxes');
+
+
+        // --- Utility Functions ---
+
+        function showError(message) {
+            loadingIndicator.classList.add('hidden');
+            document.getElementById('error').classList.remove('hidden');
+            document.getElementById('errorMessage').textContent = message;
+        }
+
+        function getTextContent(node, tagName) {
+            const element = node.getElementsByTagName(tagName)[0];
+            return element ? element.textContent.trim() : '';
+        }
+
+        // --- Data Loading and Parsing ---
 
         async function loadXML() {
             try {
-                const response = await fetch('bggcon.xml');
-                if (!response.ok) throw new Error('Failed to load XML file');
+                const response = await fetch(XML_FILE);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 const xmlText = await response.text();
                 const parser = new DOMParser();
                 const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+
+                if (xmlDoc.getElementsByTagName('parsererror').length > 0) {
+                    throw new Error('XML Parsing Error: Check your XML file structure.');
+                }
                 return xmlDoc;
             } catch (error) {
                 console.error('Error loading XML:', error);
-                showError('Failed to load game library. Make sure bggcon.xml is in the same folder.');
+                showError(`Failed to load game library from ${XML_FILE}. Details: ${error.message}`);
                 return null;
             }
         }
@@ -274,39 +240,42 @@
         function parseGames(xmlDoc) {
             const games = [];
             const gameNodes = xmlDoc.getElementsByTagName('game');
-            
-            for (let gameNode of gameNodes) {
+            const totalNodes = gameNodes.length;
+
+            for (let i = 0; i < totalNodes; i++) {
+                const gameNode = gameNodes[i];
+                // Simulate a lastUpdated date based on its position in the XML (proxy for freshness)
+                const syntheticTimestamp = Date.now() - (totalNodes - i) * 3600000; 
+                
                 const game = {
                     bggId: getTextContent(gameNode, 'bgg_id'),
                     name: getTextContent(gameNode, 'name'),
-                    age: getTextContent(gameNode, 'age'),
+                    age: parseInt(getTextContent(gameNode, 'age')) || 0,
                     checkoutCount: parseInt(getTextContent(gameNode, 'checkout_count')) || 0,
                     isCheckedOut: getTextContent(gameNode, 'is_checked_out') === '1',
-                    maxPlayers: getTextContent(gameNode, 'max_players'),
-                    minPlayers: getTextContent(gameNode, 'min_players'),
-                    maxPlayTime: getTextContent(gameNode, 'max_play_time'),
-                    minPlayTime: getTextContent(gameNode, 'min_play_time'),
+                    maxPlayers: parseInt(getTextContent(gameNode, 'max_players')) || 0,
+                    minPlayers: parseInt(getTextContent(gameNode, 'min_players')) || 0,
+                    maxPlayTime: parseInt(getTextContent(gameNode, 'max_play_time')) || 0,
+                    minPlayTime: parseInt(getTextContent(gameNode, 'min_play_time')) || 0,
                     publisher: getTextContent(gameNode, 'publisher_name'),
                     condition: getTextContent(gameNode, 'overall_condition'),
                     catalogNumber: getTextContent(gameNode, 'catalog_number'),
-                    location: getTextContent(gameNode, 'location')
+                    location: getTextContent(gameNode, 'location'),
+                    lastUpdated: syntheticTimestamp, // For default sorting
                 };
                 games.push(game);
             }
-            
             return games;
         }
 
-        function getTextContent(node, tagName) {
-            const element = node.getElementsByTagName(tagName)[0];
-            return element ? element.textContent : '';
-        }
+        // --- BGG API Thumbnail Fetching (Grounding) ---
 
         async function fetchBGGThumbnail(bggId) {
-            if (!bggId) return null;
-            
+            if (!bggId || gameImages[bggId]) return gameImages[bggId] || null;
+
             try {
-                const response = await fetch(`https://boardgamegeek.com/xmlapi2/thing?id=${bggId}&type=boardgame`);
+                // Using BGG API v2 (Thing)
+                const response = await fetch(`${BGG_API_URL}?id=${bggId}&type=boardgame`);
                 if (!response.ok) return null;
                 
                 const xmlText = await response.text();
@@ -314,91 +283,208 @@
                 const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
                 
                 const thumbnail = xmlDoc.querySelector('thumbnail');
-                return thumbnail ? thumbnail.textContent : null;
+                const url = thumbnail ? thumbnail.textContent.trim() : null;
+                
+                if (url) {
+                    gameImages[bggId] = url;
+                    // Update card image immediately if it's already rendered
+                    const imgElement = document.getElementById(`img-${bggId}`);
+                    if (imgElement) {
+                        imgElement.src = url;
+                        imgElement.onerror = () => { imgElement.parentElement.innerHTML = '<span class="text-4xl text-gray-500">🎲</span>'; };
+                        imgElement.classList.remove('hidden');
+                        imgElement.parentElement.querySelector('span')?.classList.add('hidden');
+                    }
+                }
+                return url;
             } catch (error) {
                 console.error(`Error fetching thumbnail for BGG ID ${bggId}:`, error);
                 return null;
             }
         }
 
-        async function loadAllThumbnails() {
-            const batchSize = 5;
-            for (let i = 0; i < allGames.length; i += batchSize) {
-                const batch = allGames.slice(i, i + batchSize);
-                const promises = batch.map(game => 
-                    fetchBGGThumbnail(game.bggId).then(url => {
-                        if (url) gameImages[game.bggId] = url;
-                    })
-                );
-                await Promise.all(promises);
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                renderGames();
-            }
-        }
+        // --- Filtering and Sorting Logic ---
 
-        function renderGames() {
-            const grid = document.getElementById('gamesGrid');
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-            const statusFilter = document.getElementById('statusFilter').value;
-            const sortBy = document.getElementById('sortBy').value;
-
-            let filtered = allGames.filter(game => {
+        function applyFiltersAndSort() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const status = statusFilter.value;
+            
+            filteredGames = allGames.filter(game => {
                 const matchesSearch = game.name.toLowerCase().includes(searchTerm);
-                const matchesStatus = statusFilter === 'all' || 
-                    (statusFilter === 'available' && !game.isCheckedOut) ||
-                    (statusFilter === 'checked-out' && game.isCheckedOut);
+                const matchesStatus = status === 'all' || 
+                    (status === 'available' && !game.isCheckedOut) ||
+                    (status === 'checked-out' && game.isCheckedOut);
                 return matchesSearch && matchesStatus;
             });
 
-            filtered.sort((a, b) => {
-                if (sortBy === 'name') return a.name.localeCompare(b.name);
-                if (sortBy === 'checkouts') return b.checkoutCount - a.checkoutCount;
-                if (sortBy === 'players') return parseInt(b.maxPlayers) - parseInt(a.maxPlayers);
-                return 0;
+            filteredGames.sort((a, b) => {
+                let valA = a[sortBy];
+                let valB = b[sortBy];
+
+                // Handle string/number comparison
+                let comparison = 0;
+                if (typeof valA === 'string' && typeof valB === 'string') {
+                    comparison = valA.localeCompare(valB);
+                } else {
+                    comparison = valA - valB;
+                }
+                
+                return sortDirection === 'asc' ? comparison : -comparison;
             });
 
-            grid.innerHTML = filtered.map(game => createGameCard(game)).join('');
+            // Reset pagination and redraw
+            currentPage = 0;
+            isLastPage = false;
+            gamesGrid.innerHTML = '';
+            noMoreGamesIndicator.classList.add('hidden');
+            loadNextPage();
             updateStats();
         }
 
-        function createGameCard(game) {
-            const imageUrl = gameImages[game.bggId];
-            const imageHTML = imageUrl 
-                ? `<img src="${imageUrl}" alt="${game.name}">`
-                : '<div class="game-image">🎲</div>';
+        // --- Infinite Scroll and Rendering ---
 
-            return `
-                <div class="game-card">
-                    <div class="game-image">${imageHTML}</div>
-                    <div class="game-info">
-                        <div class="game-name">${game.name}</div>
-                        <div>
-                            <span class="badge ${game.isCheckedOut ? 'badge-checked-out' : 'badge-available'}">
-                                ${game.isCheckedOut ? '📤 Checked Out' : '✅ Available'}
-                            </span>
-                            ${game.condition ? `<span class="badge badge-condition">${game.condition}</span>` : ''}
-                        </div>
-                        <div class="game-details">
-                            <div class="detail-item">
-                                <span class="detail-label">👥</span>
-                                <span>${game.minPlayers}-${game.maxPlayers} players</span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="detail-label">⏱️</span>
-                                <span>${game.minPlayTime}-${game.maxPlayTime} min</span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="detail-label">🔄</span>
-                                <span>${game.checkoutCount} checkouts</span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="detail-label">📦</span>
-                                <span>${game.catalogNumber}</span>
-                            </div>
-                        </div>
+        function loadNextPage() {
+            if (isLoading || isLastPage) return;
+            isLoading = true;
+            loadingIndicator.classList.remove('hidden');
+
+            const start = currentPage * GAMES_PER_PAGE;
+            const end = start + GAMES_PER_PAGE;
+            
+            visibleGames = filteredGames.slice(0, end);
+            
+            // Check if this is the last page
+            if (visibleGames.length === filteredGames.length) {
+                isLastPage = true;
+                noMoreGamesIndicator.classList.remove('hidden');
+            }
+
+            const newGames = filteredGames.slice(start, end);
+            newGames.forEach(game => {
+                gamesGrid.appendChild(createGameCardElement(game));
+            });
+
+            currentPage++;
+            
+            // Observe the last card for intersection
+            if (gamesGrid.lastElementChild) {
+                observer.unobserve(observerTarget); // Stop observing previous target
+                observer.observe(gamesGrid.lastElementChild); // Observe new last card
+            }
+            
+            isLoading = false;
+            loadingIndicator.classList.add('hidden');
+        }
+        
+        // Use a persistent target element if the grid is empty, or the last child if not
+        let observerTarget = loadingIndicator;
+
+        const observer = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting) {
+                loadNextPage();
+            }
+        }, {
+            root: null, // viewport
+            rootMargin: '100px', // start loading when the element is 100px from the viewport
+            threshold: 0.1
+        });
+
+        // The loading indicator is always present and acts as the initial observer target
+        observer.observe(observerTarget);
+
+
+        function createGameCardElement(game) {
+            const card = document.createElement('div');
+            card.className = 'game-card bg-white rounded-xl shadow-lg hover:shadow-2xl overflow-hidden cursor-pointer';
+            card.id = `card-${game.bggId}`;
+
+            const imageUrl = gameImages[game.bggId];
+            
+            // Image area - use placeholder text/emoji until thumbnail loads
+            card.innerHTML = `
+                <div class="game-image h-48 flex items-center justify-center text-gray-400">
+                    <img id="img-${game.bggId}" src="${imageUrl || ''}" alt="${game.name} thumbnail" 
+                         class="${imageUrl ? '' : 'hidden'} w-full h-full object-cover rounded-t-xl" 
+                         onerror="this.parentElement.innerHTML = '<span class=\'text-4xl text-gray-500\'>🎲</span>';">
+                    <span class="${imageUrl ? 'hidden' : 'text-4xl text-gray-500'}">🎲</span>
+                </div>
+                <div class="p-4 sm:p-5">
+                    <h3 class="text-xl font-bold text-gray-900 mb-2">${game.name}</h3>
+                    <div class="flex items-center justify-between mb-3 text-sm">
+                        <span class="px-3 py-1 rounded-full text-xs font-semibold ${game.isCheckedOut ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}">
+                            ${game.isCheckedOut ? '📤 Checked Out' : '✅ Available'}
+                        </span>
+                        ${game.condition ? `<span class="text-xs font-medium text-blue-600 bg-blue-100 px-3 py-1 rounded-full">${game.condition}</span>` : ''}
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm text-gray-600" id="details-${game.bggId}">
+                        <!-- Details injected by renderDetails -->
                     </div>
                 </div>
             `;
+            
+            // Asynchronously fetch thumbnail for this specific card
+            if (!imageUrl) {
+                 fetchBGGThumbnail(game.bggId);
+            }
+
+            // Inject the dynamic details based on user selection
+            renderDetails(card.querySelector(`#details-${game.bggId}`), game);
+
+            return card;
+        }
+
+        function renderDetails(detailsContainer, game) {
+            detailsContainer.innerHTML = '';
+            
+            // Helper function to create a detail item
+            const createDetailItem = (label, value) => {
+                if (!value) return;
+                const item = document.createElement('div');
+                item.className = 'flex flex-col';
+                item.innerHTML = `<span class="font-medium text-gray-800">${label}</span><span class="text-gray-600">${value}</span>`;
+                detailsContainer.appendChild(item);
+            };
+
+            // Players
+            if (visibleFields.players) {
+                createDetailItem('👥 Players', `${game.minPlayers}-${game.maxPlayers}`);
+            }
+
+            // Play Time
+            if (visibleFields.playtime) {
+                createDetailItem('⏱️ Play Time', `${game.minPlayTime}-${game.maxPlayTime} min`);
+            }
+
+            // Checkouts
+            if (visibleFields.checkouts) {
+                createDetailItem('🔄 Checkouts', game.checkoutCount);
+            }
+
+            // Publisher
+            if (visibleFields.publisher && game.publisher) {
+                createDetailItem('🏢 Publisher', game.publisher);
+            }
+
+            // Catalog Number
+            if (visibleFields.catalogNumber && game.catalogNumber) {
+                createDetailItem('📦 Catalog #', game.catalogNumber);
+            }
+            
+            // Location
+            if (visibleFields.location && game.location) {
+                createDetailItem('📍 Location', game.location);
+            }
+        }
+
+        // Re-renders only the details section of all visible cards
+        function refreshVisibleCardDetails() {
+            visibleGames.forEach(game => {
+                const detailsContainer = document.getElementById(`card-${game.bggId}`)?.querySelector(`#details-${game.bggId}`);
+                if (detailsContainer) {
+                    renderDetails(detailsContainer, game);
+                }
+            });
         }
 
         function updateStats() {
@@ -411,13 +497,92 @@
             document.getElementById('checkedOutGames').textContent = checkedOut;
         }
 
-        function showError(message) {
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('error').style.display = 'block';
-            document.getElementById('error').textContent = message;
+        // --- Settings Modal Logic ---
+
+        function setupSettingsModal() {
+            // Populate checkboxes
+            fieldCheckboxes.innerHTML = '';
+            const togglableFields = Object.keys(defaultVisibleFields);
+
+            togglableFields.forEach(key => {
+                const fieldData = allFields[key];
+                if (!fieldData) return;
+
+                const id = `toggle-${key}`;
+                const checked = visibleFields[key];
+                
+                const div = document.createElement('div');
+                div.className = 'flex items-center space-x-2';
+                div.innerHTML = `
+                    <input type="checkbox" id="${id}" data-field="${key}" ${checked ? 'checked' : ''} 
+                           class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+                    <label for="${id}" class="text-sm font-medium text-gray-700">${fieldData.label}</label>
+                `;
+                fieldCheckboxes.appendChild(div);
+
+                // Add event listener to update state
+                div.querySelector('input').addEventListener('change', (e) => {
+                    visibleFields[key] = e.target.checked;
+                    // Immediately refresh the displayed cards without resorting/refiltering
+                    refreshVisibleCardDetails(); 
+                });
+            });
+
+            // Modal functionality
+            document.getElementById('openSettingsButton').addEventListener('click', () => {
+                settingsModal.classList.remove('hidden');
+                setTimeout(() => {
+                    settingsContent.classList.remove('scale-95', 'opacity-0');
+                    settingsContent.classList.add('scale-100', 'opacity-100');
+                }, 10);
+            });
+
+            document.getElementById('closeSettingsButton').addEventListener('click', () => {
+                settingsContent.classList.remove('scale-100', 'opacity-100');
+                settingsContent.classList.add('scale-95', 'opacity-0');
+                setTimeout(() => {
+                    settingsModal.classList.add('hidden');
+                }, 300);
+            });
+        }
+
+
+        // --- Event Listeners and Initialization ---
+
+        function setupEventListeners() {
+            // Debounce for better performance on search input
+            let debounceTimer;
+            searchInput.addEventListener('input', () => {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(applyFiltersAndSort, 300);
+            });
+
+            statusFilter.addEventListener('change', applyFiltersAndSort);
+
+            sortByFieldSelect.addEventListener('change', (e) => {
+                sortBy = e.target.value;
+                // If switching field, reset direction to default (DESC for lastUpdated, ASC for others)
+                if (sortBy === 'lastUpdated') {
+                    sortDirection = 'desc';
+                } else {
+                    sortDirection = 'asc';
+                }
+                sortDirectionIcon.textContent = sortDirection === 'asc' ? '↑' : '↓';
+                applyFiltersAndSort();
+            });
+
+            sortDirectionToggle.addEventListener('click', () => {
+                sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+                sortDirectionIcon.textContent = sortDirection === 'asc' ? '↑' : '↓';
+                applyFiltersAndSort();
+            });
         }
 
         async function init() {
+            loadingIndicator.classList.remove('hidden');
+            setupEventListeners();
+            setupSettingsModal();
+
             const xmlDoc = await loadXML();
             if (!xmlDoc) return;
 
@@ -428,13 +593,15 @@
                 return;
             }
 
-            document.getElementById('loading').style.display = 'none';
-            renderGames();
-            loadAllThumbnails();
+            // Set initial sort by 'lastUpdated' DESC (default behavior)
+            sortByFieldSelect.value = 'lastUpdated';
+            sortDirection = 'desc';
+            sortDirectionIcon.textContent = '↓';
 
-            document.getElementById('searchInput').addEventListener('input', renderGames);
-            document.getElementById('statusFilter').addEventListener('change', renderGames);
-            document.getElementById('sortBy').addEventListener('change', renderGames);
+            // Apply initial filtering and sorting, which triggers the first loadNextPage()
+            applyFiltersAndSort(); 
+            
+            loadingIndicator.classList.add('hidden');
         }
 
         init();
