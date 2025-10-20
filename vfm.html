@@ -813,22 +813,45 @@
                             throw new Error('No geeklist element');
                         }
                         
-                        // Try to get API run date from XML comment or postdate
-                        let apirundate_timestamp = null;
-                        const firstComment = xml.evaluate('//comment()[contains(., "API")]', xml, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-                        if (firstComment) {
-                            const dateMatch = firstComment.textContent.match(/(\d{4}-\d{2}-\d{2}[T\s]\d{2}:\d{2})/);
-                            if (dateMatch) {
-                                apirundate_timestamp = new Date(dateMatch[1]);
-                            }
-                        }
+                      
+/////
+
+                        // NEW: Prioritize the explicit <apirundate_timestamp> element.
+let apirundate_timestamp = null;
+
+const apiTimestampElement = xml.querySelector('apirundate_timestamp');
+if (apiTimestampElement && apiTimestampElement.textContent) {
+    // The timestamp is in seconds (UNIX epoch). JS Date expects milliseconds.
+    const seconds = parseInt(apiTimestampElement.textContent, 10);
+    if (!isNaN(seconds)) {
+        apirundate_timestamp = new Date(seconds * 1000);
+    }
+}
+
+// Fallback logic (Optional: You can keep this to maintain backward compatibility for older files)
+if (!apirundate_timestamp) {
+    // OLD: Fallback 1 - Try to get API run date from XML comment (original method)
+    const firstComment = xml.evaluate('//comment()[contains(., "API")]', xml, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+    if (firstComment) {
+        const dateMatch = firstComment.textContent.match(/(\d{4}-\d{2}-\d{2}[T\s]\d{2}:\d{2})/);
+        if (dateMatch) {
+            apirundate_timestamp = new Date(dateMatch[1]);
+        }
+    }
+    
+    // OLD: Fallback 2 - Try to use the geeklist postdate (original method)
+    if (!apirundate_timestamp) {
+        const postdate = geeklist.getAttribute('postdate');
+        if (postdate) {
+            apirundate_timestamp = new Date(postdate);
+        }
+    }
+}
+// END Fallback logic
+
+
+
                         
-                        if (!apirundate_timestamp) {
-                            const postdate = geeklist.getAttribute('postdate');
-                            if (postdate) {
-                                apirundate_timestamp = new Date(postdate);
-                            }
-                        }
                         
                         const items = xml.querySelectorAll('item');
                         const itemsArray = Array.from(items);
