@@ -290,7 +290,9 @@
                 const gameNodes = xmlDoc.getElementsByTagName('game');
                 for (let i = 0; i < gameNodes.length; i++) {
                     const gameNode = gameNodes[i];
-                    const bggId = getTextContent(gameNode, 'bgg_id');
+//                    const bggId = getTextContent(gameNode, 'bgg_id');
+                    const bggId = getTextContent(gameNode, 'objectid'); // Changed from bgg_id to objectid
+
                     
                     // 1. Get WTP (wanttoplay) Flag
                     const wantToPlay = parseInt(getTextContent(gameNode, 'wanttoplay')) || 0; 
