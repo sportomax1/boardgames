@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supabase CRUD App</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .passcode-screen, .main-app {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 1200px;
+            width: 100%;
+        }
+        .passcode-screen {
+            max-width: 400px;
+            text-align: center;
+        }
+        .passcode-screen h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .passcode-screen p {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .passcode-input {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .passcode-digit {
+            width: 60px;
+            height: 60px;
+            font-size: 32px;
+            text-align: center;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        .passcode-digit:focus {
+            border-color: #667eea;
+        }
+        .error-msg {
+            color: #e74c3c;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+        .hidden {
+            display: none;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+        .table-selector {
+            margin-bottom: 20px;
+        }
+        .table-selector label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            outline: none;
+        }
+        select:focus {
+            border-color: #667eea;
+        }
+        .btn {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+            font-weight: 500;
+        }
+        .btn:hover {
+            background: #5568d3;
+        }
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .btn-danger {
+            background: #e74c3c;
+        }
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+        .btn-success {
+            background: #2ecc71;
+        }
+        .btn-success:hover {
+            background: #27ae60;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .data-grid {
+            overflow-x: auto;
+            margin-bottom: 20px;
+            max-height: 500px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+            white-space: nowrap;
+        }
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        tbody tr:hover {
+            background: #f8f9fa;
+        }
+        .actions {
+            display: flex;
+            gap: 5px;
+        }
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 13px;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal.active {
+            display: flex;
+        }
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal-content h2 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            outline: none;
+            font-family: inherit;
+        }
+        .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+            border-color: #667eea;
+        }
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .status-msg {
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .status-msg.success {
+            background: #d4edda;
+            color: #155724;
+            display: block;
+        }
+        .status-msg.error {
+            background: #f8d7da;
+            color: #721c24;
+            display: block;
+        }
+        .record-count {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 15px;
+            font-weight: 500;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <div id="passcodeScreen" class="passcode-screen">
+        <h1>🔒 Secure Access</h1>
+        <p>Enter your 4-digit passcode to continue</p>
+        <div class="passcode-input">
+            <input type="password" maxlength="1" class="passcode-digit" id="digit1" autocomplete="off">
+            <input type="password" maxlength="1" class="passcode-digit" id="digit2" autocomplete="off">
+            <input 
+            type="password" maxlength="1" class="passcode-digit" id="digit3" autocomplete="off">
+            <input type="password" maxlength="1" class="passcode-digit" id="digit4" autocomplete="off">
+        </div>
+        <div id="passcodeError" class="error-msg"></div>
+    </div>
+
+    <div id="mainApp" class="main-app hidden">
+        <h1>📊 Supabase Data Manager</h1>
+        
+        <div id="statusMsg" class="status-msg"></div>
+
+        <div class="table-selector">
+     
+                   <label for="tableSelect">Select Table:</label>
+            <select id="tableSelect" onchange="onTableChange()">
+                <option value="">-- Choose a table --</option>
+            </select>
+        </div>
+
+        <div class="record-count" id="recordCount"></div>
+
+        <div class="controls">
+            <button class="btn btn-success" onclick="openCreateModal()" id="addBtn">+ 
+            Add New Record</button>
+            <button class="btn" onclick="loadTableData()" id="refreshBtn">🔄 Refresh</button>
+            <button class="btn" onclick="exportToCSV()" id="exportBtn">📥 Export CSV</button>
+        </div>
+
+        <div class="data-grid">
+            <table id="dataTable">
+                <thead id="tableHead"></thead>
+                <tbody id="tableBody">
+ 
+                                   <tr><td class="empty-state">Select a table to view data</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="recordModal" class="modal" onclick="closeModalOnOutsideClick(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+          
+             <h2 id="modalTitle">Add New Record</h2>
+            <form id="recordForm" onsubmit="event.preventDefault();
+            saveRecord();"></form>
+            <div class="modal-actions">
+                <button class="btn btn-success" onclick="saveRecord()">💾 Save</button>
+                <button class="btn" onclick="closeModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createClient } = supabase;
+        
+        let supabaseClient = null;
+        let currentTable = '';
+        let editingId = null;
+        let appConfig = null;
+        let tableColumns = {};
+        let currentData = [];
+        // --- ADD THESE LINES ---
+        let currentSort = { column: 'id', ascending: false };
+        const defaultSort = { column: 'id', ascending: false };
+        let currentFilter = { column: null, value: null };
+        // --- END OF ADDED LINES ---
+
+        // Check if config is loaded
+        if (typeof CONFIG === 'undefined') {
+            document.body.innerHTML = '<div style="text-align:center;
+            padding:50px; color:white;"><h1>⚠️ Configuration Error</h1><p>App is not properly deployed. Please deploy via GitHub Actions.</p></div>';
+        } else {
+            appConfig = CONFIG;
+        }
+
+        // Passcode handling
+        const digits = [
+            document.getElementById('digit1'),
+            document.getElementById('digit2'),
+           
+             document.getElementById('digit3'),
+            document.getElementById('digit4')
+        ];
+
+        digits.forEach((digit, index) => {
+            digit.addEventListener('input', (e) => {
+                if (e.target.value.length === 1 && index < 3) {
+                    digits[index + 1].focus();
+       
+                     }
+                checkPasscode();
+            });
+
+            digit.addEventListener('keydown', (e) => {
+                if (e.key === 'Backspace' && !e.target.value && index > 0) {
+                    digits[index - 
+                    1].focus();
+                }
+            });
+
+            digit.addEventListener('paste', (e) => {
+                e.preventDefault();
+                const paste = e.clipboardData.getData('text');
+                if (paste.length === 4 && /^\d{4}$/.test(paste)) {
+                    paste.split('').forEach((char, i) => {
+                        if (digits[i]) digits[i].value = char;
+                    });
+                    checkPasscode();
+                }
+            });
+        });
+        function checkPasscode() {
+            const passcode = digits.map(d => d.value).join('');
+            if (passcode.length === 4) {
+                if (passcode === appConfig.app_passcode) {
+                    sessionStorage.setItem('authenticated', 'true');
+                    document.getElementById('passcodeScreen').classList.add('hidden');
+                    document.getElementById('mainApp').classList.remove('hidden');
+                    initializeApp();
+                } else {
+                    document.getElementById('passcodeError').textContent = 'Invalid passcode.
+                    Try again.';
+                    digits.forEach(d => d.value = '');
+                    digits[0].focus();
+                }
+            }
+        }
+
+        function initializeApp() {
+            // Initialize Supabase with service key if available, otherwise use anon key
+            const apiKey = appConfig.supabase_service_key ||
+            appConfig.supabase_api_key;
+            supabaseClient = createClient(appConfig.supabase_url, apiKey);
+            
+            // Load tables into dropdown
+            const select = document.getElementById('tableSelect');
+            select.innerHTML = '<option value="">-- Choose a table --</option>';
+            
+            if (appConfig.tables && appConfig.tables.length > 0) {
+                appConfig.tables.forEach(table => {
+                    const option = document.createElement('option');
+                    option.value = table;
+                    option.textContent = table;
+ 
+                                       select.appendChild(option);
+                });
+            }
+            
+            showStatus('✓ Connected successfully! ' + (appConfig.supabase_service_key ? '(Using Service Key)' : '(Using Anon Key)'), 'success');
+        }
+
+        // --- ADD THESE NEW FUNCTIONS ---
+
+        /**
+         * Handles column header clicks for sorting.
+         * Toggles between Ascending, Descending, and Default sort.
+         */
+        function onSort(column) {
+            // Don't do anything if the 'Actions' header is clicked
+            if (column === 'Actions') return;
+
+            if (currentSort.column === column) {
+                if (currentSort.ascending) {
+                    // Was ascending (A-Z), so go to descending (Z-A)
+                    currentSort.ascending = false;
+                } else {
+                    // Was descending (Z-A), so reset to default
+                    currentSort = { ...defaultSort };
+                }
+            } else {
+                // New column, sort ascending (A-Z)
+                currentSort = { column: column, ascending: true };
+            }
+            
+            // Re-fetch the data from Supabase with the new sort order
+            loadTableData();
+        }
+
+        /**
+         * Handles cell clicks for filtering.
+         * Toggles a filter on or off for the clicked value.
+         */
+        function onFilter(column, value) {
+            // If clicking the *same* filter again, clear it
+            if (currentFilter.column === column && currentFilter.value === value) {
+                currentFilter = { column: null, value: null };
+            } else {
+                // Otherwise, set the new filter
+                currentFilter = { column, value };
+            }
+            
+            // Re-render the table with the new filter
+            // We use the existing 'currentData' array (client-side filtering)
+            displayData(currentData);
+        }
+
+        // --- END OF ADDED FUNCTIONS ---
+
+        function onTableChange() {
+            const table = document.getElementById('tableSelect').value;
+            if (table) {
+                // --- ADD THESE LINES ---
+                currentSort = { ...defaultSort };
+                currentFilter = { column: null, value: null };
+                // --- END OF ADDED LINES ---
+                loadTableData();
+            } else {
+                // --- ADD THIS LINE ---
+                currentFilter = { column: null, value: null };
+                // --- END OF ADDED LINE ---
+                document.getElementById('tableBody').innerHTML = '<tr><td class="empty-state">Select a table to view data</td></tr>';
+                document.getElementById('recordCount').textContent = '';
+            }
+        }
+
+        async function loadTableData() {
+            currentTable = document.getElementById('tableSelect').value;
+            if (!currentTable || !supabaseClient) {
+                return;
+            }
+
+            try {
+                showLoading();
+                const { data, error } = await supabaseClient
+                    .from(currentTable)
+                    .select('*')
+                    // --- MODIFY THIS LINE ---
+                    .order(currentSort.column, { ascending: currentSort.ascending });
+                    // --- END OF MODIFICATION ---
+                if (error) throw error;
+
+                currentData = data || [];
+                
+                if (data && data.length > 0) {
+                    tableColumns[currentTable] = Object.keys(data[0]);
+                }
+
+                displayData(currentData); // This will now apply filters
+                // updateRecordCount(currentData.length); // <-- This line is removed
+            } catch (error) {
+                showStatus('Error loading data: ' + error.message, 'error');
+                document.getElementById('tableBody').innerHTML = 
+                    `<tr><td colspan="100%" style="text-align:center; color: #e74c3c; padding: 40px;">Error: ${error.message}</td></tr>`;
+                document.getElementById('recordCount').textContent = '';
+            }
+        }
+
+        function showLoading() {
+            document.getElementById('tableBody').innerHTML = 
+                '<tr><td colspan="100%" class="loading">⏳ Loading data...</td></tr>';
+            document.getElementById('recordCount').textContent = '';
+        }
+
+        function updateRecordCount(totalCount, filteredCount = null) {
+            let text = `📊 Showing ${totalCount} record${totalCount !== 1 ? 's' : ''}`;
+            
+            // If a filter is active (and a different number), show "X of Y"
+            if (filteredCount !== null && filteredCount !== totalCount) {
+                text = `📊 Showing ${filteredCount} of ${totalCount} record${totalCount !== 1 ? 's' : ''} (filtered)`;
+            }
+            
+            document.getElementById('recordCount').textContent = text;
+        }
+
+        function displayData(data) {
+            const thead = document.getElementById('tableHead');
+            const tbody = document.getElementById('tableBody');
+            
+            thead.innerHTML = '';
+            tbody.innerHTML = '';
+
+            // --- ADD FILTERING LOGIC ---
+            let filteredData = data;
+            if (currentFilter.column) {
+                filteredData = data.filter(row => row[currentFilter.column] === currentFilter.value);
+            }
+            // --- END FILTERING LOGIC ---
+
+            // --- UPDATE RECORD COUNT (MOVED & MODIFIED) ---
+            updateRecordCount(data.length, filteredData.length);
+            // --- END UPDATE ---
+            
+            if (!filteredData || filteredData.length === 0) {
+                let emptyMsg = 'No data found in this table';
+                // Show a more helpful message if data is just filtered out
+                if (currentFilter.column && data.length > 0) {
+                    emptyMsg = `No data matches filter: ${currentFilter.column} = "${currentFilter.value}"`;
+                }
+                tbody.innerHTML = `<tr><td colspan="100%" class="empty-state">${emptyMsg}</td></tr>`;
+                return;
+            }
+
+            const headers = Object.keys(filteredData[0]);
+            const headerRow = document.createElement('tr');
+            
+            // --- MODIFY HEADER LOOP ---
+            headers.forEach(header => {
+                const th = document.createElement('th');
+                th.textContent = header;
+                
+                // Add click listener for sorting
+                th.style.cursor = 'pointer';
+                th.onclick = () => onSort(header);
+
+                // Add sort indicator arrow
+                if (currentSort.column === header) {
+                    th.textContent += currentSort.ascending ? ' 🔼' : ' 🔽';
+                }
+                
+                headerRow.appendChild(th);
+            });
+            // --- END MODIFICATION ---
+
+            const actionTh = document.createElement('th');
+            actionTh.textContent = 'Actions';
+            actionTh.style.width = '150px';
+            actionTh.style.cursor = 'default'; // Don't allow sorting on Actions
+            headerRow.appendChild(actionTh);
+            thead.appendChild(headerRow);
+            
+            filteredData.forEach(row => { // <-- Use filteredData
+                const tr = document.createElement('tr');
+                headers.forEach(header => {
+                    const td = document.createElement('td');
+                    const value = row[header];
+               
+                         
+                    // --- ADD FILTER CLICK & HIGHLIGHT ---
+                    // Add click listener for filtering (but not for objects/null)
+                    if (typeof value !== 'object' && value !== null) {
+                        td.style.cursor = 'pointer';
+                        td.title = `Click to filter by ${header} = "${value}"`;
+                        // Pass the raw value, not the stringified one
+                        td.onclick = (e) => {
+                            e.stopPropagation(); // Prevents other clicks
+                            onFilter(header, value);
+                        };
+                    }
+                    
+                    // Add highlight if this cell is the active filter
+                    if (currentFilter.column === header && currentFilter.value === value) {
+                        td.style.backgroundColor = '#667eea'; // Your app's theme color
+                        td.style.color = 'white';
+                        td.style.fontWeight = 'bold';
+                    }
+                    // --- END FILTER CLICK & HIGHLIGHT ---
+
+                    if (value === null) {
+                        td.textContent = 'NULL';
+                        td.style.color = '#999';
+                   
+                         td.style.fontStyle = 'italic';
+                    } else if (typeof value === 'object') {
+                        td.textContent = JSON.stringify(value);
+                        td.style.fontSize = '12px';
+              
+                     } else if (typeof value === 'boolean') {
+                        td.textContent = value ? '✓' : '✗';
+                    } else {
+                        td.textContent = value;
+         
+                         }
+                    
+                    tr.appendChild(td);
+                });
+                
+                const 
+                actionTd = document.createElement('td');
+                const rowData = JSON.stringify(row).replace(/"/g, '&quot;');
+                actionTd.innerHTML = `
+                    <div class="actions">
+                        <button class="btn btn-small" onclick='editRecord(${rowData})'>✏️ Edit</button>
+                        <button class="btn 
+                        btn-small btn-danger" onclick="deleteRecord('${row.id}')">🗑️ Delete</button>
+                    </div>
+                `;
+                tr.appendChild(actionTd);
+                tbody.appendChild(tr);
+            });
+        }
+
+        function 
+        openCreateModal() {
+            if (!currentTable) {
+                showStatus('Please select a table first', 'error');
+                return;
+            }
+            
+            editingId = null;
+          
+             document.getElementById('modalTitle').textContent = 'Add New Record';
+            createForm();
+            document.getElementById('recordModal').classList.add('active');
+        }
+
+        function editRecord(record) {
+            editingId = record.id;
+            document.getElementById('modalTitle').textContent = 'Edit Record';
+            createForm(record);
+            document.getElementById('recordModal').classList.add('active');
+        }
+
+        function createForm(data = {}) {
+            const form = document.getElementById('recordForm');
+            form.innerHTML = '';
+
+            const columns = tableColumns[currentTable] || Object.keys(data);
+            
+            columns.forEach(col => {
+                if (col === 'id' || col === 'created_at' || col === 'updated_at') return;
+                
+                const group = document.createElement('div');
+                group.className = 'form-group';
+        
+                         
+                const label = document.createElement('label');
+                label.textContent = col.charAt(0).toUpperCase() + col.slice(1).replace(/_/g, ' ');
+                
+                const value = data[col];
+                
+                let input;
+                
+                if (typeof value === 'boolean' || col.includes('is_') || col.includes('has_')) {
+                    input = document.createElement('select');
+                    input.innerHTML = `
+              
+                         <option value="true" ${value === true ? 'selected' : ''}>True</option>
+                        <option value="false" ${value === false ? 'selected' : ''}>False</option>
+                    `;
+                } else if (typeof value === 'object' && value !== null) {
+   
+                                     input = document.createElement('textarea');
+                    input.value = JSON.stringify(value, null, 2);
+                } else if (col.includes('description') || col.includes('content') || col.includes('text') || col.includes('note')) {
+                    input = document.createElement('textarea');
+                    input.value = value || '';
+                } else {
+                    input = document.createElement('input');
+                    input.type = 'text';
+                    input.value = value || '';
+                }
+                
+                input.name = col;
+                group.appendChild(label);
+                group.appendChild(input);
+                form.appendChild(group);
+            });
+        }
+
+        async function saveRecord() {
+            const form = document.getElementById('recordForm');
+            const formData = new FormData(form);
+            const record = {};
+            
+            for (let [key, value] of formData.entries()) {
+                if (value === 'true') record[key] = true;
+                else if (value === 'false') record[key] = false;
+                else if (value.startsWith('{') || value.startsWith('[')) {
+                    try {
+                        record[key] = JSON.parse(value);
+                    } catch {
+                        record[key] = value;
+                    }
+                }
+                else if (value === '') record[key] = null;
+                else record[key] = value;
+            }
+
+            try {
+                if (editingId) {
+                    const { error } = await supabaseClient
+                        .from(currentTable)
+               
+                         .update(record)
+                        .eq('id', editingId);
+                    if (error) throw error;
+                    showStatus('✓ Record updated successfully!', 'success');
+                    
+                } else {
+                    const { error } = await supabaseClient
+                        .from(currentTable)
+                        .insert([record]);
+                    if (error) throw error;
+                    showStatus('✓ Record created successfully!', 'success');
+                }
+                
+                closeModal();
+                loadTableData();
+                
+            } catch (error) {
+                showStatus('Error saving record: ' + error.message, 'error');
+            }
+        }
+
+        async function deleteRecord(id) {
+            if (!confirm('Are you sure you want to delete this record? This action cannot be undone.')) {
+                return;
+            }
+
+            try {
+                const { error } = await supabaseClient
+                    .from(currentTable)
+                    .delete()
+                    .eq('id', id);
+                if (error) throw error;
+                
+                showStatus('✓ Record deleted successfully!', 'success');
+                loadTableData();
+            } catch (error) {
+                showStatus('Error deleting record: ' + error.message, 'error');
+            }
+        }
+
+        function exportToCSV() {
+            if (!currentData || currentData.length === 0) {
+                showStatus('No data to export', 'error');
+                return;
+            }
+
+            const headers = Object.keys(currentData[0]);
+            const csv = [
+                headers.join(','),
+                ...currentData.map(row => 
+                    headers.map(header => {
+                        const value = row[header];
+              
+                         if (value === null) return '';
+                        if (typeof value === 'object') return `"${JSON.stringify(value).replace(/"/g, '""')}"`;
+                        return `"${String(value).replace(/"/g, '""')}"`;
+                    }).join(',')
+        
+                 )
+            ].join('\n');
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${currentTable}_export_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            showStatus('✓ Data exported successfully!', 'success');
+        }
+
+        function closeModal() {
+            document.getElementById('recordModal').classList.remove('active');
+        }
+
+        function closeModalOnOutsideClick(event) {
+            if (event.target.id === 'recordModal') {
+                closeModal();
+            }
+        }
+
+        function showStatus(message, type) {
+            const statusMsg = document.getElementById('statusMsg');
+            statusMsg.textContent = message;
+            statusMsg.className = 'status-msg ' + type;
+            
+            setTimeout(() => {
+                statusMsg.className = 'status-msg';
+            }, 5000);
+        }
+
+        // Initialize
+        if (appConfig) {
+            digits[0].focus();
+        }
+    </script>
+</body>
+</html>
