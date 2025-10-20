@@ -98,6 +98,7 @@
                     <option value="checkoutCount">Popularity (Checkouts)</option>
                     <option value="minPlayers">Min Players</option>
                     <option value="minPlayTime">Min Play Time</option>
+                    <option value="dateCreated">Date Created</option>
                 </select>
 
                 <button id="sortDirectionToggle" class="p-3 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition duration-150 font-bold flex items-center justify-center">
@@ -164,19 +165,28 @@
         let sortDirection = 'desc'; // Default: Descending
         let sortBy = 'lastUpdated'; // Default: lastUpdated (simulated)
 
+        // UPDATED: Added new fields (location, dateCreated) to be visible by default
         const defaultVisibleFields = {
             players: true,
             playtime: true,
             checkouts: true,
             publisher: false,
             catalogNumber: false,
-            location: false
+            location: true, // New Default
+            dateCreated: true, // New Default
+            age: false,
+            gameWeight: false,
+            bggRank: false,
+            dateUpdated: false,
+            lastCheckinDate: false,
+            lastCheckoutDate: false,
         };
         let visibleFields = { ...defaultVisibleFields };
-
+        
+        // UPDATED: Expanded allFields to include all practical fields from the XML snippet
         const allFields = {
             name: { label: 'Name', type: 'string', alwaysVisible: true, sortable: true },
-            lastUpdated: { label: 'Last Updated', type: 'date', sortable: true, defaultSort: true },
+            lastUpdated: { label: 'Last Update (Simulated)', type: 'date', sortable: true, defaultSort: true },
             isCheckedOut: { label: 'Status', type: 'boolean', alwaysVisible: true, sortable: true },
             condition: { label: 'Condition', type: 'string', sortable: true },
             minPlayers: { label: 'Min Players', type: 'number', sortable: true },
@@ -186,7 +196,16 @@
             publisher: { label: 'Publisher', type: 'string', sortable: true },
             checkoutCount: { label: 'Checkouts', type: 'number', sortable: true },
             catalogNumber: { label: 'Catalog #', type: 'string', sortable: true },
-            location: { label: 'Location', type: 'string', sortable: true },
+            location: { label: 'Location Code', type: 'string', sortable: true }, // Using location tag
+            
+            // New fields from XML
+            age: { label: 'Min Age', type: 'number', sortable: true },
+            gameWeight: { label: 'Weight (0-5)', type: 'number', sortable: true },
+            bggRank: { label: 'BGG Rank', type: 'number', sortable: true },
+            dateCreated: { label: 'Date Created', type: 'string', sortable: true },
+            dateUpdated: { label: 'Last Updated', type: 'string', sortable: true },
+            lastCheckinDate: { label: 'Last Check In', type: 'string', sortable: true },
+            lastCheckoutDate: { label: 'Last Check Out', type: 'string', sortable: true },
         };
 
         // --- DOM Elements ---
@@ -250,7 +269,7 @@
                 const game = {
                     bggId: getTextContent(gameNode, 'bgg_id'),
                     name: getTextContent(gameNode, 'name'),
-                    age: parseInt(getTextContent(gameNode, 'age')) || 0,
+                    // Existing fields
                     checkoutCount: parseInt(getTextContent(gameNode, 'checkout_count')) || 0,
                     isCheckedOut: getTextContent(gameNode, 'is_checked_out') === '1',
                     maxPlayers: parseInt(getTextContent(gameNode, 'max_players')) || 0,
@@ -262,6 +281,15 @@
                     catalogNumber: getTextContent(gameNode, 'catalog_number'),
                     location: getTextContent(gameNode, 'location'),
                     lastUpdated: syntheticTimestamp, // For default sorting
+
+                    // NEW FIELDS from XML snippet:
+                    age: parseInt(getTextContent(gameNode, 'age')) || 0,
+                    gameWeight: parseFloat(getTextContent(gameNode, 'game_weight')) || 0,
+                    bggRank: parseInt(getTextContent(gameNode, 'bgg_rank')) || 0,
+                    dateCreated: getTextContent(gameNode, 'date_created'),
+                    dateUpdated: getTextContent(gameNode, 'date_updated'),
+                    lastCheckinDate: getTextContent(gameNode, 'last_checkin_date'),
+                    lastCheckoutDate: getTextContent(gameNode, 'last_checkout_date'),
                 };
                 games.push(game);
             }
@@ -442,14 +470,23 @@
             
             // Helper function to create a detail item
             const createDetailItem = (label, value) => {
-                if (!value) return;
+                // For date fields, strip the time portion (e.g., "2024-06-12 21:51:03" -> "2024-06-12")
+                let displayValue = value;
+                if (typeof value === 'string' && (value.includes('-') && value.includes(':'))) {
+                    displayValue = value.split(' ')[0];
+                }
+                
+                if (!value && value !== 0) return;
+
                 const item = document.createElement('div');
                 item.className = 'flex flex-col';
                 // UPDATED: Text size adjusted to text-xs
-                item.innerHTML = `<span class="font-medium text-gray-800">${label}</span><span class="text-xs text-gray-600">${value}</span>`;
+                item.innerHTML = `<span class="font-medium text-gray-800">${label}</span><span class="text-xs text-gray-600">${displayValue}</span>`;
                 detailsContainer.appendChild(item);
             };
 
+            // Existing & New Toggable Fields in Display Order
+            
             // Players
             if (visibleFields.players) {
                 createDetailItem('👥 Players', `${game.minPlayers}-${game.maxPlayers}`);
@@ -465,6 +502,26 @@
                 createDetailItem('🔄 Checkouts', game.checkoutCount);
             }
 
+            // Min Age
+            if (visibleFields.age && game.age > 0) {
+                createDetailItem('👶 Min Age', `${game.age}+`);
+            }
+
+            // Game Weight
+            if (visibleFields.gameWeight && game.gameWeight > 0) {
+                createDetailItem('⚖️ Weight', game.gameWeight.toFixed(1));
+            }
+            
+            // BGG Rank
+            if (visibleFields.bggRank && game.bggRank > 0) {
+                createDetailItem('⭐ BGG Rank', `#${game.bggRank}`);
+            }
+
+            // Location
+            if (visibleFields.location && game.location) {
+                createDetailItem('📍 Location', game.location);
+            }
+            
             // Publisher
             if (visibleFields.publisher && game.publisher) {
                 createDetailItem('🏢 Publisher', game.publisher);
@@ -474,10 +531,25 @@
             if (visibleFields.catalogNumber && game.catalogNumber) {
                 createDetailItem('📦 Catalog #', game.catalogNumber);
             }
-            
-            // Location
-            if (visibleFields.location && game.location) {
-                createDetailItem('📍 Location', game.location);
+
+            // Date Created (NEW DEFAULT VISIBLE)
+            if (visibleFields.dateCreated && game.dateCreated) {
+                createDetailItem('📅 Created', game.dateCreated);
+            }
+
+            // Date Updated
+            if (visibleFields.dateUpdated && game.dateUpdated) {
+                createDetailItem('✏️ Updated', game.dateUpdated);
+            }
+
+            // Last Check In
+            if (visibleFields.lastCheckinDate && game.lastCheckinDate) {
+                createDetailItem('📥 Last Check In', game.lastCheckinDate);
+            }
+
+            // Last Check Out
+            if (visibleFields.lastCheckoutDate && game.lastCheckoutDate) {
+                createDetailItem('📤 Last Check Out', game.lastCheckoutDate);
             }
         }
 
@@ -506,6 +578,7 @@
         function setupSettingsModal() {
             // Populate checkboxes
             fieldCheckboxes.innerHTML = '';
+            // Get all keys from defaultVisibleFields to determine which fields are togglable
             const togglableFields = Object.keys(defaultVisibleFields);
 
             togglableFields.forEach(key => {
@@ -565,8 +638,8 @@
 
             sortByFieldSelect.addEventListener('change', (e) => {
                 sortBy = e.target.value;
-                // If switching field, reset direction to default (DESC for lastUpdated, ASC for others)
-                if (sortBy === 'lastUpdated') {
+                // If switching field, reset direction to default (DESC for lastUpdated/Date, ASC for others)
+                if (['lastUpdated', 'dateCreated', 'dateUpdated', 'lastCheckinDate', 'lastCheckoutDate'].includes(sortBy)) {
                     sortDirection = 'desc';
                 } else {
                     sortDirection = 'asc';
@@ -581,11 +654,28 @@
                 applyFiltersAndSort();
             });
         }
+        
+        // Add new sortable fields to the Select input dynamically
+        function setupSortOptions() {
+            // Get all sortable fields from allFields definition, excluding already hardcoded ones
+            const existingOptions = Array.from(sortByFieldSelect.options).map(o => o.value);
+
+            Object.keys(allFields).forEach(key => {
+                const field = allFields[key];
+                if (field.sortable && !existingOptions.includes(key)) {
+                    const option = document.createElement('option');
+                    option.value = key;
+                    option.textContent = field.label;
+                    sortByFieldSelect.appendChild(option);
+                }
+            });
+        }
 
         async function init() {
             loadingIndicator.classList.remove('hidden');
             setupEventListeners();
             setupSettingsModal();
+            setupSortOptions(); // Call this to populate new sort options
 
             const xmlDoc = await loadXML();
             if (!xmlDoc) return;
