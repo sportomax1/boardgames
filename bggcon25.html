@@ -31,8 +31,8 @@
             transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
         .game-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+            transform: translateY(-2px); /* Smaller lift on hover */
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1); /* Slightly smaller shadow */
         }
         .game-image {
             background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
@@ -110,8 +110,8 @@
             </div>
         </div>
 
-        <!-- Games Grid -->
-        <div id="gamesGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <!-- Games Grid - Adjusted grid for a denser layout with smaller cards -->
+        <div id="gamesGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             <!-- Game cards will be appended here -->
         </div>
 
@@ -395,29 +395,32 @@
 
         function createGameCardElement(game) {
             const card = document.createElement('div');
-            card.className = 'game-card bg-white rounded-xl shadow-lg hover:shadow-2xl overflow-hidden cursor-pointer';
+            // UPDATED: Changed card class to a horizontal flex container with padding and smaller shadow/lift on hover
+            card.className = 'game-card bg-white rounded-xl shadow-lg hover:shadow-xl cursor-pointer flex flex-row p-3 space-x-3 items-start';
             card.id = `card-${game.bggId}`;
 
             const imageUrl = gameImages[game.bggId];
             
-            // Image area - use placeholder text/emoji until thumbnail loads
+            // UPDATED: Image area - fixed small size (h-28 w-28) and rounded corners
             card.innerHTML = `
-                <div class="game-image h-48 flex items-center justify-center text-gray-400">
+                <div class="game-image flex-shrink-0 h-28 w-28 flex items-center justify-center text-gray-400 rounded-lg overflow-hidden">
                     <img id="img-${game.bggId}" src="${imageUrl || ''}" alt="${game.name} thumbnail" 
-                         class="${imageUrl ? '' : 'hidden'} w-full h-full object-cover rounded-t-xl" 
+                         class="${imageUrl ? '' : 'hidden'} w-full h-full object-cover" 
                          onerror="this.parentElement.innerHTML = '<span class=\'text-4xl text-gray-500\'>🎲</span>';">
                     <span class="${imageUrl ? 'hidden' : 'text-4xl text-gray-500'}">🎲</span>
                 </div>
-                <div class="p-4 sm:p-5">
-                    <h3 class="text-xl font-bold text-gray-900 mb-2">${game.name}</h3>
-                    <div class="flex items-center justify-between mb-3 text-sm">
-                        <span class="px-3 py-1 rounded-full text-xs font-semibold ${game.isCheckedOut ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}">
+                
+                <!-- UPDATED: Text/Details area - takes up remaining space -->
+                <div class="flex-1 min-w-0">
+                    <h3 class="text-lg font-bold text-gray-900 mb-1 truncate">${game.name}</h3>
+                    <div class="flex items-center justify-between mb-2 text-xs sm:text-sm">
+                        <span class="px-2 py-0.5 rounded-full text-xs font-semibold ${game.isCheckedOut ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}">
                             ${game.isCheckedOut ? '📤 Checked Out' : '✅ Available'}
                         </span>
-                        ${game.condition ? `<span class="text-xs font-medium text-blue-600 bg-blue-100 px-3 py-1 rounded-full">${game.condition}</span>` : ''}
+                        ${game.condition ? `<span class="text-xs font-medium text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">${game.condition}</span>` : ''}
                     </div>
                     
-                    <div class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm text-gray-600" id="details-${game.bggId}">
+                    <div class="grid grid-cols-2 gap-x-2 gap-y-1 text-xs text-gray-600" id="details-${game.bggId}">
                         <!-- Details injected by renderDetails -->
                     </div>
                 </div>
@@ -442,7 +445,8 @@
                 if (!value) return;
                 const item = document.createElement('div');
                 item.className = 'flex flex-col';
-                item.innerHTML = `<span class="font-medium text-gray-800">${label}</span><span class="text-gray-600">${value}</span>`;
+                // UPDATED: Text size adjusted to text-xs
+                item.innerHTML = `<span class="font-medium text-gray-800">${label}</span><span class="text-xs text-gray-600">${value}</span>`;
                 detailsContainer.appendChild(item);
             };
 
