@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BGG Game Library</title>
+    <!-- Load Inter font for aesthetics -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --bg-light: #f9fafb;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            min-height: 100vh;
+            padding: 1rem;
+        }
+        .container {
+            max-width: 1400px;
+        }
+        /* Custom scrollbar for better appearance */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-light); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: var(--primary-color); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--secondary-color); }
+        .game-card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+            border: 2px solid transparent; 
+        }
+        .game-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        }
+        .game-image {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        }
+        .loader-ring {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #ffffff;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .modal-backdrop {
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        .debug-console {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.9);
+            color: #0f0;
+            font-family: monospace;
+            font-size: 11px;
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 10px;
+            z-index: 9999;
+            border-top: 2px solid #0f0;
+        }
+        .debug-console .log-entry {
+            margin: 2px 0;
+            padding: 2px 4px;
+        }
+        .debug-console .log-error {
+            color: #f00;
+        }
+        .debug-console .log-warn {
+            color: #ff0;
+        }
+        .debug-console .log-success {
+            color: #0f0;
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-6 md:p-10">
+    <div class="container mx-auto">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl sm:text-4xl font-extrabold text-white mb-2 text-shadow-lg">
+                🎲 BGG Game Library
+            </h1>
+            <p class="text-white opacity-90">Infinite Scroll & Dynamic Filtering</p>
+        </header>
+
+        <!-- Stats Section -->
+        <div class="stats bg-white bg-opacity-95 p-4 md:p-6 rounded-xl shadow-2xl mb-8 flex flex-wrap justify-around gap-4">
+            <div class="text-center">
+                <div class="text-3xl font-bold text-gray-800" id="totalGames">-</div>
+                <div class="text-sm text-gray-600">Total Games</div>
+            </div>
+            <div class="text-center">
+                <div class="text-3xl font-bold text-green-600" id="availableGames">-</div>
+                <div class="text-sm text-gray-600">Available</div>
+            </div>
+            <div class="text-center">
+                <div class="text-3xl font-bold text-red-600" id="checkedOutGames">-</div>
+                <div class="text-sm text-gray-600">Checked Out</div>
+            </div>
+        </div>
+
+        <!-- Filter and Controls Section -->
+        <div class="controls bg-white bg-opacity-95 p-4 md:p-6 rounded-xl shadow-2xl mb-8">
+            <div class="flex flex-col md:flex-row gap-4 items-end">
+                <input type="text" id="searchInput" placeholder="🔍 Search by name..."
+                       class="flex-1 w-full md:w-auto p-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150">
+
+                <select id="statusFilter" class="p-3 border-2 border-gray-300 rounded-lg transition duration-150">
+                    <option value="all">All Status</option>
+                    <option value="available">Available</option>
+                    <option value="checked-out">Checked Out</option>
+                </select>
+
+                <select id="sortByField" class="p-3 border-2 border-gray-300 rounded-lg transition duration-150">
+                    <!-- Options populated dynamically in setupSortOptions -->
+                </select>
+
+                <button id="sortDirectionToggle" class="p-3 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition duration-150 font-bold flex items-center justify-center">
+                    <span id="sortDirectionIcon">↓</span>
+                </button>
+
+                <button id="openSettingsButton" class="p-3 bg-gray-700 text-white rounded-lg hover:bg-gray-800 transition duration-150 font-bold flex items-center justify-center">
+                    ⚙️ Fields
+                </button>
+
+                <button id="toggleDebugButton" class="p-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition duration-150 font-bold flex items-center justify-center">
+                    🐛 Debug
+                </button>
+            </div>
+        </div>
+
+        <!-- Games Grid -->
+        <div id="gamesGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <!-- Game cards will be appended here -->
+        </div>
+
+        <!-- Loading Indicator for Infinite Scroll -->
+        <div id="loading" class="text-center py-8 text-white text-lg font-semibold">
+            <div class="flex justify-center items-center space-x-2">
+                <div class="loader-ring"></div>
+                <span>Loading game library...</span>
+            </div>
+        </div>
+
+        <div id="noMoreGames" class="text-center py-8 text-white opacity-75 text-lg font-semibold hidden">
+            End of Library.
+        </div>
+
+        <div id="error" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl relative mt-8 hidden" role="alert">
+            <strong class="font-bold">Error:</strong>
+            <span class="block sm:inline" id="errorMessage"></span>
+        </div>
+    </div>
+
+    <!-- Field Selection Modal -->
+    <div id="settingsModal" class="fixed inset-0 z-50 flex items-center justify-center modal-backdrop hidden">
+        <div class="bg-white rounded-xl shadow-2xl p-6 w-11/12 max-w-md transform transition-all duration-300 scale-95 opacity-0" id="settingsContent">
+            <h2 class="text-2xl font-bold mb-4 text-gray-800">Card Display Fields</h2>
+            <p class="text-sm text-gray-500 mb-4">Select the details you want to see on each game card.</p>
+            <div id="fieldCheckboxes" class="grid grid-cols-2 gap-3 mb-6">
+                <!-- Checkboxes will be inserted here by JavaScript -->
+            </div>
+            <button id="closeSettingsButton" class="w-full py-3 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 font-bold transition duration-150">
+                Done
+            </button>
+        </div>
+    </div>
+
+    <!-- Debug Console -->
+    <div id="debugConsole" class="debug-console hidden">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; border-bottom: 1px solid #0f0; padding-bottom: 5px;">
+            <strong>🐛 Debug Console</strong>
+            <button onclick="document.getElementById('debugConsole').innerHTML = this.parentElement.outerHTML" style="background: #0f0; color: #000; padding: 2px 8px; border: none; cursor: pointer; font-weight: bold;">Clear</button>
+        </div>
+        <div id="debugLog"></div>
+    </div>
+
+    <script>
+        // --- Debug Logging System ---
+        const debugLog = [];
+        function addDebugLog(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            debugLog.push({ timestamp, message, type });
+            
+            const logDiv = document.getElementById('debugLog');
+            if (logDiv) {
+                const entry = document.createElement('div');
+                entry.className = `log-entry log-${type}`;
+                entry.textContent = `[${timestamp}] ${message}`;
+                logDiv.appendChild(entry);
+                logDiv.scrollTop = logDiv.scrollHeight;
+            }
+            
+            console.log(`[DTP Debug] ${message}`);
+        }
+
+        // --- Configuration Constants ---
+        const BGG_API_URL = 'https://boardgamegeek.com/xmlapi2/thing';
+        const XML_FILE = 'bggcon.xml';
+        const GAMES_PER_PAGE = 20;
+
+        // --- DTP API/Fallback Configuration ---
+        const SPORTOMAX_API_URL = 'https://api.sportomax.com/v2/collection/games'; 
+        const FALLBACK_XML_FILE = 'private_all.xml';
+        const RETRY_DELAYS = [3000, 6000, 10000]; 
+        
+        // --- Global State ---
+        let allGames = [];
+        let filteredGames = [];
+        let visibleGames = [];
+        let gameImages = {};
+        let currentPage = 0;
+        let isLoading = false;
+        let isLastPage = false;
+        let sortDirection = 'desc'; 
+        let sortBy = 'dateCreated'; 
+
+        const defaultVisibleFields = {
+            players: true,
+            playtime: true,
+            checkouts: true,
+            publisher: false,
+            catalogNumber: false,
+            location: true,
+            dateCreated: true, 
+            age: false,
+            gameWeight: false,
+            bggRank: false,
+            dateUpdated: false,
+            lastCheckinDate: false,
+            lastCheckoutDate: false,
+            desireToPlay: true,
+            dtpFormula: true, // New field for formula display
+        };
+        let visibleFields = { ...defaultVisibleFields };
+        
+        const allFields = {
+            name: { label: 'Name', type: 'string', alwaysVisible: true, sortable: true },
+            lastUpdated: { label: 'Last Update (Simulated)', type: 'date', sortable: true, defaultSort: false },
+            isCheckedOut: { label: 'Status', type: 'boolean', alwaysVisible: true, sortable: true },
+            condition: { label: 'Condition', type: 'string', sortable: true },
+            minPlayers: { label: 'Min Players', type: 'number', sortable: true },
+            maxPlayers: { label: 'Max Players', type: 'number', sortable: true },
+            minPlayTime: { label: 'Min Time (min)', type: 'number', sortable: true },
+            maxPlayTime: { label: 'Max Time (min)', type: 'number', sortable: true },
+            publisher: { label: 'Publisher', type: 'string', sortable: true },
+            checkoutCount: { label: 'Checkouts', type: 'number', sortable: true },
+            catalogNumber: { label: 'Catalog #', type: 'string', sortable: true },
+            location: { label: 'Location Code', type: 'string', sortable: true },
+            age: { label: 'Min Age', type: 'number', sortable: true },
+            gameWeight: { label: 'Weight (0-5)', type: 'number', sortable: true },
+            bggRank: { label: 'BGG Rank', type: 'number', sortable: true },
+            dateCreated: { label: 'Date Created', type: 'string', sortable: true, defaultSort: true },
+            dateUpdated: { label: 'Last Updated', type: 'string', sortable: true },
+            lastCheckinDate: { label: 'Last Check In', type: 'string', sortable: true },
+            lastCheckoutDate: { label: 'Last Check Out', type: 'string', sortable: true },
+            desireToPlay: { label: 'Desire to Play Score', type: 'number', sortable: true },
+            dtpFormula: { label: 'Show DTP Formula', type: 'boolean', sortable: false },
+        };
+
+        // --- DOM Elements ---
+        const gamesGrid = document.getElementById('gamesGrid');
+        const loadingIndicator = document.getElementById('loading');
+        const noMoreGamesIndicator = document.getElementById('noMoreGames');
+        const searchInput = document.getElementById('searchInput');
+        const statusFilter = document.getElementById('statusFilter');
+        const sortByFieldSelect = document.getElementById('sortByField');
+        const sortDirectionToggle = document.getElementById('sortDirectionToggle');
+        const sortDirectionIcon = document.getElementById('sortDirectionIcon');
+        const settingsModal = document.getElementById('settingsModal');
+        const settingsContent = document.getElementById('settingsContent');
+        const fieldCheckboxes = document.getElementById('fieldCheckboxes');
+        const debugConsole = document.getElementById('debugConsole');
+        const toggleDebugButton = document.getElementById('toggleDebugButton');
+
+        // --- Utility Functions ---
+
+        function showError(message) {
+            loadingIndicator.classList.add('hidden');
+            document.getElementById('error').classList.remove('hidden');
+            document.getElementById('errorMessage').textContent = message;
+            addDebugLog(message, 'error');
+        }
+
+        function getTextContent(node, tagName) {
+            const element = node.getElementsByTagName(tagName)[0];
+            return element ? element.textContent.trim() : '';
+        }
+
+        // --- DTP Calculation Logic ---
+
+        function calculateDTP(wantToPlay, wishlist, wishlistPriority) {
+            const BASE_SCORE = 5; 
+            let dtpScore = 0;
+
+            if (wantToPlay === 0) {
+                return 0;
+            }
+            
+            dtpScore = BASE_SCORE; 
+
+            if (wishlist === 1) {
+                if (wishlistPriority >= 1 && wishlistPriority <= 5) {
+                    const invertedValue = 6 - wishlistPriority; 
+                    dtpScore += invertedValue;
+                } 
+            } 
+
+            return dtpScore;
+        }
+
+        // --- Data Loading and Parsing ---
+        
+        async function loadDTPData(fileURL) {
+            const dtpData = {};
+            addDebugLog(`Attempting to load DTP data from: ${fileURL}`, 'info');
+            
+            try {
+                const response = await fetch(fileURL);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status} from ${fileURL}`);
+                
+                const xmlText = await response.text();
+                addDebugLog(`Received XML response, length: ${xmlText.length} chars`, 'info');
+                
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+
+                if (xmlDoc.getElementsByTagName('parsererror').length > 0) {
+                    throw new Error('External XML Parsing Error: Check structure.');
+                }
+
+                const gameNodes = xmlDoc.getElementsByTagName('game');
+                addDebugLog(`Found ${gameNodes.length} game nodes in XML`, 'info');
+                
+                for (let i = 0; i < gameNodes.length; i++) {
+                    const gameNode = gameNodes[i];
+                    const bggId = getTextContent(gameNode, 'bgg_id');
+                    
+                    const wantToPlay = parseInt(getTextContent(gameNode, 'wanttoplay')) || 0; 
+                    const wishlist = parseInt(getTextContent(gameNode, 'wishlist')) || 0; 
+                    const wishlistPriority = parseInt(getTextContent(gameNode, 'wishlistpriority')) || 0; 
+                    
+                    if (bggId) {
+                        const calculatedDTP = calculateDTP(wantToPlay, wishlist, wishlistPriority);
+                        dtpData[bggId] = {
+                            wantToPlay: wantToPlay,
+                            wishlist: wishlist,
+                            wishlistPriority: wishlistPriority,
+                            desireToPlay: calculatedDTP
+                        };
+                        
+                        // Log first 5 records
+                        if (i < 5) {
+                            addDebugLog(`BGG ID ${bggId}: WTP=${wantToPlay}, WL=${wishlist}, P=${wishlistPriority} → DTP=${calculatedDTP}`, 'success');
+                        }
+                    }
+                }
+                
+                addDebugLog(`✓ Successfully loaded ${Object.keys(dtpData).length} DTP records`, 'success');
+            } catch (error) {
+                addDebugLog(`✗ Error loading DTP data: ${error.message}`, 'error');
+                throw error;
+            }
+            return dtpData;
+        }
+
+        async function loadDataWithRetry() {
+            let lastError = null;
+            let dtpData = {};
+
+            // 1. Try API with Retry
+            for (let i = 0; i < RETRY_DELAYS.length; i++) {
+                addDebugLog(`API attempt ${i + 1}/${RETRY_DELAYS.length}...`, 'info');
+                try {
+                    dtpData = await loadDTPData(SPORTOMAX_API_URL);
+                    addDebugLog('✓ API load successful!', 'success');
+                    return dtpData;
+                } catch (error) {
+                    lastError = error;
+                    addDebugLog(`✗ API attempt ${i + 1} failed: ${error.message}`, 'warn');
+                    if (i < RETRY_DELAYS.length - 1) {
+                        addDebugLog(`Retrying in ${RETRY_DELAYS[i] / 1000}s...`, 'info');
+                        await new Promise(resolve => setTimeout(resolve, RETRY_DELAYS[i]));
+                    }
+                }
+            }
+
+            // 2. Fallback to Local File
+            addDebugLog(`Falling back to local file: ${FALLBACK_XML_FILE}`, 'warn');
+            try {
+                dtpData = await loadDTPData(FALLBACK_XML_FILE);
+                addDebugLog('✓ Local fallback successful!', 'success');
+                return dtpData;
+            } catch (fallbackError) {
+                addDebugLog(`✗ Local fallback failed: ${fallbackError.message}`, 'error');
+                showError(`Failed to load DTP data. Using defaults. Last API error: ${lastError?.message || 'N/A'}, Fallback error: ${fallbackError.message}`);
+                return {};
+            }
+        }
+
+        async function loadXML() {
+            addDebugLog(`Loading main game library from: ${XML_FILE}`, 'info');
+            try {
+                const response = await fetch(XML_FILE);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const xmlText = await response.text();
+                addDebugLog(`Main XML loaded, length: ${xmlText.length} chars`, 'info');
+                
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+
+                if (xmlDoc.getElementsByTagName('parsererror').length > 0) {
+                    throw new Error('XML Parsing Error: Check your XML file structure.');
+                }
+                
+                addDebugLog('✓ Main XML parsed successfully', 'success');
+                return xmlDoc;
+            } catch (error) {
+                addDebugLog(`✗ Main XML load failed: ${error.message}`, 'error');
+                showError(`Failed to load game library from ${XML_FILE}. Details: ${error.message}`);
+                return null;
+            }
+        }
+
+        function parseGames(xmlDoc) {
+            const games = [];
+            const gameNodes = xmlDoc.getElementsByTagName('game');
+            const totalNodes = gameNodes.length;
+            
+            addDebugLog(`Parsing ${totalNodes} games from main XML`, 'info');
+
+            for (let i = 0; i < totalNodes; i++) {
+                const gameNode = gameNodes[i];
+                const syntheticTimestamp = Date.now() - (totalNodes - i) * 3600000; 
+                
+                const game = {
+                    bggId: getTextContent(gameNode, 'bgg_id'),
+                    name: getTextContent(gameNode, 'name'),
+                    checkoutCount: parseInt(getTextContent(gameNode, 'checkout_count')) || 0,
+                    isCheckedOut: getTextContent(gameNode, 'is_checked_out') === '1',
+                    maxPlayers: parseInt(getTextContent(gameNode, 'max_players')) || 0,
+                    minPlayers: parseInt(getTextContent(gameNode, 'min_players')) || 0,
+                    maxPlayTime: parseInt(getTextContent(gameNode, 'max_play_time')) || 0,
+                    minPlayTime: parseInt(getTextContent(gameNode, 'min_play_time')) || 0,
+                    publisher: getTextContent(gameNode, 'publisher_name'),
+                    condition: getTextContent(gameNode, 'overall_condition'),
+                    catalogNumber: getTextContent(gameNode, 'catalog_number'),
+                    location: getTextContent(gameNode, 'location'),
+                    lastUpdated: syntheticTimestamp,
+                    age: parseInt(getTextContent(gameNode, 'age')) || 0,
+                    gameWeight: parseFloat(getTextContent(gameNode, 'game_weight')) || 0,
+                    bggRank: parseInt(getTextContent(gameNode, 'bgg_rank')) || 0,
+                    dateCreated: getTextContent(gameNode, 'date_created'),
+                    dateUpdated: getTextContent(gameNode, 'date_updated'),
+                    lastCheckinDate: getTextContent(gameNode, 'last_checkin_date'),
+                    lastCheckoutDate: getTextContent(gameNode, 'last_checkout_date'),
+                    wantToPlay: 0, 
+                    wishlist: 0, 
+                    wishlistPriority: 0, 
+                    desireToPlay: 0, 
+                    thumbnailUrl: null,
+                };
+                games.push(game);
+            }
+            
+            addDebugLog(`✓ Parsed ${games.length} games`, 'success');
+            return games;
+        }
+
+        // --- BGG API Thumbnail Batching ---
+
+        function getVisibleGameIds() {
+            const visibleIds = [];
+            const visibleGamesInDom = gamesGrid.querySelectorAll('.game-card');
+            
+            visibleGamesInDom.forEach(element => {
+                const bggId = element.dataset.bggid; 
+                const game = allGames.find(g => g.bggId === bggId);
+                
+                if (bggId && game && !game.thumbnailUrl) {
+                     visibleIds.push(bggId);
+                }
+            });
+            return visibleIds;
+        }
+
+        async function loadAllThumbnails() {
+            const gameIdsToLoad = getVisibleGameIds();
+            
+            if (gameIdsToLoad.length === 0) {
+                return;
+            }
+
+            const BATCH_SIZE = 20;
+
+            for (let i = 0; i < gameIdsToLoad.length; i += BATCH_SIZE) {
+                const batchIds = gameIdsToLoad.slice(i, i + BATCH_SIZE);
+                const idList = batchIds.join(',');
+                const url = `${BGG_API_URL}?id=${idList}&type=boardgame`; 
+                
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        throw new Error(`BGG API request failed with status: ${response.status}`);
+                    }
+                    
+                    const xmlText = await response.text();
+                    const parser = new DOMParser();
+                    const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+                    
+                    xmlDoc.querySelectorAll('item').forEach(item => {
+                        const id = item.getAttribute('id');
+                        const thumbnailElement = item.querySelector('thumbnail');
+                        
+                        if (id) {
+                            const thumbnail = thumbnailElement ? thumbnailElement.textContent : '';
+                            const game = allGames.find(g => g.bggId === id);
+                            if (game) {
+                                game.thumbnailUrl = thumbnail;
+                                gameImages[id] = thumbnail;
+                            }
+                            
+                            const imgElement = document.querySelector(`.game-card[data-bggid="${id}"] .game-thumbnail`);
+                            if (imgElement && thumbnail) {
+                                imgElement.src = thumbnail;
+                                imgElement.classList.remove('hidden');
+                                imgElement.parentElement.querySelector('.placeholder-icon')?.classList.add('hidden');
+                            }
+                        }
+                    });
+
+                    await new Promise(resolve => setTimeout(resolve, 200)); 
+
+                } catch (error) {
+                    console.error('Error fetching BGG thing batch:', error);
+                }
+            }
+        }
+        
+        // --- Filtering and Sorting Logic ---
+
+        function applyFiltersAndSort() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const status = statusFilter.value;
+            
+            filteredGames = allGames.filter(game => {
+                const matchesSearch = game.name.toLowerCase().includes(searchTerm);
+                const matchesStatus = status === 'all' || 
+                    (status === 'available' && !game.isCheckedOut) ||
+                    (status === 'checked-out' && game.isCheckedOut);
+                return matchesSearch && matchesStatus;
+            });
+
+            filteredGames.sort((a, b) => {
+                let valA = a[sortBy];
+                let valB = b[sortBy];
+
+                let comparison = 0;
+                if (typeof valA === 'string' && typeof valB === 'string') {
+                    comparison = valA.localeCompare(valB);
+                } else {
+                    comparison = valA - valB;
+                }
+                
+                return sortDirection === 'asc' ? comparison : -comparison;
+            });
+
+            currentPage = 0;
+            isLastPage = false;
+            gamesGrid.innerHTML = '';
+            noMoreGamesIndicator.classList.add('hidden');
+            loadNextPage();
+            updateStats();
+        }
+
+        // --- Infinite Scroll and Rendering ---
+
+        function loadNextPage() {
+            if (isLoading || isLastPage) return;
+            isLoading = true;
+            loadingIndicator.classList.remove('hidden');
+
+            const start = currentPage * GAMES_PER_PAGE;
+            const end = start + GAMES_PER_PAGE;
+            
+            visibleGames = filteredGames.slice(0, end);
+            
+            if (visibleGames.length === filteredGames.length) {
+                isLastPage = true;
+                noMoreGamesIndicator.classList.remove('hidden');
+            }
+
+            const newGames = filteredGames.slice(start, end);
+            newGames.forEach(game => {
+                gamesGrid.appendChild(createGameCardElement(game));
+            });
+
+            currentPage++;
+            
+            if (gamesGrid.lastElementChild) {
+                observer.unobserve(observerTarget);
+                observer.observe(gamesGrid.lastElementChild);
+            }
+            
+            isLoading = false;
+            loadingIndicator.classList.add('hidden');
+            
+            loadAllThumbnails(); 
+        }
+        
+        let observerTarget = loadingIndicator;
+
+        const observer = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting) {
+                loadNextPage();
+            }
+        }, {
+            root: null,
+            rootMargin: '100px',
+            threshold: 0.1
+        });
+
+        observer.observe(observerTarget);
+
+        function createGameCardElement(game) {
+            const imageUrl = gameImages[game.bggId] || game.thumbnailUrl;
+
+            let highlightClass = '';
+            if (game.desireToPlay >= 8 && game.desireToPlay <= 10) {
+                highlightClass = 'border-4 border-green-500 shadow-xl'; 
+            } else if (game.desireToPlay >= 6 && game.desireToPlay <= 7) {
+                highlightClass = 'border-4 border-yellow-500 shadow-lg'; 
+            }
+            
+            const card = document.createElement('div');
+            card.className = `game-card bg-white rounded-xl shadow-lg hover:shadow-xl cursor-pointer flex flex-row p-3 space-x-3 items-start ${highlightClass}`;
+            card.id = `card-${game.bggId}`;
+            card.dataset.bggid = game.bggId;
+            
+            // Calculate formula display
+            let formulaDisplay = '';
+            if (game.wantToPlay === 0) {
+                formulaDisplay = `WTP=${game.wantToPlay} → 0`;
+            } else {
+                const addedValue = game.wishlist === 1 && game.wishlistPriority >= 1 && game.wishlistPriority <= 5 
+                    ? (6 - game.wishlistPriority) 
+                    : 0;
+                formulaDisplay = `WTP=${game.wantToPlay} | WL=${game.wishlist} | P=${game.wishlistPriority} → 5 + ${addedValue} = ${game.desireToPlay}`;
+            }
+            
+            card.innerHTML = `
+                <div class="game-image flex-shrink-0 h-28 w-28 flex items-center justify-center text-gray-400 rounded-lg overflow-hidden">
+                    <img id="img-${game.bggId}" src="${imageUrl || 'placeholder'}" alt="${game.name} thumbnail" 
+                         class="game-thumbnail ${imageUrl ? '' : 'hidden'} w-full h-full object-cover" 
+                         onerror="this.parentElement.querySelector('.placeholder-icon').classList.remove('hidden'); this.classList.add('hidden');">
+                    <span class="placeholder-icon ${imageUrl ? 'hidden' : 'text-4xl text-gray-500'}">🎲</span>
+                </div>
+                
+                <div class="flex-1 min-w-0">
+                    <h3 class="text-lg font-bold text-gray-900 mb-1 truncate">${game.name}</h3>
+                    <div class="flex items-center justify-between mb-2 text-xs sm:text-sm">
+                        <span class="px-2 py-0.5 rounded-full text-xs font-semibold ${game.isCheckedOut ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}">
+                            ${game.isCheckedOut ? '📤 Checked Out' : '✅ Available'}
+                        </span>
+                        ${game.wishlistPriority > 0 ? `<span class="text-xs font-medium text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">Priority: P${game.wishlistPriority}</span>` : ''}
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-x-2 gap-y-1 text-xs text-gray-600" id="details-${game.bggId}">
+                        <!-- Details injected by renderDetails -->
+                    </div>
+                    
+                    ${visibleFields.dtpFormula ? `<div class="mt-2 pt-2 border-t border-gray-200 text-xs text-gray-500 font-mono">
+                        DTP: ${formulaDisplay}
+                    </div>` : ''}
+                </div>
+            `;
+            
+            renderDetails(card.querySelector(`#details-${game.bggId}`), game);
+
+            return card;
+        }
+
+        function renderDetails(detailsContainer, game) {
+            detailsContainer.innerHTML = '';
+            
+            const createDetailItem = (label, value) => {
+                let displayValue = value;
+                if (typeof value === 'string' && (value.includes('-') && value.includes(':'))) {
+                    displayValue = value.split(' ')[0];
+                }
+                
+                if (!value && value !== 0) return;
+
+                const item = document.createElement('div');
+                item.className = 'flex flex-col';
+                item.innerHTML = `<span class="font-medium text-gray-800">${label}</span><span class="text-xs text-gray-600">${displayValue}</span>`;
+                detailsContainer.appendChild(item);
+            };
+
+            if (visibleFields.desireToPlay) {
+                const scoreDisplay = game.desireToPlay === 0 ? 'N/A' : game.desireToPlay;
+                createDetailItem('❤️ Desire Score', scoreDisplay);
+            }
+            
+            if (visibleFields.players) {
+                createDetailItem('👥 Players', `${game.minPlayers}-${game.maxPlayers}`);
+            }
+
+            if (visibleFields.playtime) {
+                createDetailItem('⏱️ Play Time', `${game.minPlayTime}-${game.maxPlayTime} min`);
+            }
+
+            if (visibleFields.checkouts) {
+                createDetailItem('🔄 Checkouts', game.checkoutCount);
+            }
+
+            if (visibleFields.age && game.age > 0) {
+                createDetailItem('👶 Min Age', `${game.age}+`);
+            }
+
+            if (visibleFields.gameWeight && game.gameWeight > 0) {
+                createDetailItem('⚖️ Weight', game.gameWeight.toFixed(1));
+            }
+            
+            if (visibleFields.bggRank && game.bggRank > 0) {
+                createDetailItem('⭐ BGG Rank', `#${game.bggRank}`);
+            }
+
+            if (visibleFields.location && game.location) {
+                createDetailItem('📍 Location', game.location);
+            }
+            
+            if (visibleFields.publisher && game.publisher) {
+                createDetailItem('🏢 Publisher', game.publisher);
+            }
+
+            if (visibleFields.catalogNumber && game.catalogNumber) {
+                createDetailItem('📦 Catalog #', game.catalogNumber);
+            }
+
+            if (visibleFields.dateCreated && game.dateCreated) {
+                createDetailItem('📅 Created', game.dateCreated);
+            }
+
+            if (visibleFields.dateUpdated && game.dateUpdated) {
+                createDetailItem('✏️ Updated', game.dateUpdated);
+            }
+
+            if (visibleFields.lastCheckinDate && game.lastCheckinDate) {
+                createDetailItem('📥 Last Check In', game.lastCheckinDate);
+            }
+
+            if (visibleFields.lastCheckoutDate && game.lastCheckoutDate) {
+                createDetailItem('📤 Last Check Out', game.lastCheckoutDate);
+            }
+        }
+
+        function refreshVisibleCardDetails() {
+            visibleGames.forEach(game => {
+                const card = document.getElementById(`card-${game.bggId}`);
+                if (card) {
+                    const newCard = createGameCardElement(game);
+                    card.replaceWith(newCard);
+                }
+            });
+            loadAllThumbnails(); 
+        }
+
+        function updateStats() {
+            const total = allGames.length;
+            const available = allGames.filter(g => !g.isCheckedOut).length;
+            const checkedOut = allGames.filter(g => g.isCheckedOut).length;
+
+            document.getElementById('totalGames').textContent = total;
+            document.getElementById('availableGames').textContent = available;
+            document.getElementById('checkedOutGames').textContent = checkedOut;
+        }
+
+        // --- Settings Modal Logic ---
+
+        function setupSettingsModal() {
+            fieldCheckboxes.innerHTML = '';
+            const togglableFields = Object.keys(defaultVisibleFields);
+
+            togglableFields.forEach(key => {
+                const fieldData = allFields[key];
+                if (!fieldData) return;
+
+                const id = `toggle-${key}`;
+                const checked = visibleFields[key];
+                
+                const div = document.createElement('div');
+                div.className = 'flex items-center space-x-2';
+                div.innerHTML = `
+                    <input type="checkbox" id="${id}" data-field="${key}" ${checked ? 'checked' : ''} 
+                           class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+                    <label for="${id}" class="text-sm font-medium text-gray-700">${fieldData.label}</label>
+                `;
+                fieldCheckboxes.appendChild(div);
+
+                div.querySelector('input').addEventListener('change', (e) => {
+                    visibleFields[key] = e.target.checked;
+                    refreshVisibleCardDetails(); 
+                });
+            });
+
+            document.getElementById('openSettingsButton').addEventListener('click', () => {
+                settingsModal.classList.remove('hidden');
+                setTimeout(() => {
+                    settingsContent.classList.remove('scale-95', 'opacity-0');
+                    settingsContent.classList.add('scale-100', 'opacity-100');
+                }, 10);
+            });
+
+            document.getElementById('closeSettingsButton').addEventListener('click', () => {
+                settingsContent.classList.remove('scale-100', 'opacity-100');
+                settingsContent.classList.add('scale-95', 'opacity-0');
+                setTimeout(() => {
+                    settingsModal.classList.add('hidden');
+                }, 300);
+            });
+        }
+
+        // --- Event Listeners and Initialization ---
+
+        function setupEventListeners() {
+            let debounceTimer;
+            searchInput.addEventListener('input', () => {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(applyFiltersAndSort, 300);
+            });
+
+            statusFilter.addEventListener('change', applyFiltersAndSort);
+
+            sortByFieldSelect.addEventListener('change', (e) => {
+                sortBy = e.target.value;
+                if (['lastUpdated', 'dateCreated', 'dateUpdated', 'lastCheckinDate', 'lastCheckoutDate', 'desireToPlay'].includes(sortBy)) {
+                    sortDirection = 'desc';
+                } else {
+                    sortDirection = 'asc';
+                }
+                sortDirectionIcon.textContent = sortDirection === 'asc' ? '↑' : '↓';
+                applyFiltersAndSort();
+            });
+
+            sortDirectionToggle.addEventListener('click', () => {
+                sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+                sortDirectionIcon.textContent = sortDirection === 'asc' ? '↑' : '↓';
+                applyFiltersAndSort();
+            });
+
+            toggleDebugButton.addEventListener('click', () => {
+                debugConsole.classList.toggle('hidden');
+            });
+        }
+        
+        function setupSortOptions() {
+            sortByFieldSelect.innerHTML = '';
+            Object.keys(allFields).forEach(key => {
+                const field = allFields[key];
+                if (field.sortable) {
+                    const option = document.createElement('option');
+                    option.value = key;
+                    option.textContent = field.label;
+                    sortByFieldSelect.appendChild(option);
+                }
+            });
+
+            sortByFieldSelect.value = 'dateCreated';
+            sortBy = 'dateCreated'; 
+        }
+
+        async function init() {
+            addDebugLog('=== Initializing BGG Game Library ===', 'info');
+            loadingIndicator.classList.remove('hidden');
+            setupEventListeners();
+            setupSortOptions(); 
+            setupSettingsModal();
+
+            const xmlDoc = await loadXML();
+            if (!xmlDoc) return;
+            allGames = parseGames(xmlDoc);
+
+            const dtpData = await loadDataWithRetry();
+
+            let matchedCount = 0;
+            let unmatchedCount = 0;
+
+            allGames = allGames.map((game, index) => {
+                let wtp = 0, wl = 0, priority = 0;
+                let dataSource = 'none';
+                
+                const dtp = dtpData[game.bggId];
+                if (dtp) {
+                    wtp = dtp.wantToPlay;
+                    wl = dtp.wishlist;
+                    priority = dtp.wishlistPriority;
+                    dataSource = 'external';
+                    matchedCount++;
+                    
+                    if (index < 5) {
+                        addDebugLog(`✓ "${game.name}" (${game.bggId}): WTP=${wtp}, WL=${wl}, P=${priority} [from external]`, 'success');
+                    }
+                } else {
+                    unmatchedCount++;
+                    
+                    if (Object.keys(dtpData).length === 0 || !dtp) {
+                        if (index === 0) { wtp = 1; wl = 1; priority = 1; dataSource = 'synthetic-test1'; }
+                        if (index === 1) { wtp = 1; wl = 1; priority = 3; dataSource = 'synthetic-test2'; }
+                        if (index === 2) { wtp = 1; wl = 0; priority = 5; dataSource = 'synthetic-test3'; }
+                        if (index === 3) { wtp = 0; wl = 1; priority = 1; dataSource = 'synthetic-test4'; }
+                        
+                        if (dataSource !== 'none' && index < 5) {
+                            addDebugLog(`⚠ "${game.name}" (${game.bggId}): Using ${dataSource} data`, 'warn');
+                        }
+                    }
+                    
+                    if (index < 5 && dataSource === 'none') {
+                        addDebugLog(`✗ "${game.name}" (${game.bggId}): No DTP data found`, 'warn');
+                    }
+                }
+
+                return {
+                    ...game,
+                    wantToPlay: wtp,
+                    wishlist: wl,
+                    wishlistPriority: priority, 
+                    desireToPlay: calculateDTP(wtp, wl, priority)
+                };
+            });
+            
+            addDebugLog(`DTP Data Summary: ${matchedCount} matched, ${unmatchedCount} unmatched (of ${allGames.length} total)`, matchedCount > 0 ? 'success' : 'warn');
+            
+            if (allGames.length === 0) {
+                showError('No games found in the XML file.');
+                return;
+            }
+
+            sortDirection = 'desc';
+            sortDirectionIcon.textContent = '↓';
+
+            applyFiltersAndSort(); 
+            
+            loadingIndicator.classList.add('hidden');
+            addDebugLog('=== Initialization Complete ===', 'success');
+        }
+
+        init();
+    </script>
+</body>
+</html>
