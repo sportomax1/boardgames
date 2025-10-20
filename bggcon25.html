@@ -152,10 +152,8 @@
         const GAMES_PER_PAGE = 20;
 
         // --- DTP API/Fallback Configuration ---
-        // NOTE: This URL is a placeholder and may require modification to match the actual service.
         const SPORTOMAX_API_URL = 'https://api.sportomax.com/v2/collection/games'; 
         const FALLBACK_XML_FILE = 'private_all.xml';
-        // 3 tries with exponential backoff: 3s, 6s, 10s
         const RETRY_DELAYS = [3000, 6000, 10000]; 
 
         // --- Global State ---
@@ -166,10 +164,9 @@
         let currentPage = 0;
         let isLoading = false;
         let isLastPage = false;
-        let sortDirection = 'desc'; // Default: Descending
-        let sortBy = 'dateCreated'; // NEW DEFAULT: dateCreated
+        let sortDirection = 'desc'; 
+        let sortBy = 'dateCreated'; 
 
-        // UPDATED: Set dateCreated and desireToPlay as new defaults. Removed lastUpdated.
         const defaultVisibleFields = {
             players: true,
             playtime: true,
@@ -184,14 +181,13 @@
             dateUpdated: false,
             lastCheckinDate: false,
             lastCheckoutDate: false,
-            desireToPlay: true, // NEW Default
+            desireToPlay: true, 
         };
         let visibleFields = { ...defaultVisibleFields };
         
-        // UPDATED: Added desireToPlay and updated lastUpdated defaultSort
         const allFields = {
             name: { label: 'Name', type: 'string', alwaysVisible: true, sortable: true },
-            lastUpdated: { label: 'Last Update (Simulated)', type: 'date', sortable: true, defaultSort: false }, // Removed as default sort
+            lastUpdated: { label: 'Last Update (Simulated)', type: 'date', sortable: true, defaultSort: false },
             isCheckedOut: { label: 'Status', type: 'boolean', alwaysVisible: true, sortable: true },
             condition: { label: 'Condition', type: 'string', sortable: true },
             minPlayers: { label: 'Min Players', type: 'number', sortable: true },
@@ -202,17 +198,13 @@
             checkoutCount: { label: 'Checkouts', type: 'number', sortable: true },
             catalogNumber: { label: 'Catalog #', type: 'string', sortable: true },
             location: { label: 'Location Code', type: 'string', sortable: true },
-            
-            // New fields from XML
             age: { label: 'Min Age', type: 'number', sortable: true },
             gameWeight: { label: 'Weight (0-5)', type: 'number', sortable: true },
             bggRank: { label: 'BGG Rank', type: 'number', sortable: true },
-            dateCreated: { label: 'Date Created', type: 'string', sortable: true, defaultSort: true }, // NEW DEFAULT SORT
+            dateCreated: { label: 'Date Created', type: 'string', sortable: true, defaultSort: true },
             dateUpdated: { label: 'Last Updated', type: 'string', sortable: true },
             lastCheckinDate: { label: 'Last Check In', type: 'string', sortable: true },
             lastCheckoutDate: { label: 'Last Check Out', type: 'string', sortable: true },
-
-            // Desire to Play Field
             desireToPlay: { label: 'Desire to Play Score', type: 'number', sortable: true },
         };
 
@@ -243,15 +235,21 @@
             return element ? element.textContent.trim() : '';
         }
 
-        // --- DTP Calculation Logic ---
+        // --- DTP Calculation Logic (UPDATED) ---
 
         function calculateDTP(priority) {
-            // Formula: want to play = 5 + (inverted value of wishlistPriority 1=5, 4=2, etc else +0)
+            // New Formula: 
+            // If wishlistPriority is 0 or missing, DTP is 0.
+            // If wishlistPriority is 1-5, DTP = 5 + (inverted priority, where 1=5, 5=1).
+
             const BASE_SCORE = 5; 
+            
             if (typeof priority !== 'number' || priority < 1 || priority > 5) {
-                return BASE_SCORE; // Priority not 1-5, so bonus is 0
+                // Priority is 0 or invalid/missing. New rule: DTP is 0.
+                return 0; 
             }
             
+            // Priority is 1-5, so we apply the baseline and the bonus.
             // Inverted value: 1->5 (6-1), 2->4 (6-2), ..., 5->1 (6-5)
             const invertedValue = 6 - priority; 
             
@@ -260,7 +258,6 @@
 
         // --- Data Loading and Parsing ---
         
-        // Function to fetch and parse external DTP data from a given URL
         async function loadDTPData(fileURL) {
             const dtpData = {};
             try {
@@ -275,16 +272,15 @@
                     throw new Error('External XML Parsing Error: Check structure.');
                 }
 
-                // Look for nodes named 'game' in the external XML/API response
                 const gameNodes = xmlDoc.getElementsByTagName('game');
                 for (let i = 0; i < gameNodes.length; i++) {
                     const gameNode = gameNodes[i];
                     const bggId = getTextContent(gameNode, 'bgg_id');
                     
-                    // Assuming the external data uses 'wishlist_priority' tag
                     const wishlistPriorityText = getTextContent(gameNode, 'wishlist_priority'); 
                     
-                    const wishlistPriority = parseInt(wishlistPriorityText) || 0;
+                    // Parse priority, default to 0 if missing/invalid
+                    const wishlistPriority = parseInt(wishlistPriorityText) || 0; 
                     const desireToPlay = calculateDTP(wishlistPriority);
                     
                     if (bggId) {
@@ -301,11 +297,10 @@
             return dtpData;
         }
 
-        // Function to handle API retry and fallback logic
         async function loadDataWithRetry() {
             let lastError = null;
 
-            // 1. Try API with Retry (3 times)
+            // 1. Try API with Retry
             for (let i = 0; i < RETRY_DELAYS.length; i++) {
                 console.log(`Attempting to load Desire to Play API (Attempt ${i + 1})...`);
                 try {
@@ -315,7 +310,6 @@
                 } catch (error) {
                     lastError = error;
                     console.warn(`API failed on attempt ${i + 1}. Retrying in ${RETRY_DELAYS[i] / 1000}s. Error: ${error.message}`);
-                    // Wait for the defined delay, unless it's the last attempt
                     if (i < RETRY_DELAYS.length - 1) {
                         await new Promise(resolve => setTimeout(resolve, RETRY_DELAYS[i]));
                     }
@@ -330,8 +324,7 @@
                 return dtpData;
             } catch (fallbackError) {
                 console.error('Local fallback XML also failed.', fallbackError);
-                // If both fail, return an empty object.
-                showError(`Failed to load Desire to Play data. Defaulting score to 5 for all games. Last API error: ${lastError?.message || 'N/A'}, Fallback error: ${fallbackError.message}`);
+                showError(`Failed to load Desire to Play data. Defaulting score to 0 for all games. Last API error: ${lastError?.message || 'N/A'}, Fallback error: ${fallbackError.message}`);
                 return {};
             }
         }
@@ -363,13 +356,11 @@
 
             for (let i = 0; i < totalNodes; i++) {
                 const gameNode = gameNodes[i];
-                // Simulate a lastUpdated date based on its position in the XML (proxy for freshness)
                 const syntheticTimestamp = Date.now() - (totalNodes - i) * 3600000; 
                 
                 const game = {
                     bggId: getTextContent(gameNode, 'bgg_id'),
                     name: getTextContent(gameNode, 'name'),
-                    // Existing fields
                     checkoutCount: parseInt(getTextContent(gameNode, 'checkout_count')) || 0,
                     isCheckedOut: getTextContent(gameNode, 'is_checked_out') === '1',
                     maxPlayers: parseInt(getTextContent(gameNode, 'max_players')) || 0,
@@ -380,9 +371,7 @@
                     condition: getTextContent(gameNode, 'overall_condition'),
                     catalogNumber: getTextContent(gameNode, 'catalog_number'),
                     location: getTextContent(gameNode, 'location'),
-                    lastUpdated: syntheticTimestamp, // For sorting, but no longer default
-                    
-                    // Fields from XML snippet:
+                    lastUpdated: syntheticTimestamp,
                     age: parseInt(getTextContent(gameNode, 'age')) || 0,
                     gameWeight: parseFloat(getTextContent(gameNode, 'game_weight')) || 0,
                     bggRank: parseInt(getTextContent(gameNode, 'bgg_rank')) || 0,
@@ -391,50 +380,100 @@
                     lastCheckinDate: getTextContent(gameNode, 'last_checkin_date'),
                     lastCheckoutDate: getTextContent(gameNode, 'last_checkout_date'),
                     
-                    // DTP fields will be merged in init(), default to 0/5
+                    // DTP fields will be merged in init(), default to 0
                     wishlistPriority: 0, 
-                    desireToPlay: 5,
+                    desireToPlay: 0, 
+                    thumbnailUrl: null, // Placeholder for BGG image
                 };
                 games.push(game);
             }
             return games;
         }
 
-        // --- BGG API Thumbnail Fetching (Grounding) ---
+        // --- BGG API Thumbnail Batching (thing v2) ---
 
-        async function fetchBGGThumbnail(bggId) {
-            if (!bggId || gameImages[bggId]) return gameImages[bggId] || null;
-
-            try {
-                // Using BGG API v2 (Thing)
-                const response = await fetch(`${BGG_API_URL}?id=${bggId}&type=boardgame`);
-                if (!response.ok) return null;
+        // NEW FUNCTION: Helper to identify the BGG IDs of games currently visible in the UI.
+        function getVisibleGameIds() {
+            const visibleIds = [];
+            
+            // Check only games that are currently visible in the grid (up to the current scroll point)
+            const visibleGamesInDom = gamesGrid.querySelectorAll('.game-card');
+            
+            visibleGamesInDom.forEach(element => {
+                const bggId = element.dataset.bggid; // Use data-bggid from the card
+                const game = allGames.find(g => g.bggId === bggId);
                 
-                const xmlText = await response.text();
-                const parser = new DOMParser();
-                const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
-                
-                const thumbnail = xmlDoc.querySelector('thumbnail');
-                const url = thumbnail ? thumbnail.textContent.trim() : null;
-                
-                if (url) {
-                    gameImages[bggId] = url;
-                    // Update card image immediately if it's already rendered
-                    const imgElement = document.getElementById(`img-${bggId}`);
-                    if (imgElement) {
-                        imgElement.src = url;
-                        imgElement.onerror = () => { imgElement.parentElement.innerHTML = '<span class="text-4xl text-gray-500">🎲</span>'; };
-                        imgElement.classList.remove('hidden');
-                        imgElement.parentElement.querySelector('span')?.classList.add('hidden');
-                    }
+                // Only load if the BGG ID exists and the thumbnail hasn't been fetched yet
+                if (bggId && game && !game.thumbnailUrl) {
+                     visibleIds.push(bggId);
                 }
-                return url;
-            } catch (error) {
-                console.error(`Error fetching thumbnail for BGG ID ${bggId}:`, error);
-                return null;
-            }
+            });
+            return visibleIds;
         }
 
+        // REPLACEMENT FUNCTION: Modified to load thumbnails in batches of 20 for only the visible games.
+        async function loadAllThumbnails() {
+            const gameIdsToLoad = getVisibleGameIds();
+            
+            if (gameIdsToLoad.length === 0) {
+                console.log("No new thumbnails to load for visible games.");
+                return;
+            }
+
+            const BATCH_SIZE = 20;
+
+            for (let i = 0; i < gameIdsToLoad.length; i += BATCH_SIZE) {
+                const batchIds = gameIdsToLoad.slice(i, i + BATCH_SIZE);
+                const idList = batchIds.join(',');
+                
+                // thing v2 API call with the batched IDs
+                const url = `${BGG_API_URL}?id=${idList}&type=boardgame`; // Removing stats=1 as we only need thumbnail
+                
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        throw new Error(`BGG API request failed with status: ${response.status}`);
+                    }
+                    
+                    const xmlText = await response.text();
+                    const parser = new DOMParser();
+                    const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+                    
+                    // Iterate over returned <item> elements and update the game data/DOM
+                    xmlDoc.querySelectorAll('item').forEach(item => {
+                        const id = item.getAttribute('id');
+                        const thumbnailElement = item.querySelector('thumbnail');
+                        
+                        if (id) {
+                            const thumbnail = thumbnailElement ? thumbnailElement.textContent : '';
+                            
+                            // 1. Update the in-memory game object in 'allGames' and 'gameImages' cache
+                            const game = allGames.find(g => g.bggId === id);
+                            if (game) {
+                                game.thumbnailUrl = thumbnail;
+                                gameImages[id] = thumbnail;
+                            }
+                            
+                            // 2. Update the DOM element directly (using the correct class and fallback)
+                            const imgElement = document.querySelector(`.game-card[data-bggid="${id}"] .game-thumbnail`);
+                            if (imgElement && thumbnail) {
+                                imgElement.src = thumbnail;
+                                imgElement.classList.remove('hidden');
+                                imgElement.parentElement.querySelector('.placeholder-icon')?.classList.add('hidden');
+                            }
+                        }
+                    });
+
+                    // Pause briefly (200ms) between batches to be polite to the BGG API
+                    await new Promise(resolve => setTimeout(resolve, 200)); 
+
+                } catch (error) {
+                    console.error('Error fetching BGG thing batch:', error);
+                    // Continue to the next batch even if one fails
+                }
+            }
+        }
+        
         // --- Filtering and Sorting Logic ---
 
         function applyFiltersAndSort() {
@@ -453,7 +492,6 @@
                 let valA = a[sortBy];
                 let valB = b[sortBy];
 
-                // Handle string/number comparison
                 let comparison = 0;
                 if (typeof valA === 'string' && typeof valB === 'string') {
                     comparison = valA.localeCompare(valB);
@@ -483,9 +521,9 @@
             const start = currentPage * GAMES_PER_PAGE;
             const end = start + GAMES_PER_PAGE;
             
+            // Only update visibleGames if needed, primarily used for stat tracking/filtering boundary
             visibleGames = filteredGames.slice(0, end);
             
-            // Check if this is the last page
             if (visibleGames.length === filteredGames.length) {
                 isLastPage = true;
                 noMoreGamesIndicator.classList.remove('hidden');
@@ -506,9 +544,11 @@
             
             isLoading = false;
             loadingIndicator.classList.add('hidden');
+            
+            // Trigger thumbnail batch loading for the newly visible games
+            loadAllThumbnails(); 
         }
         
-        // Use a persistent target element if the grid is empty, or the last child if not
         let observerTarget = loadingIndicator;
 
         const observer = new IntersectionObserver((entries) => {
@@ -521,45 +561,41 @@
             threshold: 0.1
         });
 
-        // The loading indicator is always present and acts as the initial observer target
         observer.observe(observerTarget);
 
 
         function createGameCardElement(game) {
-            const imageUrl = gameImages[game.bggId];
+            const imageUrl = gameImages[game.bggId] || game.thumbnailUrl; // Check cache then object
 
             // Determine highlight class based on desireToPlay score (DTP)
             let highlightClass = '';
             if (game.desireToPlay >= 8 && game.desireToPlay <= 10) {
-                // Green border for 8-10 (High Desire)
                 highlightClass = 'border-4 border-green-500 shadow-xl'; 
             } else if (game.desireToPlay >= 6 && game.desireToPlay <= 7) {
-                // Yellow border for 6-7 (Medium Desire)
                 highlightClass = 'border-4 border-yellow-500 shadow-lg'; 
             }
             
             const card = document.createElement('div');
-            // UPDATED: Added highlightClass to the card's main container
+            // IMPORTANT: Use data-bggid for the thumbnail batch loader to find the game
             card.className = `game-card bg-white rounded-xl shadow-lg hover:shadow-xl cursor-pointer flex flex-row p-3 space-x-3 items-start ${highlightClass}`;
             card.id = `card-${game.bggId}`;
+            card.dataset.bggid = game.bggId;
             
-            // UPDATED: Image area - fixed small size (h-28 w-28) and rounded corners
             card.innerHTML = `
                 <div class="game-image flex-shrink-0 h-28 w-28 flex items-center justify-center text-gray-400 rounded-lg overflow-hidden">
-                    <img id="img-${game.bggId}" src="${imageUrl || ''}" alt="${game.name} thumbnail" 
-                         class="${imageUrl ? '' : 'hidden'} w-full h-full object-cover" 
-                         onerror="this.parentElement.innerHTML = '<span class=\'text-4xl text-gray-500\'>🎲</span>';">
-                    <span class="${imageUrl ? 'hidden' : 'text-4xl text-gray-500'}">🎲</span>
+                    <img id="img-${game.bggId}" src="${imageUrl || 'placeholder'}" alt="${game.name} thumbnail" 
+                         class="game-thumbnail ${imageUrl ? '' : 'hidden'} w-full h-full object-cover" 
+                         onerror="this.parentElement.querySelector('.placeholder-icon').classList.remove('hidden'); this.classList.add('hidden');">
+                    <span class="placeholder-icon ${imageUrl ? 'hidden' : 'text-4xl text-gray-500'}">🎲</span>
                 </div>
                 
-                <!-- UPDATED: Text/Details area - takes up remaining space -->
                 <div class="flex-1 min-w-0">
                     <h3 class="text-lg font-bold text-gray-900 mb-1 truncate">${game.name}</h3>
                     <div class="flex items-center justify-between mb-2 text-xs sm:text-sm">
                         <span class="px-2 py-0.5 rounded-full text-xs font-semibold ${game.isCheckedOut ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}">
                             ${game.isCheckedOut ? '📤 Checked Out' : '✅ Available'}
                         </span>
-                        ${game.condition ? `<span class="text-xs font-medium text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">${game.condition} (${game.wishlistPriority > 0 ? `P${game.wishlistPriority}` : 'N/A'})</span>` : ''}
+                        ${game.wishlistPriority > 0 ? `<span class="text-xs font-medium text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">Priority: P${game.wishlistPriority}</span>` : ''}
                     </div>
                     
                     <div class="grid grid-cols-2 gap-x-2 gap-y-1 text-xs text-gray-600" id="details-${game.bggId}">
@@ -568,11 +604,8 @@
                 </div>
             `;
             
-            // Asynchronously fetch thumbnail for this specific card
-            if (!imageUrl) {
-                 fetchBGGThumbnail(game.bggId);
-            }
-
+            // Check if we need to load the thumbnail. This is now handled by loadAllThumbnails()
+            
             // Inject the dynamic details based on user selection
             renderDetails(card.querySelector(`#details-${game.bggId}`), game);
 
@@ -582,9 +615,7 @@
         function renderDetails(detailsContainer, game) {
             detailsContainer.innerHTML = '';
             
-            // Helper function to create a detail item
             const createDetailItem = (label, value) => {
-                // For date fields, strip the time portion (e.g., "2024-06-12 21:51:03" -> "2024-06-12")
                 let displayValue = value;
                 if (typeof value === 'string' && (value.includes('-') && value.includes(':'))) {
                     displayValue = value.split(' ')[0];
@@ -594,16 +625,14 @@
 
                 const item = document.createElement('div');
                 item.className = 'flex flex-col';
-                // UPDATED: Text size adjusted to text-xs
                 item.innerHTML = `<span class="font-medium text-gray-800">${label}</span><span class="text-xs text-gray-600">${displayValue}</span>`;
                 detailsContainer.appendChild(item);
             };
 
-            // Existing & New Toggable Fields in Display Order
-            
-            // Desire to Play (NEW)
+            // Desire to Play
             if (visibleFields.desireToPlay) {
-                createDetailItem('❤️ Desire to Play', game.desireToPlay);
+                const scoreDisplay = game.desireToPlay === 0 ? 'N/A' : game.desireToPlay;
+                createDetailItem('❤️ Desire Score', scoreDisplay);
             }
             
             // Players
@@ -651,7 +680,7 @@
                 createDetailItem('📦 Catalog #', game.catalogNumber);
             }
 
-            // Date Created (NEW DEFAULT VISIBLE)
+            // Date Created
             if (visibleFields.dateCreated && game.dateCreated) {
                 createDetailItem('📅 Created', game.dateCreated);
             }
@@ -672,17 +701,17 @@
             }
         }
 
-        // Re-renders only the details section of all visible cards
         function refreshVisibleCardDetails() {
+            // Re-render only the visible cards to update highlights/fields
             visibleGames.forEach(game => {
                 const card = document.getElementById(`card-${game.bggId}`);
-                const detailsContainer = card?.querySelector(`#details-${game.bggId}`);
-                if (detailsContainer) {
-                    // Re-run card creation logic to update highlight class
+                if (card) {
                     const newCard = createGameCardElement(game);
                     card.replaceWith(newCard);
                 }
             });
+            // Re-trigger thumbnail load just in case the new cards brought new IDs into view
+            loadAllThumbnails(); 
         }
 
         function updateStats() {
@@ -698,9 +727,7 @@
         // --- Settings Modal Logic ---
 
         function setupSettingsModal() {
-            // Populate checkboxes
             fieldCheckboxes.innerHTML = '';
-            // Get all keys from defaultVisibleFields to determine which fields are togglable
             const togglableFields = Object.keys(defaultVisibleFields);
 
             togglableFields.forEach(key => {
@@ -719,15 +746,12 @@
                 `;
                 fieldCheckboxes.appendChild(div);
 
-                // Add event listener to update state
                 div.querySelector('input').addEventListener('change', (e) => {
                     visibleFields[key] = e.target.checked;
-                    // Re-render to update the display
                     refreshVisibleCardDetails(); 
                 });
             });
 
-            // Modal functionality
             document.getElementById('openSettingsButton').addEventListener('click', () => {
                 settingsModal.classList.remove('hidden');
                 setTimeout(() => {
@@ -749,7 +773,6 @@
         // --- Event Listeners and Initialization ---
 
         function setupEventListeners() {
-            // Debounce for better performance on search input
             let debounceTimer;
             searchInput.addEventListener('input', () => {
                 clearTimeout(debounceTimer);
@@ -760,7 +783,6 @@
 
             sortByFieldSelect.addEventListener('change', (e) => {
                 sortBy = e.target.value;
-                // If switching field, reset direction to default (DESC for dates, ASC for others)
                 if (['lastUpdated', 'dateCreated', 'dateUpdated', 'lastCheckinDate', 'lastCheckoutDate', 'desireToPlay'].includes(sortBy)) {
                     sortDirection = 'desc';
                 } else {
@@ -777,12 +799,8 @@
             });
         }
         
-        // Add new sortable fields to the Select input dynamically
         function setupSortOptions() {
-            // Clear existing options
             sortByFieldSelect.innerHTML = '';
-
-            // Populate all sortable fields
             Object.keys(allFields).forEach(key => {
                 const field = allFields[key];
                 if (field.sortable) {
@@ -793,9 +811,8 @@
                 }
             });
 
-            // Set the new default sort field
             sortByFieldSelect.value = 'dateCreated';
-            sortBy = 'dateCreated'; // Update global state
+            sortBy = 'dateCreated'; 
         }
 
         async function init() {
@@ -804,22 +821,20 @@
             setupSortOptions(); 
             setupSettingsModal();
 
-            // 1. Load BGG data
             const xmlDoc = await loadXML();
             if (!xmlDoc) return;
             allGames = parseGames(xmlDoc);
 
-            // 2. Load DTP data with retry and fallback
             const dtpData = await loadDataWithRetry();
 
-            // 3. Merge DTP data into allGames
             allGames = allGames.map(game => {
                 const dtp = dtpData[game.bggId] || {};
+                const wishlistPriority = dtp.wishlistPriority || game.wishlistPriority;
+
                 return {
                     ...game,
-                    // If DTP data is present, use it; otherwise use the default (0/5) set in parseGames
-                    wishlistPriority: dtp.wishlistPriority || game.wishlistPriority,
-                    desireToPlay: dtp.desireToPlay || game.desireToPlay 
+                    wishlistPriority: wishlistPriority,
+                    desireToPlay: calculateDTP(wishlistPriority)
                 };
             });
             
@@ -828,12 +843,9 @@
                 return;
             }
 
-            // Set initial sort by 'dateCreated' DESC (new default behavior)
-            // This is already set in setupSortOptions, but we ensure the icon matches
             sortDirection = 'desc';
             sortDirectionIcon.textContent = '↓';
 
-            // Apply initial filtering and sorting, which triggers the first loadNextPage()
             applyFiltersAndSort(); 
             
             loadingIndicator.classList.add('hidden');
