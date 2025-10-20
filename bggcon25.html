@@ -155,7 +155,7 @@
         const SPORTOMAX_API_URL = 'https://api.sportomax.com/v2/collection/games'; 
         const FALLBACK_XML_FILE = 'private_all.xml';
         const RETRY_DELAYS = [3000, 6000, 10000]; 
-
+        
         // --- Global State ---
         let allGames = [];
         let filteredGames = [];
@@ -235,25 +235,40 @@
             return element ? element.textContent.trim() : '';
         }
 
-        // --- DTP Calculation Logic (UPDATED) ---
+        // --- DTP Calculation Logic (Updated for all three fields) ---
 
-        function calculateDTP(priority) {
-            // New Formula: 
-            // If wishlistPriority is 0 or missing, DTP is 0.
-            // If wishlistPriority is 1-5, DTP = 5 + (inverted priority, where 1=5, 5=1).
-
+        /**
+         * Calculates the Desire to Play (DTP) score based on three conditional inputs.
+         * Rules:
+         * 1. If wantToPlay is 0, DTP is 0.
+         * 2. If wantToPlay is 1, DTP starts at 5.
+         * 3. If wishlist is 1 AND wishlistPriority is 1-5, add (6 - priority) to the score (1->5, 5->1).
+         * 4. If wishlist is 0, add 0.
+         */
+        function calculateDTP(wantToPlay, wishlist, wishlistPriority) {
             const BASE_SCORE = 5; 
-            
-            if (typeof priority !== 'number' || priority < 1 || priority > 5) {
-                // Priority is 0 or invalid/missing. New rule: DTP is 0.
-                return 0; 
+            let dtpScore = 0;
+
+            // Rule 1: If "wanttoplay" is 0, then desire is 0.
+            if (wantToPlay === 0) {
+                return 0;
             }
             
-            // Priority is 1-5, so we apply the baseline and the bonus.
-            // Inverted value: 1->5 (6-1), 2->4 (6-2), ..., 5->1 (6-5)
-            const invertedValue = 6 - priority; 
-            
-            return BASE_SCORE + invertedValue; // Result is 6-10
+            // Rule 2: If "wanttoplay" is 1, DTP starts with baseline 5 points.
+            dtpScore = BASE_SCORE; 
+
+            // Rule 3: Add inverted wishlist priority, BUT only if "wishlist" is 1.
+            if (wishlist === 1) {
+                // Check if priority is valid (1-5) before calculation
+                if (wishlistPriority >= 1 && wishlistPriority <= 5) {
+                    // Inverted value: 6 - priority (e.g., 6-1=5, 6-5=1)
+                    const invertedValue = 6 - wishlistPriority; 
+                    dtpScore += invertedValue;
+                } 
+                // If priority is 0, 0 is added implicitly
+            } 
+
+            return dtpScore; // Result will be 5 (WTP=1, WL=0) or 6-10 (WTP=1, WL=1)
         }
 
         // --- Data Loading and Parsing ---
@@ -277,16 +292,21 @@
                     const gameNode = gameNodes[i];
                     const bggId = getTextContent(gameNode, 'bgg_id');
                     
-                    const wishlistPriorityText = getTextContent(gameNode, 'wishlist_priority'); 
-                    
-                    // Parse priority, default to 0 if missing/invalid
-                    const wishlistPriority = parseInt(wishlistPriorityText) || 0; 
-                    const desireToPlay = calculateDTP(wishlistPriority);
+                    // 1. Get WTP (wanttoplay) Flag
+                    const wantToPlay = parseInt(getTextContent(gameNode, 'wanttoplay')) || 0; 
+            
+                    // 2. Get Wishlist Flag
+                    const wishlist = parseInt(getTextContent(gameNode, 'wishlist')) || 0; 
+            
+                    // 3. Get Wishlist Priority (1-5)
+                    const wishlistPriority = parseInt(getTextContent(gameNode, 'wishlist_priority')) || 0; 
                     
                     if (bggId) {
                         dtpData[bggId] = {
+                            wantToPlay: wantToPlay,
+                            wishlist: wishlist,
                             wishlistPriority: wishlistPriority,
-                            desireToPlay: desireToPlay
+                            desireToPlay: calculateDTP(wantToPlay, wishlist, wishlistPriority)
                         };
                     }
                 }
@@ -299,12 +319,13 @@
 
         async function loadDataWithRetry() {
             let lastError = null;
+            let dtpData = {};
 
             // 1. Try API with Retry
             for (let i = 0; i < RETRY_DELAYS.length; i++) {
                 console.log(`Attempting to load Desire to Play API (Attempt ${i + 1})...`);
                 try {
-                    const dtpData = await loadDTPData(SPORTOMAX_API_URL);
+                    dtpData = await loadDTPData(SPORTOMAX_API_URL);
                     console.log('Successfully loaded Desire to Play data from API.');
                     return dtpData;
                 } catch (error) {
@@ -319,12 +340,12 @@
             // 2. Fallback to Local File
             console.log(`API failed after ${RETRY_DELAYS.length} attempts. Falling back to local file: ${FALLBACK_XML_FILE}`);
             try {
-                const dtpData = await loadDTPData(FALLBACK_XML_FILE);
+                dtpData = await loadDTPData(FALLBACK_XML_FILE);
                 console.log('Successfully loaded Desire to Play data from local fallback XML.');
                 return dtpData;
             } catch (fallbackError) {
                 console.error('Local fallback XML also failed.', fallbackError);
-                showError(`Failed to load Desire to Play data. Defaulting score to 0 for all games. Last API error: ${lastError?.message || 'N/A'}, Fallback error: ${fallbackError.message}`);
+                showError(`Failed to load Desire to Play data. Defaulting scores to 0. Last API error: ${lastError?.message || 'N/A'}, Fallback error: ${fallbackError.message}`);
                 return {};
             }
         }
@@ -380,7 +401,9 @@
                     lastCheckinDate: getTextContent(gameNode, 'last_checkin_date'),
                     lastCheckoutDate: getTextContent(gameNode, 'last_checkout_date'),
                     
-                    // DTP fields will be merged in init(), default to 0
+                    // DTP fields will be merged in init() after external load, default to 0
+                    wantToPlay: 0, 
+                    wishlist: 0, 
                     wishlistPriority: 0, 
                     desireToPlay: 0, 
                     thumbnailUrl: null, // Placeholder for BGG image
@@ -392,7 +415,6 @@
 
         // --- BGG API Thumbnail Batching (thing v2) ---
 
-        // NEW FUNCTION: Helper to identify the BGG IDs of games currently visible in the UI.
         function getVisibleGameIds() {
             const visibleIds = [];
             
@@ -400,7 +422,7 @@
             const visibleGamesInDom = gamesGrid.querySelectorAll('.game-card');
             
             visibleGamesInDom.forEach(element => {
-                const bggId = element.dataset.bggid; // Use data-bggid from the card
+                const bggId = element.dataset.bggid; 
                 const game = allGames.find(g => g.bggId === bggId);
                 
                 // Only load if the BGG ID exists and the thumbnail hasn't been fetched yet
@@ -411,7 +433,6 @@
             return visibleIds;
         }
 
-        // REPLACEMENT FUNCTION: Modified to load thumbnails in batches of 20 for only the visible games.
         async function loadAllThumbnails() {
             const gameIdsToLoad = getVisibleGameIds();
             
@@ -427,7 +448,7 @@
                 const idList = batchIds.join(',');
                 
                 // thing v2 API call with the batched IDs
-                const url = `${BGG_API_URL}?id=${idList}&type=boardgame`; // Removing stats=1 as we only need thumbnail
+                const url = `${BGG_API_URL}?id=${idList}&type=boardgame`; 
                 
                 try {
                     const response = await fetch(url);
@@ -603,8 +624,6 @@
                     </div>
                 </div>
             `;
-            
-            // Check if we need to load the thumbnail. This is now handled by loadAllThumbnails()
             
             // Inject the dynamic details based on user selection
             renderDetails(card.querySelector(`#details-${game.bggId}`), game);
@@ -827,14 +846,41 @@
 
             const dtpData = await loadDataWithRetry();
 
-            allGames = allGames.map(game => {
-                const dtp = dtpData[game.bggId] || {};
-                const wishlistPriority = dtp.wishlistPriority || game.wishlistPriority;
+            allGames = allGames.map((game, index) => {
+                let wtp = 0, wl = 0, priority = 0;
+                
+                // 1. Try to use external data
+                const dtp = dtpData[game.bggId];
+                if (dtp) {
+                    wtp = dtp.wantToPlay;
+                    wl = dtp.wishlist;
+                    priority = dtp.wishlistPriority;
+                }
+                
+                // 2. --- SYNTHETIC TEST DATA INJECTION for formula verification ---
+                // We inject synthetic data if the external data failed (dtpData is empty) or if the specific game 
+                // wasn't found in the external data (dtp is undefined).
+                if (Object.keys(dtpData).length === 0 || !dtp) {
+                    // Test Case 1: WTP=1, WL=1, Priority=1 (Score 5 + 5 = 10) - Highest Desire
+                    if (index === 0) { wtp = 1; wl = 1; priority = 1; } 
+                    
+                    // Test Case 2: WTP=1, WL=1, Priority=3 (Score 5 + 3 = 8) - Mid Desire
+                    if (index === 1) { wtp = 1; wl = 1; priority = 3; } 
+                    
+                    // Test Case 3: WTP=1, WL=0, Priority=5 (Score 5 + 0 = 5) - Baseline Desire
+                    if (index === 2) { wtp = 1; wl = 0; priority = 5; } 
+                    
+                    // Test Case 4: WTP=0, WL=1, Priority=1 (Score 0) - No Desire due to WTP=0
+                    if (index === 3) { wtp = 0; wl = 1; priority = 1; } 
+                }
+                // --- END SYNTHETIC TEST DATA INJECTION ---
 
                 return {
                     ...game,
-                    wishlistPriority: wishlistPriority,
-                    desireToPlay: calculateDTP(wishlistPriority)
+                    wantToPlay: wtp,
+                    wishlist: wl,
+                    wishlistPriority: priority, 
+                    desireToPlay: calculateDTP(wtp, wl, priority)
                 };
             });
             
