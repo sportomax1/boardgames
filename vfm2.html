@@ -3,838 +3,1473 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Supabase CRUD App</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="config.js"></script>
+    <title>VFM Geeklist</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
+        
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f7;
+            padding: 16px;
+            padding-bottom: 80px;
         }
-        .passcode-screen, .main-app {
+        
+        .header {
             background: white;
-            border-radius: 16px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            padding: 40px;
-            max-width: 1200px;
-            width: 100%;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
-        .passcode-screen {
-            max-width: 400px;
-            text-align: center;
-        }
-        .passcode-screen h1 {
-            color: #333;
-            margin-bottom: 10px;
-        }
-        .passcode-screen p {
-            color: #666;
-            margin-bottom: 30px;
-        }
-        .passcode-input {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-            margin-bottom: 20px;
-        }
-        .passcode-digit {
-            width: 60px;
-            height: 60px;
-            font-size: 32px;
-            text-align: center;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            outline: none;
-            transition: border-color 0.3s;
-        }
-        .passcode-digit:focus {
-            border-color: #667eea;
-        }
-        .error-msg {
-            color: #e74c3c;
-            margin-top: 10px;
-            font-size: 14px;
-        }
-        .hidden {
-            display: none;
-        }
-        h1 {
-            color: #333;
-            margin-bottom: 30px;
-            font-size: 28px;
-        }
-        .table-selector {
-            margin-bottom: 20px;
-        }
-        .table-selector label {
-            display: block;
+        
+        .header h1 {
+            font-size: 24px;
+            color: #1d1d1f;
             margin-bottom: 8px;
-            font-weight: 600;
-            color: #333;
         }
-        select {
-            width: 100%;
+        
+        .stats {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            font-size: 14px;
+            color: #6e6e73;
+            margin-bottom: 16px;
+        }
+        
+        .vfm-controls {
+            margin-bottom: 16px;
             padding: 12px;
-            border: 2px solid #ddd;
-            border-radius: 6px;
-            font-size: 16px;
-            outline: none;
+            background: #f5f5f7;
+            border-radius: 8px;
         }
-        select:focus {
-            border-color: #667eea;
+        
+        .vfm-controls-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
         }
-        .btn {
-            padding: 10px 20px;
-            background: #667eea;
+        
+        .vfm-controls-title {
+            font-weight: 600;
+            font-size: 14px;
+            color: #1d1d1f;
+        }
+        
+        .toggle-vfm-btn {
+            background: #007aff;
             color: white;
             border: none;
+            padding: 6px 12px;
             border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
             cursor: pointer;
-            font-size: 14px;
-            transition: background 0.3s;
-            font-weight: 500;
         }
-        .btn:hover {
-            background: #5568d3;
-        }
-        .btn:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-        }
-        .btn-danger {
-            background: #e74c3c;
-        }
-        .btn-danger:hover {
-            background: #c0392b;
-        }
-        .btn-success {
-            background: #2ecc71;
-        }
-        .btn-success:hover {
-            background: #27ae60;
-        }
-        .controls {
+        
+        .vfm-filter-buttons {
             display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
             flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 8px;
         }
-        .data-grid {
-            overflow-x: auto;
-            margin-bottom: 20px;
-            max-height: 500px;
-            overflow-y: auto;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
+        
+        .vfm-filter-btn {
+            padding: 6px 12px;
+            border: 2px solid #e5e5e7;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
             background: white;
+            color: #1d1d1f;
+            transition: all 0.2s;
         }
-        th, td {
+        
+        .vfm-filter-btn.active {
+            background: #007aff;
+            color: white;
+            border-color: #007aff;
+        }
+        
+        .progress-container {
+            margin-bottom: 16px;
+        }
+        
+        .progress-item {
+            padding: 6px 10px;
+            background: #f5f5f7;
+            border-radius: 6px;
+            margin-bottom: 4px;
+            font-size: 12px;
+            font-family: 'Courier New', monospace;
+            color: #1d1d1f;
+            line-height: 1.4;
+        }
+        
+        .progress-item.hidden {
+            display: none;
+        }
+        
+        .status-loaded { color: #34c759; font-weight: bold; }
+        .status-failed { color: #ff3b30; font-weight: bold; }
+        .status-loading { color: #ff9500; font-weight: bold; }
+        
+        .search-section {
+            margin-top: 16px;
+        }
+        
+        .search-type-buttons {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        
+        .search-type-btn {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #e5e5e7;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            background: white;
+            color: #1d1d1f;
+            transition: all 0.2s;
+        }
+        
+        .search-type-btn.active {
+            background: #007aff;
+            color: white;
+            border-color: #007aff;
+        }
+        
+        .search-input {
+            width: 100%;
             padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
+            border: 2px solid #e5e5e7;
+            border-radius: 8px;
+            font-size: 16px;
+            margin-bottom: 8px;
+            font-family: inherit;
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: #007aff;
+        }
+        
+        .search-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .search-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        
+        .search-btn:active {
+            opacity: 0.7;
+        }
+        
+        .btn-filter {
+            background: #007aff;
+            color: white;
+        }
+        
+        .btn-clear {
+            background: #6e6e73;
+            color: white;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .card-header {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        
+        .game-thumbnail {
+            width: 80px;
+            height: 80px;
+            border-radius: 8px;
+            object-fit: cover;
+            background: #e5e5e7;
+            flex-shrink: 0;
+        }
+        
+        .card-info {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .card-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 4px;
+        }
+        
+        .game-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1d1d1f;
+            margin-bottom: 4px;
+            line-height: 1.3;
+        }
+        
+        .username {
+            font-size: 14px;
+            color: #0066cc;
+            margin-bottom: 4px;
+        }
+        
+        .user-details {
+            font-size: 11px;
+            color: #6e6e73;
+            margin-bottom: 4px;
+        }
+        
+        .geeklist-badge {
+            display: inline-block;
+            background: #5856d6;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-top: 4px;
+        }
+        
+        .badge-group {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 4px;
+        }
+        
+        .sold-badge {
+            background: #ff3b30;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .available-badge {
+            background: #34c759;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .time-since {
+            font-size: 11px;
+            color: #6e6e73;
             white-space: nowrap;
         }
-        th {
-            background: #f8f9fa;
-            font-weight: 600;
-            color: #333;
-            position: sticky;
-            top: 0;
-            z-index: 10;
+        
+        .price {
+            font-size: 22px;
+            font-weight: 700;
+            color: #1d1d1f;
+            margin: 8px 0;
         }
-        tbody tr:hover {
-            background: #f8f9fa;
+        
+        .meta-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #e5e5e7;
+            font-size: 12px;
+            color: #6e6e73;
         }
-        .actions {
+        
+        .meta-item {
             display: flex;
-            gap: 5px;
+            align-items: center;
+            gap: 4px;
         }
-        .btn-small {
-            padding: 6px 12px;
-            font-size: 13px;
+        
+        .meta-label {
+            font-weight: 600;
         }
+        
+        .button-group {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        
+        .btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            text-decoration: none;
+            color: white;
+            text-align: center;
+        }
+        
+        .btn:active {
+            opacity: 0.7;
+        }
+        
+        .btn-link {
+            background: #34c759;
+            color: white;
+        }
+        
+        .btn-details {
+            background: #007aff;
+            color: white;
+        }
+        
+        .btn-comments {
+            background: #5856d6;
+            color: white;
+        }
+        
         .modal {
             display: none;
             position: fixed;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
+            right: 0;
+            bottom: 0;
             background: rgba(0,0,0,0.5);
-            align-items: center;
-            justify-content: center;
             z-index: 1000;
+            animation: fadeIn 0.2s;
         }
+        
         .modal.active {
             display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
         }
+        
         .modal-content {
             background: white;
-            padding: 30px;
-            border-radius: 12px;
+            border-radius: 16px;
             max-width: 600px;
-            width: 90%;
+            width: 100%;
             max-height: 80vh;
             overflow-y: auto;
         }
-        .modal-content h2 {
-            margin-bottom: 20px;
-            color: #333;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 600;
-            color: #333;
-        }
-        .form-group input, .form-group textarea, .form-group select {
-            width: 100%;
-            padding: 10px;
-            border: 2px solid #ddd;
-            border-radius: 6px;
-            font-size: 14px;
-            outline: none;
-            font-family: inherit;
-        }
-        .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
-            border-color: #667eea;
-        }
-        .form-group textarea {
-            min-height: 100px;
-            resize: vertical;
-        }
-        .modal-actions {
+        
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid #e5e5e7;
             display: flex;
-            gap: 10px;
-            margin-top: 20px;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            background: white;
+            border-radius: 16px 16px 0 0;
         }
-        .status-msg {
+        
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1d1d1f;
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 28px;
+            color: #6e6e73;
+            cursor: pointer;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-body {
+            padding: 20px;
+            font-size: 15px;
+            line-height: 1.6;
+            color: #1d1d1f;
+        }
+        
+        .comment-item {
             padding: 12px;
-            border-radius: 6px;
-            margin-bottom: 20px;
-            display: none;
+            background: #f5f5f7;
+            border-radius: 8px;
+            margin-bottom: 12px;
         }
-        .status-msg.success {
-            background: #d4edda;
-            color: #155724;
-            display: block;
+        
+        .comment-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 13px;
         }
-        .status-msg.error {
-            background: #f8d7da;
-            color: #721c24;
-            display: block;
+        
+        .comment-user {
+            font-weight: 600;
+            color: #0066cc;
         }
-        .record-count {
-            color: #666;
+        
+        .comment-date {
+            color: #6e6e73;
+        }
+        
+        .comment-text {
             font-size: 14px;
-            margin-bottom: 15px;
-            font-weight: 500;
+            color: #1d1d1f;
         }
+        
         .loading {
             text-align: center;
             padding: 40px;
-            color: #666;
+            color: #6e6e73;
         }
-        .empty-state {
+        
+        .loading-more {
             text-align: center;
-            padding: 40px;
-            color: #999;
+            padding: 20px;
+            color: #6e6e73;
+            font-size: 14px;
+        }
+        
+        .error {
+            background: #ff3b30;
+            color: white;
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+        }
+        
+        .filter-active {
+            background: #ff9500;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-top: 8px;
+            display: inline-block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
     </style>
 </head>
 <body>
-    <div id="passcodeScreen" class="passcode-screen">
-        <h1>🔒 Secure Access</h1>
-        <p>Enter your 4-digit passcode to continue</p>
-        <div class="passcode-input">
-            <input type="password" maxlength="1" class="passcode-digit" id="digit1" autocomplete="off">
-            <input type="password" maxlength="1" class="passcode-digit" id="digit2" autocomplete="off">
-            <input 
-            type="password" maxlength="1" class="passcode-digit" id="digit3" autocomplete="off">
-            <input type="password" maxlength="1" class="passcode-digit" id="digit4" autocomplete="off">
+    <div class="header">
+        <h1>VFM Geeklist</h1>
+        <div class="stats">
+            <span id="totalItems">Loading...</span>
         </div>
-        <div id="passcodeError" class="error-msg"></div>
-    </div>
-
-    <div id="mainApp" class="main-app hidden">
-        <h1>📊 Supabase Data Manager</h1>
         
-        <div id="statusMsg" class="status-msg"></div>
-
-        <div class="table-selector">
-     
-                   <label for="tableSelect">Select Table:</label>
-            <select id="tableSelect" onchange="onTableChange()">
-                <option value="">-- Choose a table --</option>
-            </select>
+        <div class="vfm-controls">
+            <div class="vfm-controls-header">
+                <span class="vfm-controls-title">VFM File Status</span>
+                <button class="toggle-vfm-btn" onclick="toggleVFMDisplay()">Hide</button>
+            </div>
+            <div class="vfm-filter-buttons">
+                <button class="vfm-filter-btn active" onclick="filterVFM('all')">All</button>
+                <button class="vfm-filter-btn" onclick="filterVFM('none')">None</button>
+                <button class="vfm-filter-btn" onclick="filterVFM('bgg')">BGG Only</button>
+                <button class="vfm-filter-btn" onclick="filterVFM('spr')">SPR Only</button>
+                <button class="vfm-filter-btn" onclick="filterVFM('dte')">DTE Only</button>
+                <button class="vfm-filter-btn" onclick="filterVFM('dtw')">DTW Only</button>
+                <button class="vfm-filter-btn" onclick="filterVFM('2025')">2025 Only</button>
+                <button class="vfm-filter-btn" onclick="filterVFM('2024')">2024 Only</button>
+            </div>
         </div>
-
-        <div class="record-count" id="recordCount"></div>
-
-        <div class="controls">
-            <button class="btn btn-success" onclick="openCreateModal()" id="addBtn">+ 
-            Add New Record</button>
-            <button class="btn" onclick="loadTableData()" id="refreshBtn">🔄 Refresh</button>
-            <button class="btn" onclick="exportToCSV()" id="exportBtn">📥 Export CSV</button>
-        </div>
-
-        <div class="data-grid">
-            <table id="dataTable">
-                <thead id="tableHead"></thead>
-                <tbody id="tableBody">
- 
-                                   <tr><td class="empty-state">Select a table to view data</td></tr>
-                </tbody>
-            </table>
+        
+        <div class="progress-container" id="progressContainer"></div>
+        
+        <div id="filterBadge"></div>
+        
+        <div class="search-section">
+            <div class="search-type-buttons">
+                <button class="search-type-btn active" data-type="user" onclick="setSearchType('user')">User Search</button>
+                <button class="search-type-btn" data-type="game" onclick="setSearchType('game')">Game Search</button>
+            </div>
+            
+            <div id="userSearchSection">
+                <input 
+                    type="text" 
+                    id="userSearchInput" 
+                    class="search-input" 
+                    placeholder="Search by username..."
+                    value=""
+                >
+            </div>
+            
+            <div id="gameSearchSection" style="display: none;">
+                <input 
+                    type="text" 
+                    id="gameSearchInput" 
+                    class="search-input" 
+                    placeholder="Search by game name..."
+                >
+                <div class="search-type-buttons" style="margin-bottom: 8px;">
+                    <button class="search-type-btn active" data-match="contains" onclick="setMatchType('contains')">Contains</button>
+                    <button class="search-type-btn" data-match="exact" onclick="setMatchType('exact')">Exact Match</button>
+                    <button class="search-type-btn" data-match="starts" onclick="setMatchType('starts')">Starts With</button>
+                </div>
+            </div>
+            
+            <div class="search-buttons">
+                <button class="search-btn btn-filter" onclick="applyFilter()">Filter</button>
+                <button class="search-btn btn-clear" onclick="clearFilter()">Show All</button>
+            </div>
         </div>
     </div>
+    
+    <div id="content">
+        <div class="loading">Loading items...</div>
+    </div>
+    
+    <div id="loadingMore" class="loading-more" style="display: none;">
+        Loading more items...
+    </div>
 
-    <div id="recordModal" class="modal" onclick="closeModalOnOutsideClick(event)">
-        <div class="modal-content" onclick="event.stopPropagation()">
-          
-             <h2 id="modalTitle">Add New Record</h2>
-            <form id="recordForm" onsubmit="event.preventDefault();
-            saveRecord();"></form>
-            <div class="modal-actions">
-                <button class="btn btn-success" onclick="saveRecord()">💾 Save</button>
-                <button class="btn" onclick="closeModal()">Cancel</button>
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title" id="modalTitle"></div>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
             </div>
+            <div class="modal-body" id="modalBody"></div>
         </div>
     </div>
 
     <script>
-        const { createClient } = supabase;
+        let allItems = [];
+        let filteredItems = [];
+        let displayedItems = [];
+        let currentFilter = '';
+        let currentSearchType = 'user';
+        let currentMatchType = 'contains';
+        let thumbnailCache = {};
+        let pendingThumbnails = new Set();
+        let userCache = {};
+        let pendingUsers = new Set();
+        let fileStats = {};
+        let itemsPerPage = 50;
+        let currentPage = 0;
+        let isLoadingMore = false;
+        let vfmDisplayVisible = true;
+        let activeVFMFiles = new Set();
         
-        let supabaseClient = null;
-        let currentTable = '';
-        let editingId = null;
-        let appConfig = null;
-        let tableColumns = {};
-        let currentData = [];
-        // --- ADD THESE LINES ---
-        let currentSort = { column: 'id', ascending: false };
-        const defaultSort = { column: 'id', ascending: false };
-        let currentFilter = { column: null, value: null };
-        // --- END OF ADDED LINES ---
-
-        // Check if config is loaded
-        if (typeof CONFIG === 'undefined') {
-            document.body.innerHTML = '<div style="text-align:center;
-            padding:50px; color:white;"><h1>⚠️ Configuration Error</h1><p>App is not properly deployed. Please deploy via GitHub Actions.</p></div>';
-        } else {
-            appConfig = CONFIG;
-        }
-
-        // Passcode handling
-        const digits = [
-            document.getElementById('digit1'),
-            document.getElementById('digit2'),
-           
-             document.getElementById('digit3'),
-            document.getElementById('digit4')
+        const xmlFiles = [
+            { name: 'vfm25bgg.xml', label: 'BGG VFM 2025', geeklistId: '363504', category: 'bgg', year: '2025' },
+            { name: 'vfm24bgg.xml', label: 'BGG VFM 2024', geeklistId: '342440', category: 'bgg', year: '2024' },
+            { name: 'vfm23bgg.xml', label: 'BGG VFM 2023', geeklistId: '321725', category: 'bgg', year: '2023' },
+            { name: 'vfm22bgg.xml', label: 'BGG VFM 2022', geeklistId: '303285', category: 'bgg', year: '2022' },
+            { name: 'vfm25spr.xml', label: 'SPR VFM 2025', geeklistId: '355629', category: 'spr', year: '2025' },
+            { name: 'vfm24spr.xml', label: 'SPR VFM 2024', geeklistId: '331341', category: 'spr', year: '2024' },
+            { name: 'vfm23spr.xml', label: 'SPR VFM 2023', geeklistId: '313443', category: 'spr', year: '2023' },
+            { name: 'vfm22spr.xml', label: 'SPR VFM 2022', geeklistId: '297887', category: 'spr', year: '2022' },
+            { name: 'vfm25dte.xml', label: 'DTE VFM 2025', geeklistId: '352224', category: 'dte', year: '2025' },
+            { name: 'vfm24dte.xml', label: 'DTE VFM 2024', geeklistId: '334270', category: 'dte', year: '2024' },
+            { name: 'vfm23dte.xml', label: 'DTE VFM 2023', geeklistId: '314755', category: 'dte', year: '2023' },
+            { name: 'vfm22dte.xml', label: 'DTE VFM 2022', geeklistId: '298511', category: 'dte', year: '2022' },
+            { name: 'vfm25dtw.xml', label: 'DTW VFM 2025', geeklistId: '349103', category: 'dtw', year: '2025' },
+            { name: 'vfm24dtw.xml', label: 'DTW VFM 2024', geeklistId: '328677', category: 'dtw', year: '2024' },
+            { name: 'vfm23dtw.xml', label: 'DTW VFM 2023', geeklistId: '308714', category: 'dtw', year: '2023' },
+            { name: 'vfm22dtw.xml', label: 'DTW VFM 2022', geeklistId: '293627', category: 'dtw', year: '2022' }
         ];
-
-        digits.forEach((digit, index) => {
-            digit.addEventListener('input', (e) => {
-                if (e.target.value.length === 1 && index < 3) {
-                    digits[index + 1].focus();
-       
-                     }
-                checkPasscode();
+        
+        // Initialize with all files active
+        xmlFiles.forEach(f => activeVFMFiles.add(f.name));
+        
+        function toggleVFMDisplay() {
+            vfmDisplayVisible = !vfmDisplayVisible;
+            const container = document.getElementById('progressContainer');
+            const btn = document.querySelector('.toggle-vfm-btn');
+            
+            if (vfmDisplayVisible) {
+                container.style.display = 'block';
+                btn.textContent = 'Hide';
+            } else {
+                container.style.display = 'none';
+                btn.textContent = 'Show';
+            }
+        }
+        
+        function filterVFM(filterType) {
+            // Update button states
+            document.querySelectorAll('.vfm-filter-btn').forEach(btn => {
+                btn.classList.remove('active');
             });
-
-            digit.addEventListener('keydown', (e) => {
-                if (e.key === 'Backspace' && !e.target.value && index > 0) {
-                    digits[index - 
-                    1].focus();
-                }
+            event.target.classList.add('active');
+            
+            // Update active files
+            activeVFMFiles.clear();
+            if (filterType === 'all') {
+                xmlFiles.forEach(f => activeVFMFiles.add(f.name));
+            } else if (filterType === 'none') {
+                // No files active
+            } else if (filterType === 'bgg' || filterType === 'spr' || filterType === 'dte' || filterType === 'dtw') {
+                xmlFiles.filter(f => f.category === filterType).forEach(f => activeVFMFiles.add(f.name));
+            } else if (filterType === '2025' || filterType === '2024' || filterType === '2023' || filterType === '2022') {
+                xmlFiles.filter(f => f.year === filterType).forEach(f => activeVFMFiles.add(f.name));
+            }
+            
+            // Refilter items and refresh display
+            refilterByVFM();
+        }
+        
+        function refilterByVFM() {
+            // Filter allItems to only include items from active VFM files
+            const baseItems = allItems.filter(item => {
+                const sourceFile = item.getAttribute('source-file');
+                return activeVFMFiles.has(sourceFile);
             });
-
-            digit.addEventListener('paste', (e) => {
-                e.preventDefault();
-                const paste = e.clipboardData.getData('text');
-                if (paste.length === 4 && /^\d{4}$/.test(paste)) {
-                    paste.split('').forEach((char, i) => {
-                        if (digits[i]) digits[i].value = char;
+            
+            // If there's an active search filter, apply it to the VFM-filtered items
+            if (currentFilter) {
+                if (currentSearchType === 'user') {
+                    filteredItems = baseItems.filter(item => {
+                        const username = item.getAttribute('username')?.toLowerCase() || '';
+                        const bodyText = item.querySelector('body')?.textContent?.toLowerCase() || '';
+                        const comments = Array.from(item.querySelectorAll('comment'));
+                        const commentText = comments.map(c => c.getAttribute('username')?.toLowerCase() + ' ' + c.textContent?.toLowerCase()).join(' ');
+    
+                        return username.includes(currentFilter) || 
+                               bodyText.includes(currentFilter) || 
+                               commentText.includes(currentFilter);
                     });
-                    checkPasscode();
-                }
-            });
-        });
-        function checkPasscode() {
-            const passcode = digits.map(d => d.value).join('');
-            if (passcode.length === 4) {
-                if (passcode === appConfig.app_passcode) {
-                    sessionStorage.setItem('authenticated', 'true');
-                    document.getElementById('passcodeScreen').classList.add('hidden');
-                    document.getElementById('mainApp').classList.remove('hidden');
-                    initializeApp();
                 } else {
-                    document.getElementById('passcodeError').textContent = 'Invalid passcode.
-                    Try again.';
-                    digits.forEach(d => d.value = '');
-                    digits[0].focus();
-                }
-            }
-        }
-
-        function initializeApp() {
-            // Initialize Supabase with service key if available, otherwise use anon key
-            const apiKey = appConfig.supabase_service_key ||
-            appConfig.supabase_api_key;
-            supabaseClient = createClient(appConfig.supabase_url, apiKey);
-            
-            // Load tables into dropdown
-            const select = document.getElementById('tableSelect');
-            select.innerHTML = '<option value="">-- Choose a table --</option>';
-            
-            if (appConfig.tables && appConfig.tables.length > 0) {
-                appConfig.tables.forEach(table => {
-                    const option = document.createElement('option');
-                    option.value = table;
-                    option.textContent = table;
- 
-                                       select.appendChild(option);
-                });
-            }
-            
-            showStatus('✓ Connected successfully! ' + (appConfig.supabase_service_key ? '(Using Service Key)' : '(Using Anon Key)'), 'success');
-        }
-
-        // --- ADD THESE NEW FUNCTIONS ---
-
-        /**
-         * Handles column header clicks for sorting.
-         * Toggles between Ascending, Descending, and Default sort.
-         */
-        function onSort(column) {
-            // Don't do anything if the 'Actions' header is clicked
-            if (column === 'Actions') return;
-
-            if (currentSort.column === column) {
-                if (currentSort.ascending) {
-                    // Was ascending (A-Z), so go to descending (Z-A)
-                    currentSort.ascending = false;
-                } else {
-                    // Was descending (Z-A), so reset to default
-                    currentSort = { ...defaultSort };
+                    filteredItems = baseItems.filter(item => {
+                        const gameName = item.getAttribute('objectname')?.toLowerCase() || '';
+                        
+                        if (currentMatchType === 'exact') {
+                            return gameName === currentFilter;
+                        } else if (currentMatchType === 'starts') {
+                            return gameName.startsWith(currentFilter);
+                        } else {
+                            return gameName.includes(currentFilter);
+                        }
+                    });
                 }
             } else {
-                // New column, sort ascending (A-Z)
-                currentSort = { column: column, ascending: true };
+                // No search filter, just use VFM-filtered items
+                filteredItems = [];
             }
             
-            // Re-fetch the data from Supabase with the new sort order
-            loadTableData();
+            // Reset pagination and refresh
+            currentPage = 0;
+            displayedItems = [];
+            loadMoreItems();
         }
-
-        /**
-         * Handles cell clicks for filtering.
-         * Toggles a filter on or off for the clicked value.
-         */
-        function onFilter(column, value) {
-            // If clicking the *same* filter again, clear it
-            if (currentFilter.column === column && currentFilter.value === value) {
-                currentFilter = { column: null, value: null };
-            } else {
-                // Otherwise, set the new filter
-                currentFilter = { column, value };
-            }
-            
-            // Re-render the table with the new filter
-            // We use the existing 'currentData' array (client-side filtering)
-            displayData(currentData);
-        }
-
-        // --- END OF ADDED FUNCTIONS ---
-
-        function onTableChange() {
-            const table = document.getElementById('tableSelect').value;
-            if (table) {
-                // --- ADD THESE LINES ---
-                currentSort = { ...defaultSort };
-                currentFilter = { column: null, value: null };
-                // --- END OF ADDED LINES ---
-                loadTableData();
-            } else {
-                // --- ADD THIS LINE ---
-                currentFilter = { column: null, value: null };
-                // --- END OF ADDED LINE ---
-                document.getElementById('tableBody').innerHTML = '<tr><td class="empty-state">Select a table to view data</td></tr>';
-                document.getElementById('recordCount').textContent = '';
-            }
-        }
-
-        async function loadTableData() {
-            currentTable = document.getElementById('tableSelect').value;
-            if (!currentTable || !supabaseClient) {
-                return;
-            }
-
-            try {
-                showLoading();
-                const { data, error } = await supabaseClient
-                    .from(currentTable)
-                    .select('*')
-                    // --- MODIFY THIS LINE ---
-                    .order(currentSort.column, { ascending: currentSort.ascending });
-                    // --- END OF MODIFICATION ---
-                if (error) throw error;
-
-                currentData = data || [];
-                
-                if (data && data.length > 0) {
-                    tableColumns[currentTable] = Object.keys(data[0]);
-                }
-
-                displayData(currentData); // This will now apply filters
-                // updateRecordCount(currentData.length); // <-- This line is removed
-            } catch (error) {
-                showStatus('Error loading data: ' + error.message, 'error');
-                document.getElementById('tableBody').innerHTML = 
-                    `<tr><td colspan="100%" style="text-align:center; color: #e74c3c; padding: 40px;">Error: ${error.message}</td></tr>`;
-                document.getElementById('recordCount').textContent = '';
-            }
-        }
-
-        function showLoading() {
-            document.getElementById('tableBody').innerHTML = 
-                '<tr><td colspan="100%" class="loading">⏳ Loading data...</td></tr>';
-            document.getElementById('recordCount').textContent = '';
-        }
-
-        function updateRecordCount(totalCount, filteredCount = null) {
-            let text = `📊 Showing ${totalCount} record${totalCount !== 1 ? 's' : ''}`;
-            
-            // If a filter is active (and a different number), show "X of Y"
-            if (filteredCount !== null && filteredCount !== totalCount) {
-                text = `📊 Showing ${filteredCount} of ${totalCount} record${totalCount !== 1 ? 's' : ''} (filtered)`;
-            }
-            
-            document.getElementById('recordCount').textContent = text;
-        }
-
-        function displayData(data) {
-            const thead = document.getElementById('tableHead');
-            const tbody = document.getElementById('tableBody');
-            
-            thead.innerHTML = '';
-            tbody.innerHTML = '';
-
-            // --- ADD FILTERING LOGIC ---
-            let filteredData = data;
-            if (currentFilter.column) {
-                filteredData = data.filter(row => row[currentFilter.column] === currentFilter.value);
-            }
-            // --- END FILTERING LOGIC ---
-
-            // --- UPDATE RECORD COUNT (MOVED & MODIFIED) ---
-            updateRecordCount(data.length, filteredData.length);
-            // --- END UPDATE ---
-            
-            if (!filteredData || filteredData.length === 0) {
-                let emptyMsg = 'No data found in this table';
-                // Show a more helpful message if data is just filtered out
-                if (currentFilter.column && data.length > 0) {
-                    emptyMsg = `No data matches filter: ${currentFilter.column} = "${currentFilter.value}"`;
-                }
-                tbody.innerHTML = `<tr><td colspan="100%" class="empty-state">${emptyMsg}</td></tr>`;
-                return;
-            }
-
-            const headers = Object.keys(filteredData[0]);
-            const headerRow = document.createElement('tr');
-            
-            // --- MODIFY HEADER LOOP ---
-            headers.forEach(header => {
-                const th = document.createElement('th');
-                th.textContent = header;
-                
-                // Add click listener for sorting
-                th.style.cursor = 'pointer';
-                th.onclick = () => onSort(header);
-
-                // Add sort indicator arrow
-                if (currentSort.column === header) {
-                    th.textContent += currentSort.ascending ? ' 🔼' : ' 🔽';
-                }
-                
-                headerRow.appendChild(th);
-            });
-            // --- END MODIFICATION ---
-
-            const actionTh = document.createElement('th');
-            actionTh.textContent = 'Actions';
-            actionTh.style.width = '150px';
-            actionTh.style.cursor = 'default'; // Don't allow sorting on Actions
-            headerRow.appendChild(actionTh);
-            thead.appendChild(headerRow);
-            
-            filteredData.forEach(row => { // <-- Use filteredData
-                const tr = document.createElement('tr');
-                headers.forEach(header => {
-                    const td = document.createElement('td');
-                    const value = row[header];
-               
-                         
-                    // --- ADD FILTER CLICK & HIGHLIGHT ---
-                    // Add click listener for filtering (but not for objects/null)
-                    if (typeof value !== 'object' && value !== null) {
-                        td.style.cursor = 'pointer';
-                        td.title = `Click to filter by ${header} = "${value}"`;
-                        // Pass the raw value, not the stringified one
-                        td.onclick = (e) => {
-                            e.stopPropagation(); // Prevents other clicks
-                            onFilter(header, value);
-                        };
-                    }
-                    
-                    // Add highlight if this cell is the active filter
-                    if (currentFilter.column === header && currentFilter.value === value) {
-                        td.style.backgroundColor = '#667eea'; // Your app's theme color
-                        td.style.color = 'white';
-                        td.style.fontWeight = 'bold';
-                    }
-                    // --- END FILTER CLICK & HIGHLIGHT ---
-
-                    if (value === null) {
-                        td.textContent = 'NULL';
-                        td.style.color = '#999';
-                   
-                         td.style.fontStyle = 'italic';
-                    } else if (typeof value === 'object') {
-                        td.textContent = JSON.stringify(value);
-                        td.style.fontSize = '12px';
-              
-                     } else if (typeof value === 'boolean') {
-                        td.textContent = value ? '✓' : '✗';
-                    } else {
-                        td.textContent = value;
-         
-                         }
-                    
-                    tr.appendChild(td);
-                });
-                
-                const 
-                actionTd = document.createElement('td');
-                const rowData = JSON.stringify(row).replace(/"/g, '&quot;');
-                actionTd.innerHTML = `
-                    <div class="actions">
-                        <button class="btn btn-small" onclick='editRecord(${rowData})'>✏️ Edit</button>
-                        <button class="btn 
-                        btn-small btn-danger" onclick="deleteRecord('${row.id}')">🗑️ Delete</button>
-                    </div>
-                `;
-                tr.appendChild(actionTd);
-                tbody.appendChild(tr);
-            });
-        }
-
-        function 
-        openCreateModal() {
-            if (!currentTable) {
-                showStatus('Please select a table first', 'error');
-                return;
-            }
-            
-            editingId = null;
-          
-             document.getElementById('modalTitle').textContent = 'Add New Record';
-            createForm();
-            document.getElementById('recordModal').classList.add('active');
-        }
-
-        function editRecord(record) {
-            editingId = record.id;
-            document.getElementById('modalTitle').textContent = 'Edit Record';
-            createForm(record);
-            document.getElementById('recordModal').classList.add('active');
-        }
-
-        function createForm(data = {}) {
-            const form = document.getElementById('recordForm');
-            form.innerHTML = '';
-
-            const columns = tableColumns[currentTable] || Object.keys(data);
-            
-            columns.forEach(col => {
-                if (col === 'id' || col === 'created_at' || col === 'updated_at') return;
-                
-                const group = document.createElement('div');
-                group.className = 'form-group';
         
-                         
-                const label = document.createElement('label');
-                label.textContent = col.charAt(0).toUpperCase() + col.slice(1).replace(/_/g, ' ');
-                
-                const value = data[col];
-                
-                let input;
-                
-                if (typeof value === 'boolean' || col.includes('is_') || col.includes('has_')) {
-                    input = document.createElement('select');
-                    input.innerHTML = `
-              
-                         <option value="true" ${value === true ? 'selected' : ''}>True</option>
-                        <option value="false" ${value === false ? 'selected' : ''}>False</option>
-                    `;
-                } else if (typeof value === 'object' && value !== null) {
-   
-                                     input = document.createElement('textarea');
-                    input.value = JSON.stringify(value, null, 2);
-                } else if (col.includes('description') || col.includes('content') || col.includes('text') || col.includes('note')) {
-                    input = document.createElement('textarea');
-                    input.value = value || '';
-                } else {
-                    input = document.createElement('input');
-                    input.type = 'text';
-                    input.value = value || '';
-                }
-                
-                input.name = col;
-                group.appendChild(label);
-                group.appendChild(input);
-                form.appendChild(group);
+        function setSearchType(type) {
+            currentSearchType = type;
+            document.querySelectorAll('.search-type-btn[data-type]').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.type === type);
+            });
+            
+            if (type === 'user') {
+                document.getElementById('userSearchSection').style.display = 'block';
+                document.getElementById('gameSearchSection').style.display = 'none';
+            } else {
+                document.getElementById('userSearchSection').style.display = 'none';
+                document.getElementById('gameSearchSection').style.display = 'block';
+            }
+        }
+        
+        function setMatchType(type) {
+            currentMatchType = type;
+            document.querySelectorAll('.search-type-btn[data-match]').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.match === type);
             });
         }
-
-        async function saveRecord() {
-            const form = document.getElementById('recordForm');
-            const formData = new FormData(form);
-            const record = {};
+        
+        function formatDateTime(date) {
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const year = date.getFullYear();
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            return `${month}/${day}/${year} ${hours}:${minutes}`;
+        }
+        
+        function getTimeDifference(date) {
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMins / 60);
+            const diffDays = Math.floor(diffHours / 24);
             
-            for (let [key, value] of formData.entries()) {
-                if (value === 'true') record[key] = true;
-                else if (value === 'false') record[key] = false;
-                else if (value.startsWith('{') || value.startsWith('[')) {
+            if (diffDays > 0) {
+                return `${diffDays}d ago`;
+            } else if (diffHours > 0) {
+                return `${diffHours}h ago`;
+            } else {
+                return `${diffMins}m ago`;
+            }
+        }
+        
+        function updateProgress(fileName, status, count = 0, apirundate_timestamp = null) {
+            const progressContainer = document.getElementById('progressContainer');
+            let progressItem = document.getElementById(`progress-${fileName}`);
+            
+            if (!progressItem) {
+                progressItem = document.createElement('div');
+                progressItem.id = `progress-${fileName}`;
+                progressItem.className = 'progress-item';
+                progressContainer.appendChild(progressItem);
+            }
+            
+            const fileInfo = xmlFiles.find(f => f.name === fileName);
+            const label = fileInfo ? fileInfo.label.padEnd(16) : fileName.padEnd(16);
+            
+            let statusText = '';
+            let statusClass = '';
+            
+            if (status === 'loading') {
+                statusText = 'LOADING';
+                statusClass = 'status-loading';
+            } else if (status === 'success') {
+                statusText = 'LOADED';
+                statusClass = 'status-loaded';
+            } else if (status === 'error') {
+                statusText = 'FAILED';
+                statusClass = 'status-failed';
+            }
+            
+            const date = apirundate_timestamp || new Date();
+            const dateStr = formatDateTime(date);
+            const timeDiff = getTimeDifference(date);
+            const countStr = String(count).padStart(4);
+            
+            progressItem.innerHTML = `${label} | ${dateStr} (${timeDiff.padEnd(8)}) | <span class="${statusClass}">${statusText.padEnd(7)}</span> | ${countStr} records`;
+        }
+        
+        async function loadGeekList() {
+            try {
+                const allLoadedItems = [];
+                fileStats = {};
+                
+                const loadPromises = xmlFiles.map(async (fileInfo) => {
+                    const fileName = fileInfo.name;
+                    updateProgress(fileName, 'loading');
+                    
                     try {
-                        record[key] = JSON.parse(value);
-                    } catch {
-                        record[key] = value;
+                        const response = await fetch(fileName + '?t=' + Date.now());
+                        
+                        if (!response.ok) {
+                            throw new Error(`HTTP ${response.status}`);
+                        }
+                        
+                        const text = await response.text();
+                        
+                        if (!text || text.trim().length === 0) {
+                            throw new Error('Empty response');
+                        }
+                        
+                        const parser = new DOMParser();
+                        const xml = parser.parseFromString(text, 'text/xml');
+                        
+                        const parserError = xml.querySelector('parsererror');
+                        if (parserError) {
+                            throw new Error('XML parsing error');
+                        }
+                        
+                        const geeklist = xml.querySelector('geeklist');
+                        if (!geeklist) {
+                            throw new Error('No geeklist element');
+                        }
+                        
+                        // NEW: Prioritize the explicit <apirundate_timestamp> element.
+                        let apirundate_timestamp = null;
+
+                        const apiTimestampElement = xml.querySelector('apirundate_timestamp');
+                        if (apiTimestampElement && apiTimestampElement.textContent) {
+                            // The timestamp is in seconds (UNIX epoch). JS Date expects milliseconds.
+                            const seconds = parseInt(apiTimestampElement.textContent, 10);
+                            if (!isNaN(seconds)) {
+                                apirundate_timestamp = new Date(seconds * 1000);
+                            }
+                        }
+
+                        // Fallback logic (Optional: You can keep this to maintain backward compatibility for older files)
+                        if (!apirundate_timestamp) {
+                            // OLD: Fallback 1 - Try to get API run date from XML comment (original method)
+                            const firstComment = xml.evaluate('//comment()[contains(., "API")]', xml, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+                            if (firstComment) {
+                                const dateMatch = firstComment.textContent.match(/(\d{4}-\d{2}-\d{2}[T\s]\d{2}:\d{2})/);
+                                if (dateMatch) {
+                                    apirundate_timestamp = new Date(dateMatch[1]);
+                                }
+                            }
+                            
+                            // OLD: Fallback 2 - Try to use the geeklist postdate (original method)
+                            if (!apirundate_timestamp) {
+                                const postdate = geeklist.getAttribute('postdate');
+                                if (postdate) {
+                                    apirundate_timestamp = new Date(postdate);
+                                }
+                            }
+                        }
+                        // END Fallback logic
+                        
+                        const items = xml.querySelectorAll('item');
+                        const itemsArray = Array.from(items);
+                        
+                        itemsArray.forEach(item => {
+                            item.setAttribute('source-file', fileName);
+                            item.setAttribute('source-label', fileInfo.label);
+                            item.setAttribute('geeklist-id', fileInfo.geeklistId);
+                        });
+                        
+                        const validCount = itemsArray.filter(item => item.getAttribute('objectid') !== '340938').length;
+                        
+                        updateProgress(fileName, 'success', validCount, apirundate_timestamp);
+                        console.log(`✓ Successfully loaded ${fileName}: ${validCount} items`);
+                        
+                        return itemsArray;
+                        
+                    } catch (error) {
+                        console.error(`✗ Error loading ${fileName}:`, error.message);
+                        updateProgress(fileName, 'error');
+                        return [];
+                    }
+                });
+                
+                for (const promise of loadPromises) {
+                    const items = await promise;
+                    if (items.length > 0) {
+                        const filteredNewItems = items.filter(item => item.getAttribute('objectid') !== '340938');
+                        allLoadedItems.push(...filteredNewItems);
+                        
+                        allItems = allLoadedItems.sort((a, b) => {
+                            const dateA = new Date(a.getAttribute('postdate'));
+                            const dateB = new Date(b.getAttribute('postdate'));
+                            return dateB - dateA;
+                        });
+                        
+                        if (displayedItems.length === 0) {
+                            currentPage = 0;
+                            displayedItems = [];
+                            if (currentFilter) {
+                                applyFilter();
+                            } else {
+                                loadMoreItems();
+                            }
+                        }
                     }
                 }
-                else if (value === '') record[key] = null;
-                else record[key] = value;
-            }
-
-            try {
-                if (editingId) {
-                    const { error } = await supabaseClient
-                        .from(currentTable)
-               
-                         .update(record)
-                        .eq('id', editingId);
-                    if (error) throw error;
-                    showStatus('✓ Record updated successfully!', 'success');
-                    
-                } else {
-                    const { error } = await supabaseClient
-                        .from(currentTable)
-                        .insert([record]);
-                    if (error) throw error;
-                    showStatus('✓ Record created successfully!', 'success');
+                
+                const contentDiv = document.getElementById('content');
+                if (allLoadedItems.length === 0) {
+                    contentDiv.innerHTML = '<div class="error">No items found in any geeklist.</div>';
+                    return;
                 }
                 
-                closeModal();
-                loadTableData();
+                allItems = allLoadedItems.sort((a, b) => {
+                    const dateA = new Date(a.getAttribute('postdate'));
+                    const dateB = new Date(b.getAttribute('postdate'));
+                    return dateB - dateA;
+                });
+                
+                currentPage = 0;
+                displayedItems = [];
+                if (currentFilter) {
+                    applyFilter();
+                } else {
+                    loadMoreItems();
+                }
                 
             } catch (error) {
-                showStatus('Error saving record: ' + error.message, 'error');
+                document.getElementById('content').innerHTML = 
+                    `<div class="error">Error loading data: ${error.message}</div>`;
             }
         }
-
-        async function deleteRecord(id) {
-            if (!confirm('Are you sure you want to delete this record? This action cannot be undone.')) {
-                return;
-            }
-
-            try {
-                const { error } = await supabaseClient
-                    .from(currentTable)
-                    .delete()
-                    .eq('id', id);
-                if (error) throw error;
-                
-                showStatus('✓ Record deleted successfully!', 'success');
-                loadTableData();
-            } catch (error) {
-                showStatus('Error deleting record: ' + error.message, 'error');
-            }
-        }
-
-        function exportToCSV() {
-            if (!currentData || currentData.length === 0) {
-                showStatus('No data to export', 'error');
-                return;
-            }
-
-            const headers = Object.keys(currentData[0]);
-            const csv = [
-                headers.join(','),
-                ...currentData.map(row => 
-                    headers.map(header => {
-                        const value = row[header];
-              
-                         if (value === null) return '';
-                        if (typeof value === 'object') return `"${JSON.stringify(value).replace(/"/g, '""')}"`;
-                        return `"${String(value).replace(/"/g, '""')}"`;
-                    }).join(',')
         
-                 )
-            ].join('\n');
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${currentTable}_export_${new Date().toISOString().split('T')[0]}.csv`;
-            a.click();
-            URL.revokeObjectURL(url);
+        function loadMoreItems() {
+            if (isLoadingMore) return;
+            isLoadingMore = true;
             
-            showStatus('✓ Data exported successfully!', 'success');
-        }
-
-        function closeModal() {
-            document.getElementById('recordModal').classList.remove('active');
-        }
-
-        function closeModalOnOutsideClick(event) {
-            if (event.target.id === 'recordModal') {
-                closeModal();
+            const loadingMoreDiv = document.getElementById('loadingMore');
+            loadingMoreDiv.style.display = 'block';
+            
+            // Filter by active VFM files first
+            let baseItems = allItems.filter(item => {
+                const sourceFile = item.getAttribute('source-file');
+                return activeVFMFiles.has(sourceFile);
+            });
+            
+            const items = currentFilter ? filteredItems : baseItems;
+            
+            const startIdx = currentPage * itemsPerPage;
+            const endIdx = Math.min(startIdx + itemsPerPage, items.length);
+            
+            const itemsToAdd = items.slice(startIdx, endIdx);
+            
+            if (itemsToAdd.length === 0) {
+                loadingMoreDiv.style.display = 'none';
+                isLoadingMore = false;
+                return;
             }
-        }
-
-        function showStatus(message, type) {
-            const statusMsg = document.getElementById('statusMsg');
-            statusMsg.textContent = message;
-            statusMsg.className = 'status-msg ' + type;
+            
+            const contentDiv = document.getElementById('content');
+            if (currentPage === 0) {
+                contentDiv.innerHTML = '';
+                displayedItems = [];
+            }
+            
+            itemsToAdd.forEach((item, index) => {
+                const card = createCard(item, startIdx + index);
+                contentDiv.appendChild(card);
+                displayedItems.push(item);
+            });
+            
+            currentPage++;
+            
+            document.getElementById('totalItems').textContent = 
+                `Showing ${displayedItems.length} of ${items.length} items`;
             
             setTimeout(() => {
-                statusMsg.className = 'status-msg';
-            }, 5000);
+                loadVisibleThumbnails();
+                loadVisibleUsers();
+                loadingMoreDiv.style.display = 'none';
+                isLoadingMore = false;
+            }, 100);
+        }
+        
+        async function loadVisibleThumbnails() {
+            const cards = document.querySelectorAll('.card');
+            const objectIds = [];
+            
+            cards.forEach(card => {
+                const rect = card.getBoundingClientRect();
+                const isVisible = rect.top < window.innerHeight + 500 && rect.bottom > -500;
+                
+                if (isVisible) {
+                    const objectId = card.dataset.objectid;
+                    if (objectId && !thumbnailCache[objectId] && !pendingThumbnails.has(objectId)) {
+                        objectIds.push(objectId);
+                        pendingThumbnails.add(objectId);
+                    }
+                }
+            });
+            
+            if (objectIds.length > 0) {
+                for (let i = 0; i < objectIds.length; i += 20) {
+                    const batch = objectIds.slice(i, i + 20);
+                    fetchThumbnails(batch);
+                }
+            }
+        }
+        
+        async function fetchThumbnails(objectIds) {
+            try {
+                const idsParam = objectIds.join(',');
+                const response = await fetch(`https://boardgamegeek.com/xmlapi2/thing?id=${idsParam}&type=boardgame`);
+                const text = await response.text();
+                const parser = new DOMParser();
+                const xml = parser.parseFromString(text, 'text/xml');
+                
+                const items = xml.querySelectorAll('item');
+                items.forEach(item => {
+                    const id = item.getAttribute('id');
+                    const thumbnail = item.querySelector('thumbnail')?.textContent;
+                    if (thumbnail) {
+                        thumbnailCache[id] = thumbnail;
+                        updateThumbnail(id, thumbnail);
+                    }
+                    pendingThumbnails.delete(id);
+                });
+                
+            } catch (error) {
+                console.error('Error fetching thumbnails:', error);
+                objectIds.forEach(id => pendingThumbnails.delete(id));
+            }
+        }
+        
+        function updateThumbnail(objectId, thumbnailUrl) {
+            const imgs = document.querySelectorAll(`img[data-objectid="${objectId}"]`);
+            imgs.forEach(img => {
+                img.src = thumbnailUrl;
+            });
+        }
+        
+        async function loadVisibleUsers() {
+            const cards = document.querySelectorAll('.card');
+            const usernames = [];
+            
+            cards.forEach(card => {
+                const rect = card.getBoundingClientRect();
+                const isVisible = rect.top < window.innerHeight + 500 && rect.bottom > -500;
+                
+                if (isVisible) {
+                    const username = card.dataset.username;
+                    if (username && !userCache[username] && !pendingUsers.has(username)) {
+                        usernames.push(username);
+                        pendingUsers.add(username);
+                    }
+                }
+            });
+            
+            if (usernames.length > 0) {
+                for (const username of usernames) {
+                    fetchUserInfo(username);
+                }
+            }
+        }
+        
+        async function fetchUserInfo(username) {
+            try {
+                const response = await fetch(`https://boardgamegeek.com/xmlapi2/user?name=${username}`);
+                const text = await response.text();
+                const parser = new DOMParser();
+                const xml = parser.parseFromString(text, 'text/xml');
+                
+                const user = xml.querySelector('user');
+                if (user) {
+                    const firstname = user.querySelector('firstname')?.getAttribute('value') || '';
+                    const lastname = user.querySelector('lastname')?.getAttribute('value') || '';
+                    const stateorprovince = user.querySelector('stateorprovince')?.getAttribute('value') || '';
+                    
+                    const userInfo = {
+                        firstname,
+                        lastname,
+                        location: stateorprovince
+                    };
+                    
+                    userCache[username] = userInfo;
+                    updateUserDisplay(username, userInfo);
+                }
+                pendingUsers.delete(username);
+                
+            } catch (error) {
+                console.error(`Error fetching user info for ${username}:`, error);
+                pendingUsers.delete(username);
+            }
+        }
+        
+        function updateUserDisplay(username, userInfo) {
+            const userElements = document.querySelectorAll(`[data-username="${username}"] .user-details`);
+            userElements.forEach(el => {
+                const parts = [];
+                if (userInfo.firstname || userInfo.lastname) {
+                    parts.push(`${userInfo.firstname} ${userInfo.lastname}`.trim());
+                }
+                if (userInfo.location) {
+                    parts.push(userInfo.location);
+                }
+                if (parts.length > 0) {
+                    el.textContent = parts.join(' • ');
+                    el.style.display = 'block';
+                }
+            });
+        }
+        
+        function getTimeSincePosted(postDate) {
+            const now = new Date();
+            const posted = new Date(postDate);
+            const diffMs = now - posted;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMins / 60);
+            const diffDays = Math.floor(diffHours / 24);
+            
+            if (diffDays > 0) {
+                return `${diffDays}d ago`;
+            } else if (diffHours > 0) {
+                return `${diffHours}h ago`;
+            } else {
+                return `${diffMins}m ago`;
+            }
+        }
+        
+        function applyFilter() {
+            let searchValue = '';
+            
+            if (currentSearchType === 'user') {
+                searchValue = document.getElementById('userSearchInput').value.trim().toLowerCase();
+            } else {
+                searchValue = document.getElementById('gameSearchInput').value.trim().toLowerCase();
+            }
+            
+            if (!searchValue) {
+                clearFilter();
+                return;
+            }
+            
+            currentFilter = searchValue;
+            
+            // Filter by active VFM files first
+            let baseItems = allItems.filter(item => {
+                const sourceFile = item.getAttribute('source-file');
+                return activeVFMFiles.has(sourceFile);
+            });
+            
+            if (currentSearchType === 'user') {
+                filteredItems = baseItems.filter(item => {
+                    const username = item.getAttribute('username')?.toLowerCase() || '';
+                    const bodyText = item.querySelector('body')?.textContent?.toLowerCase() || '';
+                    const comments = Array.from(item.querySelectorAll('comment'));
+                    const commentText = comments.map(c => c.getAttribute('username')?.toLowerCase() + ' ' + c.textContent?.toLowerCase()).join(' ');
+                    
+                    return username.includes(searchValue) || 
+                           bodyText.includes(searchValue) || 
+                           commentText.includes(searchValue);
+                });
+            } else {
+                filteredItems = baseItems.filter(item => {
+                    const gameName = item.getAttribute('objectname')?.toLowerCase() || '';
+                    
+                    if (currentMatchType === 'exact') {
+                        return gameName === searchValue;
+                    } else if (currentMatchType === 'starts') {
+                        return gameName.startsWith(searchValue);
+                    } else {
+                        return gameName.includes(searchValue);
+                    }
+                });
+            }
+            
+            currentPage = 0;
+            displayedItems = [];
+            loadMoreItems();
+            
+            const filterType = currentSearchType === 'user' ? 'User' : `Game (${currentMatchType})`;
+            document.getElementById('filterBadge').innerHTML = 
+                `<div class="filter-active">Filtered by ${filterType}: ${searchValue}</div>`;
+        }
+        
+        function clearFilter() {
+            currentFilter = '';
+            document.getElementById('filterBadge').innerHTML = '';
+            document.getElementById('userSearchInput').value = '';
+            document.getElementById('gameSearchInput').value = '';
+            
+            currentPage = 0;
+            displayedItems = [];
+            loadMoreItems();
         }
 
-        // Initialize
-        if (appConfig) {
-            digits[0].focus();
+        // *** NEW FUNCTION ***
+        function quickFilter(type, value) {
+            const lowerValue = value.toLowerCase();
+
+            // Check if this exact filter is already active
+            // For games, it must also be an 'exact' match type filter
+            if (currentSearchType === type && 
+                currentFilter === lowerValue &&
+                (type === 'user' || currentMatchType === 'exact')) 
+            {
+                // It is. The user wants to clear it.
+                clearFilter();
+            } else {
+                // It's a new filter.
+                
+                // 1. Set the search type (this also updates the UI buttons)
+                setSearchType(type); 
+                
+                if (type === 'user') {
+                    // 2. Set the input value
+                    document.getElementById('userSearchInput').value = value;
+                } else {
+                    // 2. Set the input value
+                    document.getElementById('gameSearchInput').value = value;
+                    
+                    // 3. For game clicks, let's default to 'Exact Match'
+                    setMatchType('exact'); 
+                }
+                
+                // 4. Apply the filter
+                applyFilter(); 
+            }
         }
+        
+        function createCard(item, index) {
+            const card = document.createElement('div');
+            card.className = 'card';
+            
+            const itemId = item.getAttribute('id');
+            const objectId = item.getAttribute('objectid');
+            const objectName = item.getAttribute('objectname');
+            const username = item.getAttribute('username');
+            const postDate = item.getAttribute('postdate');
+            const editDate = item.getAttribute('editdate');
+            const thumbs = item.getAttribute('thumbs') || '0';
+            const sold = item.getAttribute('sold') === '1';
+            const priceAttr = item.getAttribute('price');
+            const currency = item.getAttribute('currency') || 'USD';
+            const sourceLabel = item.getAttribute('source-label') || 'Unknown';
+            const geeklistId = item.getAttribute('geeklist-id');
+            
+            card.dataset.objectid = objectId;
+            card.dataset.username = username;
+            
+            const bodyText = item.querySelector('body')?.textContent || '';
+            const comments = item.querySelectorAll('comment');
+            const commentCount = comments.length;
+            
+            const timeSince = getTimeSincePosted(postDate);
+            
+            let displayPrice = priceAttr;
+            if (!displayPrice) {
+                const priceMatch = bodyText.match(/\$(\d+(?:\.\d{2})?)/);
+                if (priceMatch) {
+                    displayPrice = priceMatch[1];
+                }
+            }
+            
+            const formattedPrice = displayPrice ?
+                `${displayPrice}${currency !== 'USD' ? ' ' + currency : ''}` : 
+                'Price not listed';
+            
+            const formattedPostDate = new Date(postDate).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            
+            const formattedEditDate = editDate ? new Date(editDate).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric'
+            }) : 'N/A';
+            
+            const thumbnailUrl = thumbnailCache[objectId] || '';
+            
+            const geeklistUrl = `https://boardgamegeek.com/geeklist/${geeklistId}?itemid=${itemId}`;
+            const gameUrl = `https://boardgamegeek.com/boardgame/${objectId}`;
+            
+            // Check if user info is cached
+            const userInfo = userCache[username];
+            let userDetailsHtml = '';
+            if (userInfo && (userInfo.firstname || userInfo.lastname || userInfo.location)) {
+                const parts = [];
+                if (userInfo.firstname || userInfo.lastname) {
+                    parts.push(`${userInfo.firstname} ${userInfo.lastname}`.trim());
+                }
+                if (userInfo.location) {
+                    parts.push(userInfo.location);
+                }
+                userDetailsHtml = `<div class="user-details">${parts.join(' • ')}</div>`;
+            } else {
+                userDetailsHtml = '<div class="user-details" style="display: none;"></div>';
+            }
+            
+            // *** MODIFIED HTML FOR card.innerHTML ***
+            card.innerHTML = `
+                <div class="card-header">
+                    <img src="${thumbnailUrl}" alt="${objectName}" class="game-thumbnail" data-objectid="${objectId}">
+                    <div class="card-info">
+                        <div class="card-top-row">
+                            <div>
+                                <div class="game-name" style="cursor: pointer;" onclick="quickFilter('game', '${objectName.replace(/'/g, "\\'")}')">${objectName}</div>
+                                <div class="username" style="cursor: pointer;" onclick="quickFilter('user', '${username.replace(/'/g, "\\'")}')">@${username}</div>
+                                ${userDetailsHtml}
+                                <div class="geeklist-badge">${sourceLabel}</div>
+                            </div>
+                            <div class="badge-group">
+                                <div class="${sold ? 'sold-badge' : 'available-badge'}">
+                                    ${sold ? 'SOLD' : 'AVAILABLE'}
+                                </div>
+                                <div class="time-since">${timeSince}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="price">${formattedPrice}</div>
+                
+                <div class="meta-info">
+                    <div class="meta-item">
+                        <span class="meta-label">Item ID:</span>
+                        <span>${itemId}</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Object ID:</span>
+                        <span>${objectId}</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Posted:</span>
+                        <span>${formattedPostDate}</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Edited:</span>
+                        <span>${formattedEditDate}</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">👍 Thumbs:</span>
+                        <span>${thumbs}</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">💬 Comments:</span>
+                        <span>${commentCount}</span>
+                    </div>
+                </div>
+                
+                <div class="button-group">
+                    <a href="${geeklistUrl}" target="_blank" class="btn btn-link">GeekListing</a>
+                    <a href="${gameUrl}" target="_blank" class="btn btn-details">Game Page</a>
+                    <button class="btn btn-details" onclick="showDetails(${index})" style="background: #ff9500;">Details</button>
+                    <button class="btn btn-comments" onclick="showComments(${index})">Comments (${commentCount})</button>
+                </div>
+            `;
+            
+            return card;
+        }
+        
+        function showDetails(index) {
+            const items = displayedItems;
+            const item = items[index];
+            const objectName = item.getAttribute('objectname');
+            const bodyText = item.querySelector('body')?.textContent || 'No details available';
+            
+            document.getElementById('modalTitle').textContent = objectName;
+            document.getElementById('modalBody').innerHTML = `<div>${formatBodyText(bodyText)}</div>`;
+            document.getElementById('modal').classList.add('active');
+        }
+        
+        function showComments(index) {
+            const items = displayedItems;
+            const item = items[index];
+            const objectName = item.getAttribute('objectname');
+            const comments = item.querySelectorAll('comment');
+            
+            document.getElementById('modalTitle').textContent = `Comments - ${objectName}`;
+            
+            if (comments.length === 0) {
+                document.getElementById('modalBody').innerHTML = '<p style="color: #6e6e73;">No comments yet.</p>';
+            } else {
+                let commentsHtml = '';
+                comments.forEach(comment => {
+                    const username = comment.getAttribute('username');
+                    const date = comment.getAttribute('date');
+                    const text = comment.textContent.trim();
+                    const formattedDate = new Date(date).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                    
+                    commentsHtml += `
+                        <div class="comment-item">
+                            <div class="comment-header">
+                                <span class="comment-user">@${username}</span>
+                                <span class="comment-date">${formattedDate}</span>
+                            </div>
+                            <div class="comment-text">${escapeHtml(text)}</div>
+                        </div>
+                    `;
+                });
+                document.getElementById('modalBody').innerHTML = commentsHtml;
+            }
+            
+            document.getElementById('modal').classList.add('active');
+        }
+        
+        function closeModal() {
+            document.getElementById('modal').classList.remove('active');
+        }
+        
+        function formatBodyText(text) {
+            let formatted = escapeHtml(text);
+            formatted = formatted.replace(/\[B\](.*?)\[\/B\]/gi, '<strong>$1</strong>');
+            formatted = formatted.replace(/\[I\](.*?)\[\/I\]/gi, '<em>$1</em>');
+            formatted = formatted.replace(/\[U\](.*?)\[\/U\]/gi, '<u>$1</u>');
+            formatted = formatted.replace(/\[-\](.*?)\[\/-\]/gi, '<del>$1</del>');
+            formatted = formatted.replace(/\[url=(.*?)\](.*?)\[\/url\]/gi, '<a href="$1" target="_blank" style="color: #0066cc;">$2</a>');
+            formatted = formatted.replace(/\n/g, '<br>');
+            return formatted;
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        function handleScroll() {
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            const scrollHeight = document.documentElement.scrollHeight;
+            const clientHeight = document.documentElement.clientHeight;
+            
+            if (scrollTop + clientHeight >= scrollHeight - 500 && !isLoadingMore) {
+                const baseItems = allItems.filter(item => {
+                    const sourceFile = item.getAttribute('source-file');
+                    return activeVFMFiles.has(sourceFile);
+                });
+                const items = currentFilter ? filteredItems : baseItems;
+                if (displayedItems.length < items.length) {
+                    loadMoreItems();
+                }
+            }
+            
+            loadVisibleThumbnails();
+            loadVisibleUsers();
+        }
+        
+        document.getElementById('modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+        
+        document.getElementById('userSearchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                applyFilter();
+            }
+        });
+        
+        document.getElementById('gameSearchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                applyFilter();
+            }
+        });
+        
+        let scrollTimeout;
+        window.addEventListener('scroll', () => {
+            if (scrollTimeout) {
+                clearTimeout(scrollTimeout);
+            }
+            scrollTimeout = setTimeout(handleScroll, 100);
+        });
+        
+        loadGeekList();
+        setInterval(loadGeekList, 5 * 60 * 1000);
     </script>
 </body>
 </html>
