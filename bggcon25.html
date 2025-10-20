@@ -28,7 +28,9 @@
         ::-webkit-scrollbar-thumb { background: var(--primary-color); border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: var(--secondary-color); }
         .game-card {
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+            /* Default subtle border for all cards for highlight consistency */
+            border: 2px solid transparent; 
         }
         .game-card:hover {
             transform: translateY(-2px); /* Smaller lift on hover */
@@ -93,12 +95,7 @@
                 </select>
 
                 <select id="sortByField" class="p-3 border-2 border-gray-300 rounded-lg transition duration-150">
-                    <option value="name">Name</option>
-                    <option value="lastUpdated">Last Update (Default)</option>
-                    <option value="checkoutCount">Popularity (Checkouts)</option>
-                    <option value="minPlayers">Min Players</option>
-                    <option value="minPlayTime">Min Play Time</option>
-                    <option value="dateCreated">Date Created</option>
+                    <!-- Options populated dynamically in setupSortOptions -->
                 </select>
 
                 <button id="sortDirectionToggle" class="p-3 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition duration-150 font-bold flex items-center justify-center">
@@ -120,7 +117,7 @@
         <div id="loading" class="text-center py-8 text-white text-lg font-semibold">
             <div class="flex justify-center items-center space-x-2">
                 <div class="loader-ring"></div>
-                <span>Loading more games...</span>
+                <span>Loading game library...</span>
             </div>
         </div>
 
@@ -154,6 +151,13 @@
         const XML_FILE = 'bggcon.xml';
         const GAMES_PER_PAGE = 20;
 
+        // --- DTP API/Fallback Configuration ---
+        // NOTE: This URL is a placeholder and may require modification to match the actual service.
+        const SPORTOMAX_API_URL = 'https://api.sportomax.com/v2/collection/games'; 
+        const FALLBACK_XML_FILE = 'private_all.xml';
+        // 3 tries with exponential backoff: 3s, 6s, 10s
+        const RETRY_DELAYS = [3000, 6000, 10000]; 
+
         // --- Global State ---
         let allGames = [];
         let filteredGames = [];
@@ -163,30 +167,31 @@
         let isLoading = false;
         let isLastPage = false;
         let sortDirection = 'desc'; // Default: Descending
-        let sortBy = 'lastUpdated'; // Default: lastUpdated (simulated)
+        let sortBy = 'dateCreated'; // NEW DEFAULT: dateCreated
 
-        // UPDATED: Added new fields (location, dateCreated) to be visible by default
+        // UPDATED: Set dateCreated and desireToPlay as new defaults. Removed lastUpdated.
         const defaultVisibleFields = {
             players: true,
             playtime: true,
             checkouts: true,
             publisher: false,
             catalogNumber: false,
-            location: true, // New Default
-            dateCreated: true, // New Default
+            location: true,
+            dateCreated: true, 
             age: false,
             gameWeight: false,
             bggRank: false,
             dateUpdated: false,
             lastCheckinDate: false,
             lastCheckoutDate: false,
+            desireToPlay: true, // NEW Default
         };
         let visibleFields = { ...defaultVisibleFields };
         
-        // UPDATED: Expanded allFields to include all practical fields from the XML snippet
+        // UPDATED: Added desireToPlay and updated lastUpdated defaultSort
         const allFields = {
             name: { label: 'Name', type: 'string', alwaysVisible: true, sortable: true },
-            lastUpdated: { label: 'Last Update (Simulated)', type: 'date', sortable: true, defaultSort: true },
+            lastUpdated: { label: 'Last Update (Simulated)', type: 'date', sortable: true, defaultSort: false }, // Removed as default sort
             isCheckedOut: { label: 'Status', type: 'boolean', alwaysVisible: true, sortable: true },
             condition: { label: 'Condition', type: 'string', sortable: true },
             minPlayers: { label: 'Min Players', type: 'number', sortable: true },
@@ -196,16 +201,19 @@
             publisher: { label: 'Publisher', type: 'string', sortable: true },
             checkoutCount: { label: 'Checkouts', type: 'number', sortable: true },
             catalogNumber: { label: 'Catalog #', type: 'string', sortable: true },
-            location: { label: 'Location Code', type: 'string', sortable: true }, // Using location tag
+            location: { label: 'Location Code', type: 'string', sortable: true },
             
             // New fields from XML
             age: { label: 'Min Age', type: 'number', sortable: true },
             gameWeight: { label: 'Weight (0-5)', type: 'number', sortable: true },
             bggRank: { label: 'BGG Rank', type: 'number', sortable: true },
-            dateCreated: { label: 'Date Created', type: 'string', sortable: true },
+            dateCreated: { label: 'Date Created', type: 'string', sortable: true, defaultSort: true }, // NEW DEFAULT SORT
             dateUpdated: { label: 'Last Updated', type: 'string', sortable: true },
             lastCheckinDate: { label: 'Last Check In', type: 'string', sortable: true },
             lastCheckoutDate: { label: 'Last Check Out', type: 'string', sortable: true },
+
+            // Desire to Play Field
+            desireToPlay: { label: 'Desire to Play Score', type: 'number', sortable: true },
         };
 
         // --- DOM Elements ---
@@ -235,7 +243,99 @@
             return element ? element.textContent.trim() : '';
         }
 
+        // --- DTP Calculation Logic ---
+
+        function calculateDTP(priority) {
+            // Formula: want to play = 5 + (inverted value of wishlistPriority 1=5, 4=2, etc else +0)
+            const BASE_SCORE = 5; 
+            if (typeof priority !== 'number' || priority < 1 || priority > 5) {
+                return BASE_SCORE; // Priority not 1-5, so bonus is 0
+            }
+            
+            // Inverted value: 1->5 (6-1), 2->4 (6-2), ..., 5->1 (6-5)
+            const invertedValue = 6 - priority; 
+            
+            return BASE_SCORE + invertedValue; // Result is 6-10
+        }
+
         // --- Data Loading and Parsing ---
+        
+        // Function to fetch and parse external DTP data from a given URL
+        async function loadDTPData(fileURL) {
+            const dtpData = {};
+            try {
+                const response = await fetch(fileURL);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status} from ${fileURL}`);
+                
+                const xmlText = await response.text();
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+
+                if (xmlDoc.getElementsByTagName('parsererror').length > 0) {
+                    throw new Error('External XML Parsing Error: Check structure.');
+                }
+
+                // Look for nodes named 'game' in the external XML/API response
+                const gameNodes = xmlDoc.getElementsByTagName('game');
+                for (let i = 0; i < gameNodes.length; i++) {
+                    const gameNode = gameNodes[i];
+                    const bggId = getTextContent(gameNode, 'bgg_id');
+                    
+                    // Assuming the external data uses 'wishlist_priority' tag
+                    const wishlistPriorityText = getTextContent(gameNode, 'wishlist_priority'); 
+                    
+                    const wishlistPriority = parseInt(wishlistPriorityText) || 0;
+                    const desireToPlay = calculateDTP(wishlistPriority);
+                    
+                    if (bggId) {
+                        dtpData[bggId] = {
+                            wishlistPriority: wishlistPriority,
+                            desireToPlay: desireToPlay
+                        };
+                    }
+                }
+            } catch (error) {
+                console.error(`Error loading DTP data from ${fileURL}:`, error);
+                throw error;
+            }
+            return dtpData;
+        }
+
+        // Function to handle API retry and fallback logic
+        async function loadDataWithRetry() {
+            let lastError = null;
+
+            // 1. Try API with Retry (3 times)
+            for (let i = 0; i < RETRY_DELAYS.length; i++) {
+                console.log(`Attempting to load Desire to Play API (Attempt ${i + 1})...`);
+                try {
+                    const dtpData = await loadDTPData(SPORTOMAX_API_URL);
+                    console.log('Successfully loaded Desire to Play data from API.');
+                    return dtpData;
+                } catch (error) {
+                    lastError = error;
+                    console.warn(`API failed on attempt ${i + 1}. Retrying in ${RETRY_DELAYS[i] / 1000}s. Error: ${error.message}`);
+                    // Wait for the defined delay, unless it's the last attempt
+                    if (i < RETRY_DELAYS.length - 1) {
+                        await new Promise(resolve => setTimeout(resolve, RETRY_DELAYS[i]));
+                    }
+                }
+            }
+
+            // 2. Fallback to Local File
+            console.log(`API failed after ${RETRY_DELAYS.length} attempts. Falling back to local file: ${FALLBACK_XML_FILE}`);
+            try {
+                const dtpData = await loadDTPData(FALLBACK_XML_FILE);
+                console.log('Successfully loaded Desire to Play data from local fallback XML.');
+                return dtpData;
+            } catch (fallbackError) {
+                console.error('Local fallback XML also failed.', fallbackError);
+                // If both fail, return an empty object.
+                showError(`Failed to load Desire to Play data. Defaulting score to 5 for all games. Last API error: ${lastError?.message || 'N/A'}, Fallback error: ${fallbackError.message}`);
+                return {};
+            }
+        }
+
 
         async function loadXML() {
             try {
@@ -280,9 +380,9 @@
                     condition: getTextContent(gameNode, 'overall_condition'),
                     catalogNumber: getTextContent(gameNode, 'catalog_number'),
                     location: getTextContent(gameNode, 'location'),
-                    lastUpdated: syntheticTimestamp, // For default sorting
-
-                    // NEW FIELDS from XML snippet:
+                    lastUpdated: syntheticTimestamp, // For sorting, but no longer default
+                    
+                    // Fields from XML snippet:
                     age: parseInt(getTextContent(gameNode, 'age')) || 0,
                     gameWeight: parseFloat(getTextContent(gameNode, 'game_weight')) || 0,
                     bggRank: parseInt(getTextContent(gameNode, 'bgg_rank')) || 0,
@@ -290,6 +390,10 @@
                     dateUpdated: getTextContent(gameNode, 'date_updated'),
                     lastCheckinDate: getTextContent(gameNode, 'last_checkin_date'),
                     lastCheckoutDate: getTextContent(gameNode, 'last_checkout_date'),
+                    
+                    // DTP fields will be merged in init(), default to 0/5
+                    wishlistPriority: 0, 
+                    desireToPlay: 5,
                 };
                 games.push(game);
             }
@@ -422,12 +526,22 @@
 
 
         function createGameCardElement(game) {
-            const card = document.createElement('div');
-            // UPDATED: Changed card class to a horizontal flex container with padding and smaller shadow/lift on hover
-            card.className = 'game-card bg-white rounded-xl shadow-lg hover:shadow-xl cursor-pointer flex flex-row p-3 space-x-3 items-start';
-            card.id = `card-${game.bggId}`;
-
             const imageUrl = gameImages[game.bggId];
+
+            // Determine highlight class based on desireToPlay score (DTP)
+            let highlightClass = '';
+            if (game.desireToPlay >= 8 && game.desireToPlay <= 10) {
+                // Green border for 8-10 (High Desire)
+                highlightClass = 'border-4 border-green-500 shadow-xl'; 
+            } else if (game.desireToPlay >= 6 && game.desireToPlay <= 7) {
+                // Yellow border for 6-7 (Medium Desire)
+                highlightClass = 'border-4 border-yellow-500 shadow-lg'; 
+            }
+            
+            const card = document.createElement('div');
+            // UPDATED: Added highlightClass to the card's main container
+            card.className = `game-card bg-white rounded-xl shadow-lg hover:shadow-xl cursor-pointer flex flex-row p-3 space-x-3 items-start ${highlightClass}`;
+            card.id = `card-${game.bggId}`;
             
             // UPDATED: Image area - fixed small size (h-28 w-28) and rounded corners
             card.innerHTML = `
@@ -445,7 +559,7 @@
                         <span class="px-2 py-0.5 rounded-full text-xs font-semibold ${game.isCheckedOut ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}">
                             ${game.isCheckedOut ? '📤 Checked Out' : '✅ Available'}
                         </span>
-                        ${game.condition ? `<span class="text-xs font-medium text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">${game.condition}</span>` : ''}
+                        ${game.condition ? `<span class="text-xs font-medium text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">${game.condition} (${game.wishlistPriority > 0 ? `P${game.wishlistPriority}` : 'N/A'})</span>` : ''}
                     </div>
                     
                     <div class="grid grid-cols-2 gap-x-2 gap-y-1 text-xs text-gray-600" id="details-${game.bggId}">
@@ -486,6 +600,11 @@
             };
 
             // Existing & New Toggable Fields in Display Order
+            
+            // Desire to Play (NEW)
+            if (visibleFields.desireToPlay) {
+                createDetailItem('❤️ Desire to Play', game.desireToPlay);
+            }
             
             // Players
             if (visibleFields.players) {
@@ -556,9 +675,12 @@
         // Re-renders only the details section of all visible cards
         function refreshVisibleCardDetails() {
             visibleGames.forEach(game => {
-                const detailsContainer = document.getElementById(`card-${game.bggId}`)?.querySelector(`#details-${game.bggId}`);
+                const card = document.getElementById(`card-${game.bggId}`);
+                const detailsContainer = card?.querySelector(`#details-${game.bggId}`);
                 if (detailsContainer) {
-                    renderDetails(detailsContainer, game);
+                    // Re-run card creation logic to update highlight class
+                    const newCard = createGameCardElement(game);
+                    card.replaceWith(newCard);
                 }
             });
         }
@@ -600,7 +722,7 @@
                 // Add event listener to update state
                 div.querySelector('input').addEventListener('change', (e) => {
                     visibleFields[key] = e.target.checked;
-                    // Immediately refresh the displayed cards without resorting/refiltering
+                    // Re-render to update the display
                     refreshVisibleCardDetails(); 
                 });
             });
@@ -638,8 +760,8 @@
 
             sortByFieldSelect.addEventListener('change', (e) => {
                 sortBy = e.target.value;
-                // If switching field, reset direction to default (DESC for lastUpdated/Date, ASC for others)
-                if (['lastUpdated', 'dateCreated', 'dateUpdated', 'lastCheckinDate', 'lastCheckoutDate'].includes(sortBy)) {
+                // If switching field, reset direction to default (DESC for dates, ASC for others)
+                if (['lastUpdated', 'dateCreated', 'dateUpdated', 'lastCheckinDate', 'lastCheckoutDate', 'desireToPlay'].includes(sortBy)) {
                     sortDirection = 'desc';
                 } else {
                     sortDirection = 'asc';
@@ -657,38 +779,57 @@
         
         // Add new sortable fields to the Select input dynamically
         function setupSortOptions() {
-            // Get all sortable fields from allFields definition, excluding already hardcoded ones
-            const existingOptions = Array.from(sortByFieldSelect.options).map(o => o.value);
+            // Clear existing options
+            sortByFieldSelect.innerHTML = '';
 
+            // Populate all sortable fields
             Object.keys(allFields).forEach(key => {
                 const field = allFields[key];
-                if (field.sortable && !existingOptions.includes(key)) {
+                if (field.sortable) {
                     const option = document.createElement('option');
                     option.value = key;
                     option.textContent = field.label;
                     sortByFieldSelect.appendChild(option);
                 }
             });
+
+            // Set the new default sort field
+            sortByFieldSelect.value = 'dateCreated';
+            sortBy = 'dateCreated'; // Update global state
         }
 
         async function init() {
             loadingIndicator.classList.remove('hidden');
             setupEventListeners();
+            setupSortOptions(); 
             setupSettingsModal();
-            setupSortOptions(); // Call this to populate new sort options
 
+            // 1. Load BGG data
             const xmlDoc = await loadXML();
             if (!xmlDoc) return;
-
             allGames = parseGames(xmlDoc);
+
+            // 2. Load DTP data with retry and fallback
+            const dtpData = await loadDataWithRetry();
+
+            // 3. Merge DTP data into allGames
+            allGames = allGames.map(game => {
+                const dtp = dtpData[game.bggId] || {};
+                return {
+                    ...game,
+                    // If DTP data is present, use it; otherwise use the default (0/5) set in parseGames
+                    wishlistPriority: dtp.wishlistPriority || game.wishlistPriority,
+                    desireToPlay: dtp.desireToPlay || game.desireToPlay 
+                };
+            });
             
             if (allGames.length === 0) {
                 showError('No games found in the XML file.');
                 return;
             }
 
-            // Set initial sort by 'lastUpdated' DESC (default behavior)
-            sortByFieldSelect.value = 'lastUpdated';
+            // Set initial sort by 'dateCreated' DESC (new default behavior)
+            // This is already set in setupSortOptions, but we ensure the icon matches
             sortDirection = 'desc';
             sortDirectionIcon.textContent = '↓';
 
