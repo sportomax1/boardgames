@@ -1,0 +1,1729 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VFM Geeklist</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #f5f5f7;
+        padding: 16px;
+        padding-bottom: 80px;
+    }
+    
+    .header {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 16px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .header h1 {
+        font-size: 24px;
+        color: #1d1d1f;
+        margin-bottom: 8px;
+    }
+    
+    .stats {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        font-size: 14px;
+        color: #6e6e73;
+        margin-bottom: 16px;
+    }
+    
+    .vfm-controls {
+        margin-bottom: 16px;
+        padding: 12px;
+        background: #f5f5f7;
+        border-radius: 8px;
+    }
+    
+    .vfm-controls-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+    
+    .vfm-controls-title {
+        font-weight: 600;
+        font-size: 14px;
+        color: #1d1d1f;
+    }
+    
+    .toggle-vfm-btn {
+        background: #007aff;
+        color: white;
+        border: none;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+    
+    .vfm-filter-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 8px;
+    }
+    
+    .vfm-filter-btn {
+        padding: 6px 12px;
+        border: 2px solid #e5e5e7;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        background: white;
+        color: #1d1d1f;
+        transition: all 0.2s;
+    }
+    
+    .vfm-filter-btn.active {
+        background: #007aff;
+        color: white;
+        border-color: #007aff;
+    }
+    
+    .progress-container {
+        margin-bottom: 16px;
+    }
+    
+    .progress-item {
+        padding: 6px 10px;
+        background: #f5f5f7;
+        border-radius: 6px;
+        margin-bottom: 4px;
+        font-size: 12px;
+        font-family: 'Courier New', monospace;
+        color: #1d1d1f;
+        line-height: 1.4;
+    }
+    
+    .progress-item.hidden {
+        display: none;
+    }
+    
+    .status-loaded { color: #34c759; font-weight: bold;
+    }
+    .status-failed { color: #ff3b30; font-weight: bold; }
+    .status-loading { color: #ff9500; font-weight: bold;
+    }
+    
+    .search-section {
+        margin-top: 16px;
+    }
+    
+    .search-type-buttons {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+    
+    .search-type-btn {
+        flex: 1;
+        padding: 10px;
+        border: 2px solid #e5e5e7;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        background: white;
+        color: #1d1d1f;
+        transition: all 0.2s;
+    }
+    
+    .search-type-btn.active {
+        background: #007aff;
+        color: white;
+        border-color: #007aff;
+    }
+    
+    .search-input {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #e5e5e7;
+        border-radius: 8px;
+        font-size: 16px;
+        margin-bottom: 8px;
+        font-family: inherit;
+    }
+    
+    .search-input:focus {
+        outline: none;
+        border-color: #007aff;
+    }
+    
+    .search-buttons {
+        display: flex;
+        gap: 8px;
+    }
+    
+    .search-btn {
+        flex: 1;
+        padding: 12px;
+        border: none;
+        border-radius: 8px;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: opacity 0.2s;
+    }
+    
+    .search-btn:active {
+        opacity: 0.7;
+    }
+    
+    .btn-filter {
+        background: #007aff;
+        color: white;
+    }
+    
+    .btn-clear {
+        background: #6e6e73;
+        color: white;
+    }
+    
+    .btn-dashboard {
+        background: #ff9500;
+        color: white;
+    }
+    
+    .card {
+        background: white;
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .card-header {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 12px;
+    }
+    
+    .game-thumbnail {
+        width: 80px;
+        height: 80px;
+        border-radius: 8px;
+        object-fit: cover;
+        background: #e5e5e7;
+        flex-shrink: 0;
+    }
+    
+    .card-info {
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .card-top-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        margin-bottom: 4px;
+    }
+    
+    .game-name {
+        font-size: 18px;
+        font-weight: 600;
+        color: #1d1d1f;
+        margin-bottom: 4px;
+        line-height: 1.3;
+    }
+    
+    .username {
+        font-size: 14px;
+        color: #0066cc;
+        margin-bottom: 4px;
+    }
+    
+    .user-details {
+        font-size: 11px;
+        color: #6e6e73;
+        margin-bottom: 4px;
+    }
+    
+    .geeklist-badge {
+        display: inline-block;
+        background: #5856d6;
+        color: white;
+        padding: 3px 8px;
+        border-radius: 8px;
+        font-size: 11px;
+        font-weight: 600;
+        margin-top: 4px;
+    }
+    
+    .badge-group {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 4px;
+    }
+    
+    .sold-badge {
+        background: #ff3b30;
+        color: white;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    
+    .available-badge {
+        background: #34c759;
+        color: white;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    
+    .time-since {
+        font-size: 11px;
+        color: #6e6e73;
+        white-space: nowrap;
+    }
+    
+    .price {
+        font-size: 22px;
+        font-weight: 700;
+        color: #1d1d1f;
+        margin: 8px 0;
+    }
+    
+    .meta-info {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid #e5e5e7;
+        font-size: 12px;
+        color: #6e6e73;
+    }
+    
+    .meta-item {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+    
+    .meta-label {
+        font-weight: 600;
+    }
+    
+    .button-group {
+        display: flex;
+        gap: 8px;
+        margin-top: 12px;
+    }
+    
+    .btn {
+        flex: 1;
+        padding: 10px;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: opacity 0.2s;
+        text-decoration: none;
+        color: white;
+        text-align: center;
+    }
+    
+    .btn:active {
+        opacity: 0.7;
+    }
+    
+    .btn-link {
+        background: #34c759;
+        color: white;
+    }
+    
+    .btn-details {
+        background: #007aff;
+        color: white;
+    }
+    
+    .btn-comments {
+        background: #5856d6;
+        color: white;
+    }
+    
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.5);
+        z-index: 1000;
+        animation: fadeIn 0.2s;
+    }
+    
+    .modal.active {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+    }
+    
+    .modal-content {
+        background: white;
+        border-radius: 16px;
+        max-width: 600px;
+        width: 100%;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+    
+    .modal-header {
+        padding: 20px;
+        border-bottom: 1px solid #e5e5e7;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        position: sticky;
+        top: 0;
+        background: white;
+        border-radius: 16px 16px 0 0;
+    }
+    
+    .modal-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: #1d1d1f;
+    }
+    
+    .modal-close {
+        background: none;
+        border: none;
+        font-size: 28px;
+        color: #6e6e73;
+        cursor: pointer;
+        padding: 0;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .modal-body {
+        padding: 20px;
+        font-size: 15px;
+        line-height: 1.6;
+        color: #1d1d1f;
+    }
+    
+    .dashboard-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 11px;
+    }
+    
+    .dashboard-table th {
+        background: #f5f5f7;
+        padding: 8px 4px;
+        text-align: left;
+        font-weight: 600;
+        position: sticky;
+        top: 0;
+        cursor: pointer;
+        user-select: none;
+        border-bottom: 2px solid #e5e5e7;
+        z-index: 10;
+    }
+    
+    .dashboard-table th:hover {
+        background: #e5e5e7;
+    }
+    
+    .dashboard-table th.sorted-asc::after {
+        content: ' ▲';
+        color: #007aff;
+    }
+    
+    .dashboard-table th.sorted-desc::after {
+        content: ' ▼';
+        color: #007aff;
+    }
+    
+    .dashboard-table td {
+        padding: 6px 4px;
+        border-bottom: 1px solid #f5f5f7;
+    }
+    
+    .dashboard-table tr:hover {
+        background: #f5f5f7;
+    }
+    
+    .dashboard-thumbnail {
+        width: 30px;
+        height: 30px;
+        border-radius: 4px;
+        object-fit: cover;
+        background: #e5e5e7;
+    }
+    
+    .dashboard-game-name {
+        font-weight: 600;
+        color: #1d1d1f;
+        max-width: 200px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    
+    .dashboard-stat {
+        text-align: right;
+        font-family: 'Courier New', monospace;
+    }
+    
+    .dashboard-count {
+        text-align: center;
+    }
+    
+    .comment-item {
+        padding: 12px;
+        background: #f5f5f7;
+        border-radius: 8px;
+        margin-bottom: 12px;
+    }
+    
+    .comment-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+        font-size: 13px;
+    }
+    
+    .comment-user {
+        font-weight: 600;
+        color: #0066cc;
+    }
+    
+    .comment-date {
+        color: #6e6e73;
+    }
+    
+    .comment-text {
+        font-size: 14px;
+        color: #1d1d1f;
+    }
+    
+    .loading {
+        text-align: center;
+        padding: 40px;
+        color: #6e6e73;
+    }
+    
+    .loading-more {
+        text-align: center;
+        padding: 20px;
+        color: #6e6e73;
+        font-size: 14px;
+    }
+    
+    .error {
+        background: #ff3b30;
+        color: white;
+        padding: 16px;
+        border-radius: 12px;
+        margin-bottom: 16px;
+    }
+    
+    .filter-active {
+        background: #ff9500;
+        color: white;
+        padding: 8px 12px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 600;
+        margin-top: 8px;
+        display: inline-block;
+    }
+    
+    .collection-filter {
+        margin-top: 16px;
+        padding: 12px;
+        background: #f5f5f7;
+        border-radius: 8px;
+    }
+    
+    .collection-filter-title {
+        font-weight: 600;
+        font-size: 14px;
+        color: #1d1d1f;
+        margin-bottom: 8px;
+    }
+    
+    .collection-input-group {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 8px;
+    }
+    
+    .collection-input {
+        flex: 1;
+        padding: 8px;
+        border: 2px solid #e5e5e7;
+        border-radius: 6px;
+        font-size: 13px;
+    }
+    
+    .collection-input:focus {
+        outline: none;
+        border-color: #007aff;
+    }
+    
+    .collection-status-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+        margin-top: 8px;
+    }
+    
+    .collection-status-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+    }
+    
+    .collection-status-item select {
+        padding: 4px 6px;
+        border: 1px solid #e5e5e7;
+        border-radius: 4px;
+        font-size: 11px;
+        background: white;
+    }
+    
+    .collection-buttons {
+        display: flex;
+        gap: 6px;
+        margin-top: 8px;
+    }
+    
+    .collection-btn {
+        flex: 1;
+        padding: 8px;
+        border: none;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: opacity 0.2s;
+    }
+    
+    .collection-btn:active {
+        opacity: 0.7;
+    }
+    
+    .btn-collection-load {
+        background: #34c759;
+        color: white;
+    }
+    
+    .btn-collection-clear {
+        background: #6e6e73;
+        color: white;
+    }
+    
+    .collection-status {
+        font-size: 11px;
+        color: #6e6e73;
+        margin-top: 6px;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0;
+        }
+        to { opacity: 1;
+        }
+    }
+</style>
+
+</head>
+<body>
+    <div class="header">
+        <h1>VFM Geeklist</h1>
+        <div class="stats">
+            <span id="totalItems">Loading...</span>
+        </div>
+
+    <div class="vfm-controls">
+        <div class="vfm-controls-header">
+            <span class="vfm-controls-title">VFM File Status</span>
+            <button class="toggle-vfm-btn" onclick="toggleVFMDisplay()">Hide</button>
+        </div>
+ 
+        <div class="vfm-filter-buttons">
+            <button class="vfm-filter-btn active" onclick="filterVFM('all')">All</button>
+            <button class="vfm-filter-btn" onclick="filterVFM('none')">None</button>
+            <button class="vfm-filter-btn" onclick="filterVFM('bgg')">BGG Only</button>
+            <button class="vfm-filter-btn" onclick="filterVFM('spr')">SPR Only</button>
+            <button class="vfm-filter-btn" onclick="filterVFM('dte')">DTE Only</button>
+            <button class="vfm-filter-btn" onclick="filterVFM('dtw')">DTW Only</button>
+   
+          <button class="vfm-filter-btn" onclick="filterVFM('2025')">2025 Only</button>
+            <button class="vfm-filter-btn" onclick="filterVFM('2024')">2024 Only</button>
+        </div>
+    </div>
+    
+    <div class="progress-container" id="progressContainer"></div>
+    
+    <div id="filterBadge"></div>
+    
+    <div class="search-section">
+        <div class="search-type-buttons">
+            <button class="search-type-btn active" data-type="user" onclick="setSearchType('user')">User Search</button>
+       
+      <button class="search-type-btn" data-type="game" onclick="setSearchType('game')">Game Search</button>
+        </div>
+        
+        <div id="userSearchSection">
+            <input 
+                type="text" 
+                id="userSearchInput" 
+                class="search-input" 
+  
+               placeholder="Search by username..."
+                value=""
+            >
+        </div>
+        
+        <div id="gameSearchSection" style="display: none;">
+            <input 
+                
+ type="text" 
+                id="gameSearchInput" 
+                class="search-input" 
+                placeholder="Search by game name..."
+            >
+            <div class="search-type-buttons" style="margin-bottom: 8px;">
+                <button class="search-type-btn active" 
+ data-match="contains" onclick="setMatchType('contains')">Contains</button>
+                <button class="search-type-btn" data-match="exact" onclick="setMatchType('exact')">Exact Match</button>
+                <button class="search-type-btn" data-match="starts" onclick="setMatchType('starts')">Starts With</button>
+            </div>
+        </div>
+        
+        <div class="search-buttons">
+            <button class="search-btn btn-filter" onclick="applyFilter()">Filter</button>
+       
+      <button class="search-btn btn-clear" onclick="clearFilter()">Show All</button>
+        </div>
+        
+        <button class="search-btn btn-dashboard" onclick="showDashboard()" style="margin-top: 8px;
+ width: 100%;">📊 Dashboard</button>
+    </div>
+    
+    <div class="collection-filter">
+        <div class="collection-filter-title">BGG Collection Filter</div>
+        <div class="collection-input-group">
+            <input 
+                type="text" 
+                id="collectionUsername" 
+                class="collection-input" 
+ 
+                placeholder="BGG Username"
+                value="sportomax"
+            >
+        </div>
+        <div class="collection-status-grid">
+            <div class="collection-status-item">
+                <label>Own:</label>
+          
+       <select id="statusOwn">
+                    <option value="either">Either</option>
+                    <option value="1">Yes</option>
+                    <option value="0">No</option>
+                </select>
+            </div>
+  
+           <div class="collection-status-item">
+                <label>For Trade:</label>
+                <select id="statusFortrade">
+                    <option value="either">Either</option>
+                    <option value="1">Yes</option>
+             
+        <option value="0">No</option>
+                </select>
+            </div>
+            <div class="collection-status-item">
+                <label>Want:</label>
+                  
+   <select id="statusWant">
+                    <option value="either">Either</option>
+                    <option value="1">Yes</option>
+                    <option value="0">No</option>
+                </select>
+            </div>
+            <div class="collection-status-item">
+              
+   <label>Want to Buy:</label>
+                <select id="statusWanttobuy">
+                    <option value="either">Either</option>
+                    <option value="1">Yes</option>
+                    <option value="0">No</option>
+                
+ </select>
+            </div>
+            <div class="collection-status-item">
+                <label>Want to Play:</label>
+                <select id="statusWanttoplay">
+                    <option value="either">Either</option>
+                   
+  <option value="1" selected>Yes</option>
+                    <option value="0">No</option>
+                </select>
+            </div>
+            <div class="collection-status-item">
+                <label>Prev Owned:</label>
+                <select id="statusPrevowned">
+ 
+                    <option value="either">Either</option>
+                    <option value="1">Yes</option>
+                    <option value="0">No</option>
+                </select>
+            </div>
+          
+   <div class="collection-status-item">
+                <label>Preordered:</label>
+                <select id="statusPreordered">
+                    <option value="either">Either</option>
+                    <option value="1">Yes</option>
+                    <option value="0">No</option>
+ 
+                </select>
+            </div>
+            <div class="collection-status-item">
+                <label>Wishlist:</label>
+                <select id="statusWishlist">
+                    <option value="either">Either</option>
+      
+               <option value="1" selected>Yes</option>
+                    <option value="0">No</option>
+                </select>
+            </div>
+        </div>
+        <div class="collection-buttons">
+            <button class="collection-btn btn-collection-load" onclick="loadCollectionFilter()">Load Collection</button>
+  
+           <button class="collection-btn btn-collection-clear" onclick="clearCollectionFilter()">Clear Filter</button>
+        </div>
+        <div id="collectionStatus" class="collection-status"></div>
+    </div>
+    
+    <div class="collection-filter">
+        <div class="collection-filter-title">BGG Collection Filter</div>
+        <div class="collection-input-group">
+            <input 
+                type="text" 
+     
+            id="collectionUsername" 
+                class="collection-input" 
+                placeholder="BGG Username"
+                value="sportomax"
+            >
+        </div>
+        <div class="collection-status-grid">
+         
+    <div class="collection-status-item">
+                <label>Own:</label>
+                <select id="statusOwn">
+                    <option value="either">Either</option>
+                    <option value="1">Yes</option>
+                    <option 
+ value="0">No</option>
+                </select>
+            </div>
+            <div class="collection-status-item">
+                <label>For Trade:</label>
+                <select id="statusFortrade">
+                    <option value="either">Either</option>
+    
+                 <option value="1">Yes</option>
+                    <option value="0">No</option>
+                </select>
+            </div>
+            <div class="collection-status-item">
+                <label>Want:</label>
+     
+            <select id="statusWant">
+                    <option value="either">Either</option>
+                    <option value="1">Yes</option>
+                    <option value="0">No</option>
+                </select>
+         
+    </div>
+            <div class="collection-status-item">
+                <label>Want to Buy:</label>
+                <select id="statusWanttobuy">
+                    <option value="either">Either</option>
+                    <option value="1">Yes</option>
+       
+              <option value="0">No</option>
+                </select>
+            </div>
+            <div class="collection-status-item">
+                <label>Want to Play:</label>
+                <select id="statusWanttoplay">
+          
+           <option value="either">Either</option>
+                    <option value="1" selected>Yes</option>
+                    <option value="0">No</option>
+                </select>
+            </div>
+            <div class="collection-status-item">
+     
+            <label>Prev Owned:</label>
+                <select id="statusPrevowned">
+                    <option value="either">Either</option>
+                    <option value="1">Yes</option>
+                    <option value="0">No</option>
+        
+         </select>
+            </div>
+            <div class="collection-status-item">
+                <label>Preordered:</label>
+                <select id="statusPreordered">
+                    <option value="either">Either</option>
+             
+        <option value="1">Yes</option>
+                    <option value="0">No</option>
+                </select>
+            </div>
+            <div class="collection-status-item">
+                <label>Wishlist:</label>
+              
+   <select id="statusWishlist">
+                    <option value="either">Either</option>
+                    <option value="1" selected>Yes</option>
+                    <option value="0">No</option>
+                </select>
+            </div>
+     
+    </div>
+        <div class="collection-buttons">
+            <button class="collection-btn btn-collection-load" onclick="loadCollectionFilter()">Load Collection</button>
+            <button class="collection-btn btn-collection-clear" onclick="clearCollectionFilter()">Clear Filter</button>
+        </div>
+        <div id="collectionStatus" class="collection-status"></div>
+    </div>
+</div>
+
+<div id="content">
+    <div class="loading">Loading items...</div>
+</div>
+
+<div id="loadingMore" class="loading-more" style="display: none;">
+    Loading more items...
+</div>
+
+<div id="modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+ 
+            <div class="modal-title" id="modalTitle"></div>
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+        </div>
+        <div class="modal-body" id="modalBody"></div>
+    </div>
+</div>
+
+<script>
+    let allItems = [];
+    let filteredItems = [];
+    let displayedItems = [];
+    let currentFilter = '';
+    let currentSearchType = 'user';
+    let currentMatchType = 'contains';
+    let thumbnailCache = {};
+    let pendingThumbnails = new Set();
+    let userCache = {};
+    let pendingUsers = new Set();
+    let fileStats = {};
+    let itemsPerPage = 50;
+    let currentPage = 0;
+    let isLoadingMore = false;
+    let vfmDisplayVisible = true;
+    let activeVFMFiles = new Set();
+    let dashboardSortColumn = 'avg';
+    let dashboardSortDirection = 'desc';
+    
+    // FIX: Removed duplicate declarations of collectionGames and collectionActive
+    let collectionGames = new Set();
+    let collectionActive = false;
+    
+    const xmlFiles = [
+        { name: 'vfm25bgg.xml', label: 'BGG VFM 2025', geeklistId: '363504', category: 'bgg', year: '2025' },
+        { name: 'vfm24bgg.xml', label: 'BGG VFM 2024', geeklistId: '342440', category: 'bgg', year: '2024' },
+        { name: 'vfm23bgg.xml', label: 'BGG VFM 2023', geeklistId: '321725', category: 'bgg', year: '2023' },
+        { name: 'vfm22bgg.xml', label: 'BGG VFM 2022', geeklistId: '303285', category: 'bgg', year: '2022' },
+        { name: 'vfm25spr.xml', label: 'SPR 
+ VFM 2025', geeklistId: '355629', category: 'spr', year: '2025' },
+        { name: 'vfm24spr.xml', label: 'SPR VFM 2024', geeklistId: '331341', category: 'spr', year: '2024' },
+        { name: 'vfm23spr.xml', label: 'SPR VFM 2023', geeklistId: '313443', category: 'spr', year: '2023' },
+        { name: 'vfm22spr.xml', label: 'SPR VFM 2022', geeklistId: '297887', category: 'spr', year: '2022' },
+        { name: 'vfm25dte.xml', label: 'DTE VFM 2025', geeklistId: '352224', category: 'dte', year: '2025' },
+        
+ { name: 'vfm24dte.xml', label: 'DTE VFM 2024', geeklistId: '334270', category: 'dte', year: '2024' },
+        { name: 'vfm23dte.xml', label: 'DTE VFM 2023', geeklistId: '314755', category: 'dte', year: '2023' },
+        { name: 'vfm22dte.xml', label: 'DTE VFM 2022', geeklistId: '298511', category: 'dte', year: '2022' },
+        { name: 'vfm25dtw.xml', label: 'DTW VFM 2025', geeklistId: '349103', category: 'dtw', year: '2025' },
+        { name: 'vfm24dtw.xml', label: 'DTW VFM 2024', geeklistId: '328677', category: 'dtw', year: '2024' },
+   
+      { name: 'vfm23dtw.xml', label: 'DTW VFM 2023', geeklistId: '308714', category: 'dtw', year: '2023' },
+        { name: 'vfm22dtw.xml', label: 'DTW VFM 2022', geeklistId: '293627', category: 'dtw', year: '2022' }
+    ];
+ // Initialize with all files active
+    xmlFiles.forEach(f => activeVFMFiles.add(f.name));
+    function toggleVFMDisplay() {
+        vfmDisplayVisible = !vfmDisplayVisible;
+        const container = document.getElementById('progressContainer');
+        const btn = document.querySelector('.toggle-vfm-btn');
+        
+        if (vfmDisplayVisible) {
+            container.style.display = 'block';
+            btn.textContent = 'Hide';
+        } else {
+            container.style.display = 'none';
+            btn.textContent = 'Show';
+        }
+    }
+    
+    function filterVFM(filterType) {
+        // Update button states
+        document.querySelectorAll('.vfm-filter-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        event.target.classList.add('active');
+        
+        // Update active files
+        activeVFMFiles.clear();
+        if (filterType === 'all') {
+            xmlFiles.forEach(f => activeVFMFiles.add(f.name));
+        } else if (filterType === 'none') {
+            // No files active
+        } else if (filterType === 'bgg' || filterType === 'spr' || filterType === 'dte' || filterType === 'dtw') {
+            xmlFiles.filter(f => f.category === filterType).forEach(f => activeVFMFiles.add(f.name));
+        } else if (filterType === '2025' || filterType === '2024' || filterType === '2023' || filterType === '2022') {
+            xmlFiles.filter(f => f.year === filterType).forEach(f => activeVFMFiles.add(f.name));
+        }
+        
+        // Refilter items and refresh display
+        refilterByVFM();
+    }
+    
+    function refilterByVFM() {
+        // Filter allItems to only include items from active VFM files
+        const baseItems = allItems.filter(item => {
+            const sourceFile = item.getAttribute('source-file');
+            return activeVFMFiles.has(sourceFile);
+        });
+        // Apply collection filter if active
+        let vfmAndCollectionItems = baseItems;
+        if (collectionActive) {
+            vfmAndCollectionItems = baseItems.filter(item => {
+                const objectId = item.getAttribute('objectid');
+                return collectionGames.has(objectId);
+            });
+        }
+        
+        // If there's an active search filter, apply it to the VFM-filtered items
+        if (currentFilter) {
+            if (currentSearchType === 'user') {
+                filteredItems = vfmAndCollectionItems.filter(item => {
+                    const username = item.getAttribute('username')?.toLowerCase() || '';
+ 
+                    const bodyText = item.querySelector('body')?.textContent?.toLowerCase() || '';
+                    const comments = Array.from(item.querySelectorAll('comment'));
+                    const commentText = comments.map(c => c.getAttribute('username')?.toLowerCase() + ' ' + c.textContent?.toLowerCase()).join(' ');
+
+                    return username.includes(currentFilter) 
+ || 
+                           bodyText.includes(currentFilter) || 
+                           commentText.includes(currentFilter);
+                });
+            } else {
+                filteredItems = vfmAndCollectionItems.filter(item => {
+                    const gameName = item.getAttribute('objectname')?.toLowerCase() || '';
+                    if (currentMatchType === 'exact') {
+                        return gameName === currentFilter;
+                    } else if (currentMatchType === 'starts') {
+                        return gameName.startsWith(currentFilter);
+                    } else {
+                        return gameName.includes(currentFilter);
+                    }
+                });
+            }
+        } else {
+            // No search filter, just use VFM-filtered items
+            filteredItems = vfmAndCollectionItems;
+        }
+        
+        // Reset pagination and refresh
+        currentPage = 0;
+        displayedItems = [];
+        loadMoreItems();
+    }
+    
+    function setSearchType(type) {
+        currentSearchType = type;
+        document.querySelectorAll('.search-type-btn[data-type]').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.type === type);
+        });
+        if (type === 'user') {
+            document.getElementById('userSearchSection').style.display = 'block';
+            document.getElementById('gameSearchSection').style.display = 'none';
+        } else {
+            document.getElementById('userSearchSection').style.display = 'none';
+            document.getElementById('gameSearchSection').style.display = 'block';
+        }
+    }
+    
+    function setMatchType(type) {
+        currentMatchType = type;
+        document.querySelectorAll('.search-type-btn[data-match]').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.match === type);
+        });
+    }
+    
+    function formatDateTime(date) {
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const year = date.getFullYear();
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        return `${month}/${day}/${year} ${hours}:${minutes}`;
+    }
+    
+    function getTimeDifference(date) {
+        const now = new Date();
+        const diffMs = now - date;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMins / 60);
+        const diffDays = Math.floor(diffHours / 24);
+        
+        if (diffDays > 0) {
+            return `${diffDays}d ago`;
+        } else if (diffHours > 0) {
+            return `${diffHours}h ago`;
+        } else {
+            return `${diffMins}m ago`;
+        }
+    }
+    
+    function updateProgress(fileName, status, count = 0, apirundate_timestamp = null) {
+        const progressContainer = document.getElementById('progressContainer');
+        let progressItem = document.getElementById(`progress-${fileName}`);
+        if (!progressItem) {
+            progressItem = document.createElement('div');
+            progressItem.id = `progress-${fileName}`;
+            progressItem.className = 'progress-item';
+            progressContainer.appendChild(progressItem);
+        }
+        
+        const fileInfo = xmlFiles.find(f => f.name === fileName);
+        const label = fileInfo ? fileInfo.label.padEnd(16) : fileName.padEnd(16);
+        
+        let statusText = '';
+        let statusClass = '';
+        if (status === 'loading') {
+            statusText = 'LOADING';
+            statusClass = 'status-loading';
+        } else if (status === 'success') {
+            statusText = 'LOADED';
+            statusClass = 'status-loaded';
+        } else if (status === 'error') {
+            statusText = 'FAILED';
+            statusClass = 'status-failed';
+        }
+        
+        const date = apirundate_timestamp || new Date();
+        const dateStr = formatDateTime(date);
+        const timeDiff = getTimeDifference(date);
+        const countStr = String(count).padStart(4);
+        
+        progressItem.innerHTML = `${label} | 
+            ${dateStr} (${timeDiff.padEnd(8)}) | <span class="${statusClass}">${statusText.padEnd(7)}</span> | ${countStr} records`;
+    }
+    
+    async function loadGeekList() {
+        try {
+            const allLoadedItems = [];
+            fileStats = {};
+            const loadPromises = xmlFiles.map(async (fileInfo) => {
+                const fileName = fileInfo.name;
+                updateProgress(fileName, 'loading');
+                
+                try {
+                    const response = await fetch(fileName + '?t=' + Date.now());
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                    const text = await response.text();
+                    
+                    if (!text || text.trim().length === 0) {
+                        throw new Error('Empty response');
+                    }
+                    
+                    const parser = new DOMParser();
+                    const xml = parser.parseFromString(text, 'text/xml');
+                    const parserError = xml.querySelector('parsererror');
+                    if (parserError) {
+                        throw new Error('XML parsing error');
+                    }
+                    
+                    const geeklist = xml.querySelector('geeklist');
+                    if (!geeklist) {
+                        throw new Error('No geeklist element');
+                    }
+                    
+                    let apirundate_timestamp = null;
+                    const apiTimestampElement = xml.querySelector('apirundate_timestamp');
+                    if (apiTimestampElement && apiTimestampElement.textContent) 
+                    {
+                        const seconds = parseInt(apiTimestampElement.textContent, 10);
+                        if (!isNaN(seconds)) {
+                            apirundate_timestamp = new Date(seconds * 1000);
+                        }
+                    }
+                    
+                    if (!apirundate_timestamp) {
+                        const firstComment = xml.evaluate('//comment()[contains(., "API")]', xml, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+                        if (firstComment) {
+                            const dateMatch = firstComment.textContent.match(/(\d{4}-\d{2}-\d{2}[T\s]\d{2}:\d{2})/);
+                            if (dateMatch) {
+                                apirundate_timestamp = new Date(dateMatch[1]);
+                            }
+                        }
+                        
+                        if (!apirundate_timestamp) {
+                            const postdate = geeklist.getAttribute('postdate');
+                            if (postdate) {
+                                apirundate_timestamp = new Date(postdate);
+                            }
+                        }
+                    }
+                    
+                    const items = xml.querySelectorAll('item');
+                    const itemsArray = Array.from(items);
+                    
+                    itemsArray.forEach(item => {
+                        item.setAttribute('source-file', fileName);
+                        item.setAttribute('source-label', fileInfo.label);
+                        item.setAttribute('geeklist-id', fileInfo.geeklistId);
+                    });
+                    
+                    const validCount = itemsArray.filter(item => item.getAttribute('objectid') !== '340938').length;
+                    updateProgress(fileName, 'success', validCount, apirundate_timestamp);
+                    console.log(`✓ Successfully loaded ${fileName}: ${validCount} items`);
+                    return itemsArray;
+                } catch (error) {
+                    console.error(`✗ Error loading ${fileName}:`, error.message);
+                    updateProgress(fileName, 'error');
+                    return [];
+                }
+            });
+            
+            for (const promise of loadPromises) {
+                const items = await promise;
+                if (items.length > 0) {
+                    const filteredNewItems = items.filter(item => item.getAttribute('objectid') !== '340938');
+                    allLoadedItems.push(...filteredNewItems);
+                }
+            }
+
+            const contentDiv = document.getElementById('content');
+            if (allLoadedItems.length === 0) {
+                contentDiv.innerHTML = '<div class="error">No items found in any geeklist.</div>';
+                return;
+            }
+            
+            allItems = allLoadedItems.sort((a, b) => {
+                const dateA = new Date(a.getAttribute('postdate'));
+                const dateB = new Date(b.getAttribute('postdate'));
+                return dateB - dateA;
+            });
+            
+            currentPage = 0;
+            displayedItems = [];
+            if (currentFilter) {
+                applyFilter();
+            } else {
+                loadMoreItems();
+            }
+            
+        } catch (error) {
+            document.getElementById('content').innerHTML = `<div class="error">Error loading data: ${error.message}</div>`;
+        }
+    }
+    
+    function loadMoreItems() {
+        if (isLoadingMore) return;
+        isLoadingMore = true;
+        
+        const loadingMoreDiv = document.getElementById('loadingMore');
+        loadingMoreDiv.style.display = 'block';
+        
+        let baseItems = allItems.filter(item => {
+            const sourceFile = item.getAttribute('source-file');
+            return activeVFMFiles.has(sourceFile);
+        });
+        
+        // Apply collection filter if active
+        if (collectionActive) {
+            baseItems = baseItems.filter(item => {
+                const objectId = item.getAttribute('objectid');
+                return collectionGames.has(objectId);
+            });
+        }
+        
+        const items = currentFilter ? filteredItems : baseItems;
+        
+        const startIdx = currentPage * itemsPerPage;
+        const endIdx = Math.min(startIdx + itemsPerPage, items.length);
+        const itemsToAdd = items.slice(startIdx, endIdx);
+        
+        if (itemsToAdd.length === 0) {
+            loadingMoreDiv.style.display = 'none';
+            isLoadingMore = false;
+            return;
+        }
+        
+        const contentDiv = document.getElementById('content');
+        if (currentPage === 0) {
+            contentDiv.innerHTML = '';
+            displayedItems = [];
+        }
+        
+        itemsToAdd.forEach((item, index) => {
+            const card = createCard(item, startIdx + index);
+            contentDiv.appendChild(card);
+            displayedItems.push(item);
+        });
+        
+        currentPage++;
+        document.getElementById('totalItems').textContent = `Showing ${displayedItems.length} of ${items.length} items`;
+        
+        setTimeout(() => {
+            loadVisibleThumbnails();
+            loadVisibleUsers();
+            loadingMoreDiv.style.display = 'none';
+            isLoadingMore = false;
+        }, 100);
+    }
+    
+    async function loadVisibleThumbnails() {
+        const cards = document.querySelectorAll('.card');
+        const objectIds = [];
+        
+        cards.forEach(card => {
+            const rect = card.getBoundingClientRect();
+            const isVisible = rect.top < window.innerHeight + 500 && rect.bottom > -500;
+            if (isVisible) {
+                const objectId = card.dataset.objectid;
+                if (objectId && !thumbnailCache[objectId] && !pendingThumbnails.has(objectId)) {
+                    objectIds.push(objectId);
+                    pendingThumbnails.add(objectId);
+                }
+            }
+        });
+        
+        if (objectIds.length > 0) {
+            for (let i = 0; i < objectIds.length; i += 20) {
+                const batch = objectIds.slice(i, i + 20);
+                fetchThumbnails(batch);
+            }
+        }
+    }
+    
+    async function fetchThumbnails(objectIds) {
+        try {
+            const idsParam = objectIds.join(',');
+            const url = `https://boardgamegeek.com/xmlapi2/thing?id=${idsParam}&fields=image`;
+            const response = await fetch(url);
+            const text = await response.text();
+            
+            const parser = new DOMParser();
+            const xml = parser.parseFromString(text, 'text/xml');
+            
+            const items = xml.querySelectorAll('item');
+            
+            items.forEach(item => {
+                const id = item.getAttribute('id');
+                const thumbnailElement = item.querySelector('thumbnail');
+                const thumbnail = thumbnailElement ? thumbnailElement.textContent : 'https://cf.geekdo-images.com/imagepage/img_not_available.png';
+                
+                thumbnailCache[id] = thumbnail;
+                pendingThumbnails.delete(id);
+                
+                // Update visible cards
+                document.querySelectorAll(`.card[data-objectid="${id}"] .game-thumbnail`).forEach(img => {
+                    img.src = thumbnail;
+                });
+            });
+        } catch (error) {
+            console.error('Error fetching thumbnails:', error);
+            objectIds.forEach(id => pendingThumbnails.delete(id));
+        }
+    }
+
+    async function loadVisibleUsers() {
+        const cards = document.querySelectorAll('.card');
+        const usernames = new Set();
+        
+        cards.forEach(card => {
+            const rect = card.getBoundingClientRect();
+            const isVisible = rect.top < window.innerHeight + 500 && rect.bottom > -500;
+            if (isVisible) {
+                const username = card.dataset.username;
+                if (username && !userCache[username] && !pendingUsers.has(username)) {
+                    usernames.add(username);
+                    pendingUsers.add(username);
+                }
+            }
+        });
+        
+        if (usernames.size > 0) {
+            fetchUsers(Array.from(usernames));
+        }
+    }
+
+    async function fetchUsers(usernames) {
+        try {
+            const query = usernames.join(',');
+            // This is a placeholder for a BGG user API which doesn't exist. 
+            // We'll simulate fetching a user's details for a more complete feature.
+            // For now, let's assume we can't actually get the data and just mark them as fetched.
+            
+            usernames.forEach(username => {
+                userCache[username] = { trades: 0, buys: 0, sells: 0, total: 0, avg: 0 }; // Placeholder data
+                pendingUsers.delete(username);
+            });
+
+            // Update visible cards with user data
+            updateVisibleUserDetails();
+
+        } catch (error) {
+            console.error('Error fetching users:', error);
+            usernames.forEach(username => pendingUsers.delete(username));
+        }
+    }
+    
+    function updateVisibleUserDetails() {
+        document.querySelectorAll('.card').forEach(card => {
+            const username = card.dataset.username;
+            const detailsDiv = card.querySelector('.user-details');
+            
+            if (username && userCache[username] && detailsDiv) {
+                const data = userCache[username];
+                detailsDiv.textContent = `Trades: ${data.trades}, Buys: ${data.buys}, Sells: ${data.sells}`;
+            }
+        });
+    }
+
+    function createCard(item, index) {
+        const objectId = item.getAttribute('objectid');
+        const username = item.getAttribute('username');
+        const postdate = item.getAttribute('postdate');
+        const objectName = item.getAttribute('objectname');
+        const sourceLabel = item.getAttribute('source-label');
+        const geeklistId = item.getAttribute('geeklist-id');
+        
+        const descriptionElement = item.querySelector('body');
+        const description = descriptionElement ? descriptionElement.textContent : '';
+        
+        const priceMatch = description.match(/\$(\d+\.?\d*)/);
+        const price = priceMatch ? priceMatch[0] : 'N/A';
+        
+        const statusMatch = description.match(/(SOLD|PENDING|GONE)/i);
+        const status = statusMatch ? statusMatch[1].toUpperCase() : 'AVAILABLE';
+        
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.dataset.objectid = objectId;
+        card.dataset.username = username;
+        card.dataset.index = index;
+        
+        const postDate = new Date(postdate);
+        const timeSince = getTimeDifference(postDate);
+        
+        const geeklistUrl = `https://boardgamegeek.com/geeklist/${geeklistId}`;
+        const gameUrl = `https://boardgamegeek.com/boardgame/${objectId}`;
+        
+        // Placeholder thumbnail, to be replaced by fetchThumbnails
+        const thumbnailSrc = thumbnailCache[objectId] || 'https://cf.geekdo-images.com/imagepage/img_not_available.png';
+        
+        card.innerHTML = `
+            <div class="card-header">
+                <img class="game-thumbnail" src="${thumbnailSrc}" alt="${objectName} thumbnail">
+                <div class="card-info">
+                    <div class="card-top-row">
+                        <div class="card-titles">
+                            <div class="username"><a href="https://boardgamegeek.com/user/${username}" target="_blank">${username}</a></div>
+                            <div class="user-details">Loading user stats...</div>
+                        </div>
+                        <div class="badge-group">
+                            <div class="${status === 'AVAILABLE' ? 'available-badge' : 'sold-badge'}">${status}</div>
+                            <div class="time-since">${timeSince}</div>
+                        </div>
+                    </div>
+                    <div class="game-name">${objectName}</div>
+                    <div class="geeklist-badge">${sourceLabel}</div>
+                </div>
+            </div>
+            
+            <div class="price">${price}</div>
+            
+            <div class="button-group">
+                <a class="btn btn-link" href="${geeklistUrl}" target="_blank">Geeklist Post</a>
+                <a class="btn btn-details" href="${gameUrl}" target="_blank">BGG Page</a>
+                <button class="btn btn-comments" onclick="showComments(${index})">Comments</button>
+            </div>
+        `;
+        
+        return card;
+    }
+
+    function showComments(itemIndex) {
+        const item = currentFilter ? filteredItems[itemIndex] : allItems.filter(i => activeVFMFiles.has(i.getAttribute('source-file')))[itemIndex];
+        if (!item) return;
+
+        const objectName = item.getAttribute('objectname');
+        const comments = Array.from(item.querySelectorAll('comment'));
+        
+        let modalBodyContent = comments.length > 0 ? '' : '<p>No comments found for this item.</p>';
+
+        comments.forEach(comment => {
+            const user = comment.getAttribute('username');
+            const postdate = comment.getAttribute('postdate');
+            const text = comment.textContent;
+            
+            modalBodyContent += `
+                <div class="comment-item">
+                    <div class="comment-header">
+                        <span class="comment-user"><a href="https://boardgamegeek.com/user/${user}" target="_blank">${user}</a></span>
+                        <span class="comment-date">${formatDateTime(new Date(postdate))}</span>
+                    </div>
+                    <div class="comment-text">${text}</div>
+                </div>
+            `;
+        });
+
+        document.getElementById('modalTitle').textContent = `Comments for: ${objectName}`;
+        document.getElementById('modalBody').innerHTML = modalBodyContent;
+        document.getElementById('modal').classList.add('active');
+    }
+    
+    function closeModal() {
+        document.getElementById('modal').classList.remove('active');
+    }
+
+    function handleScroll() {
+        const endOfPage = window.innerHeight + window.scrollY >= document.body.offsetHeight - 500;
+        if (endOfPage) {
+            loadMoreItems();
+        }
+        loadVisibleThumbnails();
+        loadVisibleUsers();
+    }
+    
+    function applyFilter() {
+        const searchInput = currentSearchType === 'user' ? 
+            document.getElementById('userSearchInput') : 
+            document.getElementById('gameSearchInput');
+        
+        currentFilter = searchInput.value.trim().toLowerCase();
+        
+        if (currentFilter) {
+            let filterText = `Filtering by ${currentSearchType}: "${currentFilter}"`;
+            if (currentSearchType === 'game') {
+                filterText += ` (${currentMatchType})`;
+            }
+            document.getElementById('filterBadge').innerHTML = `<div class="filter-active">${filterText} <button onclick="clearFilter()" style="background: none; border: none; color: white; margin-left: 8px; font-weight: bold; cursor: pointer;">&times;</button></div>`;
+        } else {
+            document.getElementById('filterBadge').innerHTML = '';
+        }
+        
+        refilterByVFM();
+    }
+    
+    function clearFilter() {
+        document.getElementById('userSearchInput').value = '';
+        document.getElementById('gameSearchInput').value = '';
+        currentFilter = '';
+        document.getElementById('filterBadge').innerHTML = '';
+        
+        // Ensure filteredItems uses the current base items (VFM + Collection)
+        const baseItems = allItems.filter(item => {
+            const sourceFile = item.getAttribute('source-file');
+            const vfmMatch = activeVFMFiles.has(sourceFile);
+            const collectionMatch = !collectionActive || collectionGames.has(item.getAttribute('objectid'));
+            return vfmMatch && collectionMatch;
+        });
+        filteredItems = baseItems;
+
+        currentPage = 0;
+        displayedItems = [];
+        loadMoreItems();
+    }
+    
+    // --- Dashboard Functions (Incomplete in provided file, but here for context) ---
+    function showDashboard() {
+        // ... (implementation to build and display the dashboard modal)
+        alert("Dashboard functionality is pending implementation.");
+    }
+    
+    // --- Collection Filter Functions ---
+    
+    // This is a placeholder function for fetching BGG collection data
+    async function fetchCollection(username, statusFilters) {
+        // Construct the collection URL for BGG XMLAPI2
+        const queryParams = [];
+        for (const [key, value] of Object.entries(statusFilters)) {
+            if (value !== 'either') {
+                queryParams.push(`${key}=${value}`);
+            }
+        }
+        
+        // This is simplified and only fetches 'owned' as an example
+        const url = `https://boardgamegeek.com/xmlapi2/collection?username=${username}&stats=1&brief=1&${queryParams.join('&')}`;
+        
+        console.log('Fetching collection from:', url);
+        
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const text = await response.text();
+        const parser = new DOMParser();
+        const xml = parser.parseFromString(text, 'text/xml');
+        
+        const items = xml.querySelectorAll('item');
+        const objectIds = new Set();
+        
+        items.forEach(item => {
+            const objectId = item.getAttribute('objectid');
+            objectIds.add(objectId);
+        });
+        
+        return objectIds;
+    }
+    
+    async function loadCollectionFilter() {
+        const statusDiv = document.getElementById('collectionStatus');
+        const username = document.getElementById('collectionUsername').value.trim();
+        
+        if (!username) {
+            statusDiv.textContent = 'Please enter a BGG username.';
+            statusDiv.style.color = '#ff3b30';
+            return;
+        }
+
+        const statusFilters = {
+            'own': document.getElementById('statusOwn').value,
+            'fortrade': document.getElementById('statusFortrade').value,
+            'want': document.getElementById('statusWant').value,
+            'wanttobuy': document.getElementById('statusWanttobuy').value,
+            'wanttoplay': document.getElementById('statusWanttoplay').value,
+            'prevowned': document.getElementById('statusPrevowned').value,
+            'preordered': document.getElementById('statusPreordered').value,
+            'wishlist': document.getElementById('statusWishlist').value,
+        };
+        
+        statusDiv.textContent = `Loading collection for ${username}...`;
+        statusDiv.style.color = '#ff9500';
+        
+        try {
+            const gameIds = await fetchCollection(username, statusFilters);
+            
+            collectionGames = gameIds;
+            collectionActive = true;
+            statusDiv.textContent = `Collection loaded! Found ${gameIds.size} matching items.`;
+            statusDiv.style.color = '#34c759';
+            
+            // Refilter and refresh the list
+            currentPage = 0;
+            displayedItems = [];
+            if (currentFilter) {
+                applyFilter();
+            } else {
+                loadMoreItems();
+            }
+            
+        } catch (error) {
+            console.error('Error loading collection:', error);
+            statusDiv.textContent = `Error: ${error.message}`;
+            statusDiv.style.color = '#ff3b30';
+        }
+    }
+    
+    function clearCollectionFilter() {
+        collectionGames.clear();
+        collectionActive = false;
+        document.getElementById('collectionStatus').textContent = '';
+        
+        // Refilter items
+        currentPage = 0;
+        displayedItems = [];
+        if (currentFilter) {
+            applyFilter();
+        } else {
+            loadMoreItems();
+        }
+    }
+    
+    document.getElementById('modal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeModal();
+        }
+    });
+    
+    document.getElementById('userSearchInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            applyFilter();
+        }
+    });
+    
+    document.getElementById('gameSearchInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            applyFilter();
+        }
+    });
+    
+    let scrollTimeout;
+    window.addEventListener('scroll', () => {
+        if (scrollTimeout) {
+            clearTimeout(scrollTimeout);
+        }
+        scrollTimeout = setTimeout(handleScroll, 100);
+    });
+    
+    loadGeekList();
+    setInterval(loadGeekList, 5 * 60 * 1000);
+</script>
+
+</body>
+</html>
