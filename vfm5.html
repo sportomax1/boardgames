@@ -832,103 +832,6 @@
         </div>
         <div id="collectionStatus" class="collection-status"></div>
     </div>
-    
-    <div class="collection-filter">
-        <div class="collection-filter-title">BGG Collection Filter</div>
-        <div class="collection-input-group">
-            <input 
-                type="text" 
-     
-            id="collectionUsername" 
-                class="collection-input" 
-                placeholder="BGG Username"
-                value="sportomax"
-            >
-        </div>
-        <div class="collection-status-grid">
-         
-    <div class="collection-status-item">
-                <label>Own:</label>
-                <select id="statusOwn">
-                    <option value="either">Either</option>
-                    <option value="1">Yes</option>
-                    <option 
- value="0">No</option>
-                </select>
-            </div>
-            <div class="collection-status-item">
-                <label>For Trade:</label>
-                <select id="statusFortrade">
-                    <option value="either">Either</option>
-    
-                 <option value="1">Yes</option>
-                    <option value="0">No</option>
-                </select>
-            </div>
-            <div class="collection-status-item">
-                <label>Want:</label>
-     
-            <select id="statusWant">
-                    <option value="either">Either</option>
-                    <option value="1">Yes</option>
-                    <option value="0">No</option>
-                </select>
-         
-    </div>
-            <div class="collection-status-item">
-                <label>Want to Buy:</label>
-                <select id="statusWanttobuy">
-                    <option value="either">Either</option>
-                    <option value="1">Yes</option>
-       
-              <option value="0">No</option>
-                </select>
-            </div>
-            <div class="collection-status-item">
-                <label>Want to Play:</label>
-                <select id="statusWanttoplay">
-          
-           <option value="either">Either</option>
-                    <option value="1" selected>Yes</option>
-                    <option value="0">No</option>
-                </select>
-            </div>
-            <div class="collection-status-item">
-     
-            <label>Prev Owned:</label>
-                <select id="statusPrevowned">
-                    <option value="either">Either</option>
-                    <option value="1">Yes</option>
-                    <option value="0">No</option>
-        
-         </select>
-            </div>
-            <div class="collection-status-item">
-                <label>Preordered:</label>
-                <select id="statusPreordered">
-                    <option value="either">Either</option>
-             
-        <option value="1">Yes</option>
-                    <option value="0">No</option>
-                </select>
-            </div>
-            <div class="collection-status-item">
-                <label>Wishlist:</label>
-              
-   <select id="statusWishlist">
-                    <option value="either">Either</option>
-                    <option value="1" selected>Yes</option>
-                    <option value="0">No</option>
-                </select>
-            </div>
-     
-    </div>
-        <div class="collection-buttons">
-            <button class="collection-btn btn-collection-load" onclick="loadCollectionFilter()">Load Collection</button>
-            <button class="collection-btn btn-collection-clear" onclick="clearCollectionFilter()">Clear Filter</button>
-        </div>
-        <div id="collectionStatus" class="collection-status"></div>
-    </div>
 </div>
 
 <div id="content">
@@ -970,7 +873,7 @@
     let dashboardSortColumn = 'avg';
     let dashboardSortDirection = 'desc';
     
-    // FIX: Removed duplicate declarations of collectionGames and collectionActive
+    // FIX: Variables for the collection filter, now correctly declared once.
     let collectionGames = new Set();
     let collectionActive = false;
     
@@ -1042,7 +945,8 @@
         });
         // Apply collection filter if active
         let vfmAndCollectionItems = baseItems;
-        if (collectionActive) {
+        // The check for collectionActive ensures this filter is OPTIONAL
+        if (collectionActive) { 
             vfmAndCollectionItems = baseItems.filter(item => {
                 const objectId = item.getAttribute('objectid');
                 return collectionGames.has(objectId);
