@@ -1318,115 +1318,120 @@
             }
         }
         
-        function createCard(item, index) {
-            const card = document.createElement('div');
-            card.className = 'card';
-            
-            const itemId = item.getAttribute('id');
-            const objectId = item.getAttribute('objectid');
-            const objectName = item.getAttribute('objectname');
-            const username = item.getAttribute('username');
-            const postDate = item.getAttribute('postdate');
-            const editDate = item.getAttribute('editdate');
-            const thumbs = item.getAttribute('thumbs') || '0';
-            const sold = item.getAttribute('sold') === '1';
-            const priceAttr = item.getAttribute('price');
-            const currency = item.getAttribute('currency') || 'USD';
-            const sourceLabel = item.getAttribute('source-label') || 'Unknown';
-            const geeklistId = item.getAttribute('geeklist-id');
-            
-            card.dataset.objectid = objectId;
-            card.dataset.username = username;
-            
-            const bodyText = item.querySelector('body')?.textContent || '';
-            const comments = item.querySelectorAll('comment');
-            const commentCount = comments.length;
-            
-            const timeSince = getTimeSincePosted(postDate);
-            
-            let displayPrice = priceAttr;
-            if (!displayPrice) {
-                const priceMatch = bodyText.match(/\$(\d+(?:\.\d{2})?)/);
-                if (priceMatch) {
-                    displayPrice = priceMatch[1];
-                }
-            }
-            
-            const formattedPrice = displayPrice ?
-                `${displayPrice}${currency !== 'USD' ? ' ' + currency : ''}` : 
-                'Price not listed';
-            
-            const formattedPostDate = new Date(postDate).toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-            
-            const formattedEditDate = editDate ? new Date(editDate).toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric'
-            }) : 'N/A';
-            
-            const thumbnailUrl = thumbnailCache[objectId] || '';
-            
-            const geeklistUrl = `https://boardgamegeek.com/geeklist/${geeklistId}?itemid=${itemId}`;
-            const gameUrl = `https://boardgamegeek.com/boardgame/${objectId}`;
-            
-            const userInfo = userCache[username];
-            let userDetailsHtml = '';
-            if (userInfo && (userInfo.firstname || userInfo.lastname || userInfo.location)) {
-                const parts = [];
-                if (userInfo.firstname || userInfo.lastname) {
-                    parts.push(`${userInfo.firstname} ${userInfo.lastname}`.trim());
-                }
-                if (userInfo.location) {
-                    parts.push(userInfo.location);
-                }
-                userDetailsHtml = `<div class="user-details">${parts.join(' • ')}</div>`;
-            } else {
-                userDetailsHtml = '<div class="user-details" style="display: none;"></div>';
-            }
-            
-            card.innerHTML = `
-                <div class="card-header">
-                    <img src="${thumbnailUrl}" alt="${objectName}" class="game-thumbnail" data-objectid="${objectId}">
-                    <div class="card-info">
-                        <div class="card-top-row">
-                            <div>
-                                <div class="game-name" style="cursor: pointer;" onclick="quickFilter('game', '${objectName.replace(/'/g, "\\'")}')">${objectName}</div>
-                                <div class="username" style="cursor: pointer;" onclick="quickFilter('user', '${username.replace(/'/g, "\\'")}')">@${username}</div>
-                                ${userDetailsHtml}
-                                <div class="geeklist-badge">${sourceLabel}</div>
-                            </div>
-                            <div class="badge-group">
-                                <div class="${sold ? 'sold-badge' : 'available-badge'}">
-                                    ${sold ? 'SOLD' : 'AVAILABLE'}
-                                </div>
-                                <div class="time-since">${timeSince}</div>
-                                <div class="card-stats">
-                                    <span class="card-stat">👍 ${thumbs}</span>
-                                    <span class="card-stat">💬 ${commentCount}</span>
-                                </div>
-                            </div>
+      function createCard(item, index) {
+    const card = document.createElement('div');
+    card.className = 'card';
+    
+    const itemId = item.getAttribute('id');
+    const objectId = item.getAttribute('objectid');
+    const objectName = item.getAttribute('objectname');
+    const username = item.getAttribute('username');
+    const postDate = item.getAttribute('postdate');
+    const editDate = item.getAttribute('editdate');
+    const thumbs = item.getAttribute('thumbs') || '0';
+    const sold = item.getAttribute('sold') === '1';
+    const priceAttr = item.getAttribute('price');
+    const currency = item.getAttribute('currency') || 'USD';
+    const sourceLabel = item.getAttribute('source-label') || 'Unknown';
+    const geeklistId = item.getAttribute('geeklist-id');
+    
+    card.dataset.objectid = objectId;
+    card.dataset.username = username;
+    
+    const bodyText = item.querySelector('body')?.textContent || '';
+    const comments = item.querySelectorAll('comment');
+    const commentCount = comments.length;
+    
+    const timeSince = getTimeSincePosted(postDate);
+    
+    let displayPrice = priceAttr;
+    if (!displayPrice) {
+        const priceMatch = bodyText.match(/\$(\d+(?:\.\d{2})?)/);
+        if (priceMatch) {
+            displayPrice = priceMatch[1];
+        }
+    }
+    
+    // Ensure price tag is displayed. Using '$' symbol for display.
+    const formattedPrice = displayPrice ?
+        `$${displayPrice}${currency !== 'USD' ? ' ' + currency : ''}` : 
+        'Price not listed';
+    
+    const formattedPostDate = new Date(postDate).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+    
+    const formattedEditDate = editDate ? new Date(editDate).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+    }) : 'N/A';
+    
+    const thumbnailUrl = thumbnailCache[objectId] || '';
+    
+    const geeklistUrl = `https://boardgamegeek.com/geeklist/${geeklistId}?itemid=${itemId}`;
+    const gameUrl = `https://boardgamegeek.com/boardgame/${objectId}`;
+    
+    const userInfo = userCache[username];
+    let userDetailsHtml = '';
+    if (userInfo && (userInfo.firstname || userInfo.lastname || userInfo.location)) {
+        const parts = [];
+        if (userInfo.firstname || userInfo.lastname) {
+            parts.push(`${userInfo.firstname} ${userInfo.lastname}`.trim());
+        }
+        if (userInfo.location) {
+            parts.push(userInfo.location);
+        }
+        userDetailsHtml = `<div class="user-details">${parts.join(' • ')}</div>`;
+    } else {
+        userDetailsHtml = '<div class="user-details" style="display: none;"></div>';
+    }
+    
+    // --- START: MODIFIED HTML STRUCTURE ---
+    card.innerHTML = `
+        <div class="card-header">
+            <img src="${thumbnailUrl}" alt="${objectName}" class="game-thumbnail" data-objectid="${objectId}">
+            <div class="card-info">
+                <div class="card-top-row">
+                    <div>
+                        <div class="game-name" style="cursor: pointer;" onclick="quickFilter('game', '${objectName.replace(/'/g, "\\'")}')">${objectName}</div>
+                        <div class="username" style="cursor: pointer;" onclick="quickFilter('user', '${username.replace(/'/g, "\\'")}')">@${username}</div>
+                        ${userDetailsHtml}
+                        <div class="geeklist-badge">${sourceLabel}</div>
+                    </div>
+                    <div class="badge-group">
+                        <div class="${sold ? 'sold-badge' : 'available-badge'}">
+                            ${sold ? 'SOLD' : 'AVAILABLE'}
+                        </div>
+                        <div class="time-since">${timeSince}</div>
+                        <div class="card-stats">
+                            <span class="card-stat">👍 ${thumbs}</span>
+                            <span class="card-stat">💬 ${commentCount}</span>
                         </div>
                     </div>
                 </div>
-                
-                <div class="price">${formattedPrice}</div>
-                
-                <div class="button-group">
-                    <a href="${geeklistUrl}" target="_blank" class="btn btn-link">GeekListing</a>
-                    <a href="${gameUrl}" target="_blank" class="btn btn-details">Game Page</a>
-                    <button class="btn btn-details" onclick="showDetails(${index})" style="background: #ff9500;">Details</button>
-                    <button class="btn btn-comments" onclick="showComments(${index})">Comments (${commentCount})</button>
-                </div>
-            `;
+            </div>
+        </div>
+        
+        <div class="price-row">
+            <div class="price">${formattedPrice}</div>
             
-            return card;
-        }
+            <div class="button-group" style="margin-top: 0; flex-shrink: 0; flex-wrap: wrap;">
+                <a href="${geeklistUrl}" target="_blank" class="btn btn-link" style="padding: 8px; font-size: 11px; flex: auto;">Listing</a>
+                <a href="${gameUrl}" target="_blank" class="btn btn-details" style="padding: 8px; font-size: 11px; flex: auto;">Game</a>
+                <button class="btn btn-details" onclick="showDetails(${index})" style="background: #ff9500; padding: 8px; font-size: 11px; flex: auto;">Details</button>
+                <button class="btn btn-comments" onclick="showComments(${index})" style="padding: 8px; font-size: 11px; flex: auto;">Comments (${commentCount})</button>
+            </div>
+        </div>
+    `;
+    // --- END: MODIFIED HTML STRUCTURE ---
+    
+    return card;
+}
         
         function showDetails(index) {
             const items = displayedItems;
