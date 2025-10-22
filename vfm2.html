@@ -1144,6 +1144,47 @@
                 return `${diffMins}m ago`;
             }
         }
+
+
+        function calculateGameStats(objectId, sourceFile) {
+    // Only look at items from the SAME geeklist
+    const gameListings = allItems.filter(item => 
+        item.getAttribute('objectid') === objectId && 
+        item.getAttribute('source-file') === sourceFile
+    );
+    
+    if (gameListings.length === 0) return null;
+    
+    const prices = [];
+    gameListings.forEach(item => {
+        const priceAttr = item.getAttribute('price');
+        const bodyText = item.querySelector('body')?.textContent || '';
+        
+        let price = null;
+        if (priceAttr) {
+            price = parseFloat(priceAttr);
+        } else {
+            const priceMatch = bodyText.match(/\$(\d+(?:\.\d{2})?)/);
+            if (priceMatch) {
+                price = parseFloat(priceMatch[1]);
+            }
+        }
+        
+        if (price !== null && !isNaN(price)) {
+            prices.push(price);
+        }
+    });
+    
+    if (prices.length === 0) return null;
+    
+    const avg = prices.reduce((a, b) => a + b, 0) / prices.length;
+    
+    return {
+        avg: avg,
+        count: gameListings.length,
+        priceCount: prices.length
+    };
+}
         
         function updateProgress(fileName, status, count = 0, apirundate_timestamp = null) {
             const progressContainer = document.getElementById('progressContainer');
@@ -1679,7 +1720,9 @@
       function createCard(item, index) {
     const card = document.createElement('div');
     card.className = 'card';
-    
+
+          const sourceFile = item.getAttribute('source-file'); // Add this line
+const gameStats = calculateGameStats(objectId, sourceFile); // Pass sourceFile
     const itemId = item.getAttribute('id');
     const objectId = item.getAttribute('objectid');
     const objectName = item.getAttribute('objectname');
@@ -1776,6 +1819,10 @@
         
         <div class="price-row">
             <div class="price">${formattedPrice}</div>
+            <div style="font-size: 11px; color: #6e6e73; margin-top: 2px;">
+            Avg: $${gameStats.avg.toFixed(2)} • ${gameStats.count} listings
+        </div>
+    </div>
             
             <div class="button-group" style="margin-top: 0; flex-shrink: 0; flex-wrap: wrap;">
                 <a href="${geeklistUrl}" target="_blank" class="btn btn-link" style="padding: 8px; font-size: 11px; flex: auto;">Listing</a>
