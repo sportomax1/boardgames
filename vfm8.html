@@ -407,14 +407,34 @@
             padding: 16px;
         }
         
-        .modal-content {
-            background: white;
-            border-radius: 16px;
-            max-width: 600px;
-            width: 100%;
-            max-height: 80vh;
-            overflow-y: auto;
-        }
+   .modal-content {
+    background: white;
+    /* Remove max-width/max-height constraints for full screen */
+    width: 100%; 
+    height: 100%; 
+    max-width: none; /* Ensure no max-width */
+    max-height: none; /* Ensure no max-height */
+    overflow-y: auto;
+    
+    /* Modify border-radius to only apply to top or none at all for a true full-screen experience */
+    border-radius: 0; /* Full-screen, no rounded corners */
+    /* If you want to keep the header rounded at the top: */
+    /* border-radius: 16px 16px 0 0; */ 
+}
+
+/* Also ensure the outer modal container takes up the full viewport */
+.modal.active {
+    display: flex;
+    align-items: flex-start; /* Start from top, not center */
+    justify-content: center;
+    padding: 0; /* Remove padding */
+}
+
+/* Remove the sticky header padding/border-radius fix */
+.modal-header {
+    /* ... keep existing styles ... */
+    border-radius: 0; /* Match full-screen */
+}
         
         .modal-header {
             padding: 20px;
