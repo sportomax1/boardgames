@@ -1089,6 +1089,53 @@
                 return `${diffMins}m ago`;
             }
         }
+
+
+
+
+        // Global variable to store stats across ALL VFM files
+let globalGameStats = {}; 
+
+function calculateGlobalGameStats() {
+    globalGameStats = {};
+    
+    allItems.forEach(item => {
+        const objectId = item.getAttribute('objectid');
+        const priceAttr = item.getAttribute('price');
+        const bodyText = item.querySelector('body')?.textContent || '';
+        
+        let price = null;
+        if (priceAttr) {
+            price = parseFloat(priceAttr);
+        } else {
+            const priceMatch = bodyText.match(/\$(\d+(?:\.\d{2})?)/);
+            if (priceMatch) {
+                price = parseFloat(priceMatch[1]);
+            }
+        }
+        
+        if (!globalGameStats[objectId]) {
+            globalGameStats[objectId] = {
+                prices: [],
+                count: 0
+            };
+        }
+        
+        globalGameStats[objectId].count++;
+        if (price !== null && !isNaN(price)) {
+            globalGameStats[objectId].prices.push(price);
+        }
+    });
+    
+    for (const objectId in globalGameStats) {
+        const stats = globalGameStats[objectId];
+        if (stats.prices.length > 0) {
+            stats.avg = stats.prices.reduce((a, b) => a + b, 0) / stats.prices.length;
+        } else {
+            stats.avg = null;
+        }
+    }
+}
         
         function calculateGameStats(objectId, sourceFile) {
             const gameListings = allItems.filter(item => 
@@ -1684,12 +1731,20 @@
             const formattedPrice = displayPrice ?
                 `${displayPrice}${currency !== 'USD' ? ' ' + currency : ''}` : 
                 'Price not listed';
-            
+
             const gameStats = calculateGameStats(objectId, sourceFile);
-            let statsHtml = '';
-            if (gameStats) {
-                statsHtml = `<div class="price-supplementary">Avg: ${gameStats.avg.toFixed(2)} • ${gameStats.count} listings</div>`;
-            }
+        const globalStats = globalGameStats[objectId]; // Look up the global stats
+        
+        let statsHtml = '';
+        if (gameStats) {
+            statsHtml += `<div class="price-supplementary">Active VFM: Avg ${gameStats.avg.toFixed(2)} • ${gameStats.count} listings</div>`;
+        }
+
+        if (globalStats) {
+             const globalAvgDisplay = globalStats.avg !== null ? globalStats.avg.toFixed(2) : '-';
+             // Append the new global stats underneath
+             statsHtml += `<div class="price-supplementary">Global: Avg ${globalAvgDisplay} • ${globalStats.count} total</div>`;
+        }
             
             const formattedPostDate = new Date(postDate).toLocaleDateString('en-US', {
                 month: 'short',
