@@ -461,12 +461,33 @@
         // Game Card Rendering
         function createGameCardElement(game) {
             const imageUrl = gameImages[game.bggId] || game.thumbnailUrl;
-            let highlightClass = '';
-            if (game.desireToPlay >= 8) highlightClass = 'border-4 border-green-500 shadow-xl';
-            else if (game.desireToPlay >= 6) highlightClass = 'border-4 border-yellow-500 shadow-lg';
+// Desire-to-Play visual gradient
+let highlightClass = '';
+const dtp = game.desireToPlay;
+
+// Only show borders for scores 5 and higher
+if (dtp >= 5) {
+    // Map 0–10 to red→green hue (0 = red, 120 = green)
+    const hue = Math.round((dtp / 10) * 120);
+    const borderColor = `hsl(${hue}, 80%, 45%)`;
+
+    // Pulse if the hype is real 😎
+    const pulse = dtp >= 9 ? 'animate-pulse' : '';
+
+    highlightClass = `border-4 ${pulse}`;
+    // Apply inline style for precise hue mapping
+    highlightClass += `" style="border-color: ${borderColor}; box-shadow: 0 0 10px ${borderColor}40;"`;
+}
+
 
             const card = document.createElement('div');
-            card.className = `game-card bg-white rounded-xl shadow-lg hover:shadow-xl cursor-pointer flex flex-row p-3 space-x-3 items-start ${highlightClass}`;
+            card.className = `game-card bg-white rounded-xl shadow-lg hover:shadow-xl cursor-pointer flex flex-row p-3 space-x-3 items-start`;
+if (dtp >= 5) {
+    card.style.border = `4px solid hsl(${(dtp / 10) * 120}, 80%, 45%)`;
+    card.style.boxShadow = `0 0 10px hsl(${(dtp / 10) * 120}, 80%, 45%, 0.4)`;
+    if (dtp >= 9) card.classList.add('animate-pulse');
+}
+
             card.id = `card-${game.bggId}`;
             card.dataset.bggid = game.bggId;
 
