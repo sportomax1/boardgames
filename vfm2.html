@@ -1309,6 +1309,8 @@ function calculateGlobalGameStats() {
                             const dateB = new Date(b.getAttribute('postdate'));
                             return dateB - dateA;
                         });
+
+                       
                         
                         if (displayedItems.length === 0) {
                             currentPage = 0;
@@ -1333,6 +1335,8 @@ function calculateGlobalGameStats() {
                     const dateB = new Date(b.getAttribute('postdate'));
                     return dateB - dateA;
                 });
+
+                 calculateGlobalGameStats(); // 👈 Ensure this is called here.
                 
                 currentPage = 0;
                 displayedItems = [];
