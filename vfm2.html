@@ -646,7 +646,7 @@
                 <button class="vfm-filter-btn" onclick="filterVFM('dtw')">DTW Only</button>
                 <button class="vfm-filter-btn" onclick="filterVFM('2025')">2025 Only</button>
                 <button class="vfm-filter-btn" onclick="filterVFM('2024')">2024 Only</button>
-                <button class="vfm-filter-btn" onclick="filterVFM('BGG VFM 2023')">Test</button>
+                <button class="vfm-filter-btn" onclick="filterVFM('BGG VFM 2025')">Test</button>
                 
             </div>
         </div>
@@ -838,7 +838,7 @@
             }
         }
         
-      function filterVFM(filterType) {
+  function filterVFM(filterType) {
     document.querySelectorAll('.vfm-filter-btn').forEach(btn => {
         btn.classList.remove('active');
     });
@@ -855,16 +855,14 @@
     } else if (filterType === '2025' || filterType === '2024' || filterType === '2023' || filterType === '2022') {
         xmlFiles.filter(f => f.year === filterType).forEach(f => activeVFMFiles.add(f.name));
     }
-    // *** ADD THIS NEW BLOCK ***
-    else if (filterType === 'BGG VFM 2023') {
-        // This assumes the full, unique name of the file is stored in f.name
+    // New block for the specific file name
+    else if (filterType === 'BGG VFM 2025') {
         xmlFiles.filter(f => f.name === filterType).forEach(f => activeVFMFiles.add(f.name));
     }
-    // *************************
+    
+    // Call the refilter function here, AFTER the activeVFMFiles is updated
+    refilterByVFM();
 }
-            
-            refilterByVFM();
-        }
         
         function refilterByVFM() {
             const baseItems = allItems.filter(item => {
