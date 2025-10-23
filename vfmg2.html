@@ -1963,13 +1963,16 @@ function calculateGlobalGameStats() {
             const globalStats = globalGameStats[objectId]; // Look up the global stats
         
         let statsHtml = '';
+
+        statsHtml += `<div class="price-supplementary">          Price     Count</div>`;
+        
         if (gameStats) {
-            statsHtml += `<div class="price-supplementary">Active VFM: Avg ${gameStats.avg.toFixed(2)} • ${gameStats.count} listings</div>`;
+            statsHtml += `<div class="price-supplementary">This VFM: $${gameStats.avg.toFixed(2)} • ${gameStats.count} listings</div>`;
         }
 
         if (globalStats) {
              const globalAvgDisplay = globalStats.avg !== null ? globalStats.avg.toFixed(2) : '-';
-             statsHtml += `<div class="price-supplementary">Global: Avg ${globalAvgDisplay} • ${globalStats.count} total</div>`;
+             statsHtml += `<div class="price-supplementary">All VFM: Avg $${globalAvgDisplay} • ${globalStats.count} total</div>`;
         }
             
         // --- NEW: Add Price Paid (Request 2) ---
