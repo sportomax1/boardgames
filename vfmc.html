@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>VFM Geeklist — Updated UI</title>
+  <style>
+    :root{--bg:#0f1720;--card:#0b1320;--muted:#97a0b3;--accent:#0ea5e9;--glass:rgba(255,255,255,0.04);--pill:#111827}
+    body{font-family:Inter,system-ui,Segoe UI,Roboto,'Helvetica Neue',Arial;margin:0;background:linear-gradient(180deg,#051226 0%, #071827 100%);color:#e6eef6}
+    .app{max-width:1200px;margin:28px auto;padding:20px}
+    header{display:flex;flex-direction:column;gap:8px}
+
+    .counts{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+    .counts .badge{background:var(--glass);padding:8px 12px;border-radius:8px;font-weight:600;color:#d7e9ff}
+    .counts .muted{color:var(--muted);font-weight:500}
+
+    /* VFM file status (hidden by default) */
+    .vfm-status{display:none;background:#071427;padding:12px;border-radius:10px;margin-top:8px;border:1px solid rgba(255,255,255,0.03)}
+    .vfm-status.visible{display:block}
+    .vfm-grid{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+
+    /* Controls */
+    .controls{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-top:12px}
+    .left-controls{display:flex;gap:10px;align-items:center}
+    .filters{background:var(--card);padding:10px;border-radius:10px;display:flex;gap:10px;align-items:center}
+    .filter-toggle{background:transparent;border:1px solid rgba(255,255,255,0.04);padding:6px 10px;border-radius:8px;cursor:pointer}
+
+    /* Collection filter collapsible */
+    .collection-filter{margin-top:10px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)}
+    .collection-filter.collapsed{height:44px;overflow:hidden}
+
+    /* List header row */
+    .list-header{display:flex;align-items:center;justify-content:space-between;margin-top:12px}
+    .geeklist-title{font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px}
+    .list-actions{display:flex;align-items:center;gap:8px}
+    .listing-btn{background:linear-gradient(90deg,#0ea5e9,#7c3aed);padding:8px 12px;border-radius:8px;border:none;color:white;font-weight:700;cursor:pointer}
+
+    /* Grid */
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-top:14px}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:10px;border-radius:12px;border:1px solid rgba(255,255,255,0.03);display:flex;flex-direction:column;gap:8px}
+    .card .img-wrap{position:relative;border-radius:8px;overflow:hidden;cursor:pointer}
+    .card img{width:100%;height:180px;object-fit:cover;display:block}
+    .card h3{font-size:15px;margin:6px 0}
+    .meta{display:flex;justify-content:space-between;align-items:center}
+
+    /* Comments emoji + count (replaces purple box) */
+    .comments{display:flex;align-items:center;gap:6px;font-weight:600}
+    .comments span.count{background:rgba(255,255,255,0.02);padding:4px 8px;border-radius:999px;font-size:13px}
+
+    /* Listing button inline with geeklist name */
+    .geeklist-row{display:flex;align-items:center;gap:8px}
+    .geeklist-row .geeklist-name{background:var(--pill);padding:8px 10px;border-radius:8px}
+
+    /* small helper */
+    .small{font-size:13px;color:var(--muted)}
+
+    /* responsive */
+    @media (max-width:640px){.grid{grid-template-columns:repeat(2,1fr)}.card img{height:140px}}
+  </style>
+</head>
+<body>
+  <div class="app" id="app">
+    <header>
+      <div class="counts">
+        <div class="badge" id="itemsCount">Showing 0 of 0 items</div>
+        <div class="badge" id="listsCount">0 of 0 lists loaded</div>
+        <div class="badge small" id="vfmSummary">BGG VFM 2025 | Last File Date | LOADED | 0 records total (0 - 0 - 0 - 0)</div>
+        <button id="toggleVfm" class="filter-toggle">Show VFM File Status</button>
+      </div>
+
+      <div class="vfm-status" id="vfmStatus">
+        <!-- Default hidden. When visible, show more detailed file status rows -->
+        <div class="vfm-grid">
+          <div><strong>Source:</strong> BGG VFM 2025</div>
+          <div><strong>Last File:</strong> <span id="vfmLastFile">—</span></div>
+          <div><strong>Loaded:</strong> <span id="vfmLoaded">—</span></div>
+          <div><strong>Total Records:</strong> <span id="vfmTotal">0</span></div>
+          <div class="small">(last hour - day - 7d - 30d): <span id="vfmDelta">0 - 0 - 0 - 0</span></div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <div class="left-controls">
+          <div class="filters">
+            <button id="collapseFilter" class="filter-toggle">Collapse Filters</button>
+            <div class="small">Collection filter</div>
+          </div>
+        </div>
+        <div class="list-actions">
+          <div class="small">Search / Sort / Controls</div>
+        </div>
+      </div>
+
+      <div class="collection-filter" id="collectionFilter">
+        <!-- Expandable collection filter area -->
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <label class="small">Owner: <input type="text" id="ownerFilter" placeholder="Owner name" /></label>
+          <label class="small">Min VFM: <input type="number" id="vfmMin" placeholder="0" /></label>
+          <label class="small">Max Rank: <input type="number" id="rankMax" placeholder="9999" /></label>
+          <button id="applyFilters" class="filter-toggle">Apply</button>
+        </div>
+      </div>
+
+      <div class="list-header">
+        <div class="geeklist-title">
+          <div class="geeklist-row">
+            <div class="geeklist-name" id="geeklistName">Geeklist: BGG VFM 2025</div>
+            <button class="listing-btn" id="listingBtn">Listing</button>
+          </div>
+        </div>
+
+        <div class="small" id="resultsSummary">0 results</div>
+      </div>
+
+    </header>
+
+    <main>
+      <section class="grid" id="grid">
+        <!-- Cards inserted by JS -->
+      </section>
+    </main>
+  </div>
+
+  <script>
+    /* Sample data for demo -- in real app this will come from your API / dataset */
+    const sample = [
+      {id:1,title:'Root: A Story',img:'https://picsum.photos/seed/root/400/300',comments:3,owner:'Alice',vfm:8,lastUpdated:Date.now()-3600e3},
+      {id:2,title:'Castle Panic',img:'https://picsum.photos/seed/castle/401/300',comments:0,owner:'Bob',vfm:12,lastUpdated:Date.now()-3600e3*24},
+      {id:3,title:'Terraforming Mars',img:'https://picsum.photos/seed/mars/402/300',comments:12,owner:'Carol',vfm:22,lastUpdated:Date.now()-3600e3*5},
+      {id:4,title:'Wingspan',img:'https://picsum.photos/seed/wings/403/300',comments:1,owner:'Dave',vfm:5,lastUpdated:Date.now()-3600e3*720}
+    ];
+
+    const grid = document.getElementById('grid');
+    const itemsCount = document.getElementById('itemsCount');
+    const listsCount = document.getElementById('listsCount');
+    const vfmSummary = document.getElementById('vfmSummary');
+    const vfmStatus = document.getElementById('vfmStatus');
+    const toggleVfm = document.getElementById('toggleVfm');
+    const collapseFilter = document.getElementById('collapseFilter');
+    const collectionFilter = document.getElementById('collectionFilter');
+    const listingBtn = document.getElementById('listingBtn');
+    const geeklistName = document.getElementById('geeklistName');
+
+    // Render cards
+    function render(items){
+      grid.innerHTML = '';
+      items.forEach(item => {
+        const card = document.createElement('article');
+        card.className = 'card';
+
+        // Image serves as the main action / game button
+        const imgWrap = document.createElement('div');
+        imgWrap.className = 'img-wrap';
+        const img = document.createElement('img');
+        img.src = item.img;
+        img.alt = item.title;
+        img.title = 'Open: ' + item.title;
+        img.addEventListener('click', ()=>openGame(item));
+        imgWrap.appendChild(img);
+
+        const title = document.createElement('h3');
+        title.textContent = item.title;
+
+        const meta = document.createElement('div');
+        meta.className = 'meta';
+
+        // Left: comments (emoji + count replaces purple box)
+        const comments = document.createElement('div');
+        comments.className = 'comments';
+        comments.innerHTML = '💬 <span class="count">' + item.comments + '</span>';
+
+        // Right: short details
+        const details = document.createElement('div');
+        details.className = 'small';
+        details.textContent = 'VFM: ' + item.vfm;
+
+        meta.appendChild(comments);
+        meta.appendChild(details);
+
+        // Listing button moved next to geeklist name in header; keep per-item secondary action (e.g., toggle favorite)
+        const footer = document.createElement('div');
+        footer.style.display='flex';
+        footer.style.justifyContent='space-between';
+        footer.style.alignItems='center';
+
+        const owner = document.createElement('div');
+        owner.className = 'small';
+        owner.textContent = item.owner;
+
+        const favBtn = document.createElement('button');
+        favBtn.className = 'filter-toggle';
+        favBtn.textContent = '★';
+        favBtn.title = 'Toggle Favorite';
+        favBtn.addEventListener('click', ()=>{alert('Toggled favorite for '+item.title)});
+
+        footer.appendChild(owner);
+        footer.appendChild(favBtn);
+
+        card.appendChild(imgWrap);
+        card.appendChild(title);
+        card.appendChild(meta);
+        card.appendChild(footer);
+
+        grid.appendChild(card);
+      });
+
+      itemsCount.textContent = `Showing ${items.length} of ${items.length} items`;
+      listsCount.textContent = `1 of 1 lists loaded`;
+      document.getElementById('resultsSummary').textContent = `${items.length} results`;
+
+      // Example VFM summary numbers (replace with real values)
+      const total = items.length;
+      const hr=0, day=1, week=2, month=3;
+      vfmSummary.textContent = `BGG VFM 2025 | ${new Date().toLocaleDateString()} | LOADED | ${total} records total (${hr} - ${day} - ${week} - ${month})`;
+
+      document.getElementById('vfmLastFile').textContent = new Date().toLocaleString();
+      document.getElementById('vfmLoaded').textContent = 'Yes';
+      document.getElementById('vfmTotal').textContent = total;
+      document.getElementById('vfmDelta').textContent = `${hr} - ${day} - ${week} - ${month}`;
+    }
+
+    // openGame called when image clicked (image replaces blue button functionality)
+    function openGame(item){
+      // Example behavior: open a details modal or new tab. Here, just show an alert (replace in production).
+      alert('Open game: ' + item.title + "\n(Replace this with your actual navigation) ");
+    }
+
+    // Toggle VFM status section visibility
+    toggleVfm.addEventListener('click', ()=>{
+      vfmStatus.classList.toggle('visible');
+      toggleVfm.textContent = vfmStatus.classList.contains('visible') ? 'Hide VFM File Status' : 'Show VFM File Status';
+    });
+
+    // Collapse / expand collection filter
+    let collapsed=false;
+    collapseFilter.addEventListener('click', ()=>{
+      collapsed = !collapsed;
+      collectionFilter.classList.toggle('collapsed', collapsed);
+      collapseFilter.textContent = collapsed ? 'Expand Filters' : 'Collapse Filters';
+    });
+
+    // Move listing button to match geeklist name size: make them same height via JS if necessary (CSS mostly handles it)
+    function syncListingSize(){
+      // keep simple: set listingBtn height to geeklistName computed height
+      const h = geeklistName.getBoundingClientRect().height;
+      listingBtn.style.height = (h - 4) + 'px';
+      listingBtn.style.padding = '6px 12px';
+    }
+
+    window.addEventListener('resize', syncListingSize);
+    window.addEventListener('load', ()=>{ render(sample); syncListingSize(); });
+
+    // Example: allow toggling visibility of vfmSummary badge (default shown) via code if you want hidden by default
+    // document.getElementById('vfmSummary').style.display = 'none';
+
+  </script>
+</body>
+</html>
