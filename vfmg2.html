@@ -2038,13 +2038,17 @@ if (globalStats) {
     `;
 }
 
-statsHtml += `
+if (pData && pData.pricePaid) {
+    const paidPrice = parseFloat(pData.pricePaid).toFixed(2);
+    
+    // Now you insert it into a table row <tr>
+    statsHtml += `
             <tr>
-                <td>My Price</td>
-                <td>Testing</td>
-                <td></td>
-            </tr>
+                <td style="font-weight: bold;">Price Paid:</td>
+                <td style="font-weight: bold; color: #34c759;">$${paidPrice}</td>
+                <td>—</td> </tr>
     `;
+}
 
 statsHtml += `
         </tbody>
