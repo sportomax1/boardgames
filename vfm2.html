@@ -46,6 +46,7 @@
             padding: 12px;
             background: #f5f5f7;
             border-radius: 8px;
+            display: none;
         }
         
         .vfm-controls-header {
@@ -1820,7 +1821,6 @@ function calculateGlobalGameStats() {
                         <a href="${geeklistUrl}" target="_blank" class="btn btn-link" style="padding: 8px; font-size: 11px; flex: auto;">Listing</a>
                         <a href="${gameUrl}" target="_blank" class="btn btn-details" style="padding: 8px; font-size: 11px; flex: auto;">Game</a>
                         <button class="btn btn-details" onclick="showDetails(${index})" style="background: #ff9500; padding: 8px; font-size: 11px; flex: auto;">Details</button>
-                      <button class="btn btn-comments" onclick="showComments(${index})" style="padding: 8px; font-size: 11px; flex: auto;">Comments (${commentCount})</button>
                     </div>
                 </div>
             `;
