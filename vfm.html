@@ -2513,6 +2513,15 @@ statsHtml += `
                         aVal = a.totalListings;
                         bVal = b.totalListings;
                         break;
+
+                    case 'pricePaid':
+    aVal = a.pricePaid !== null ? a.pricePaid : (a.own === 0 ? -2 : -1);
+    bVal = b.pricePaid !== null ? b.pricePaid : (b.own === 0 ? -2 : -1);
+    break;
+case 'margin':
+    aVal = a.margin !== null ? a.margin : -999999;
+    bVal = b.margin !== null ? b.margin : -999999;
+    break;
                     default:
                         return 0;
                 }
