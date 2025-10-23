@@ -646,6 +646,8 @@
                 <button class="vfm-filter-btn" onclick="filterVFM('dtw')">DTW Only</button>
                 <button class="vfm-filter-btn" onclick="filterVFM('2025')">2025 Only</button>
                 <button class="vfm-filter-btn" onclick="filterVFM('2024')">2024 Only</button>
+                <button class="vfm-filter-btn" onclick="filterVFM('BGG VFM 2023')">Test</button>
+                
             </div>
         </div>
         
@@ -782,7 +784,7 @@
         let itemsPerPage = 50;
         let currentPage = 0;
         let isLoadingMore = false;
-        let vfmDisplayVisible = true;
+        let vfmDisplayVisible = false;
         let activeVFMFiles = new Set();
         let dashboardSortColumn = 'avg';
         let dashboardSortDirection = 'desc';
