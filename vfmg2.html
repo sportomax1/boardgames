@@ -649,6 +649,38 @@
             margin-top: 8px;
             display: inline-block;
         }
+
+        .mini-stats-table {
+    /* Remove borders (grid lines) */
+    border-collapse: collapse; /* Essential for removing double borders */
+    border: none;
+    
+    /* Minimal styling */
+    font-size: 0.9em; /* Smaller font */
+    width: auto; /* Only take up necessary width */
+    margin: 0;
+    padding: 0;
+}
+
+.mini-stats-table th, 
+.mini-stats-table td {
+    /* Remove cell borders */
+    border: none;
+    
+    /* Spacing and alignment */
+    padding: 2px 8px; /* Minimal padding */
+    text-align: right; /* Align numbers to the right */
+}
+
+/* Optional: left-align the first column (labels) */
+.mini-stats-table td:first-child {
+    text-align: left;
+}
+
+/* Optional: bold the header */
+.mini-stats-table thead th {
+    font-weight: bold;
+}
         
         @keyframes fadeIn {
             from { opacity: 0; }
@@ -1964,16 +1996,44 @@ function calculateGlobalGameStats() {
         
         let statsHtml = '';
 
-        statsHtml += `<div class="price-supplementary">          Price     Count</div>`;
-        
-        if (gameStats) {
-            statsHtml += `<div class="price-supplementary">This VFM: $${gameStats.avg.toFixed(2)} • ${gameStats.count} listings</div>`;
-        }
+statsHtml += `
+    <table class="mini-stats-table">
+        <thead>
+            <tr>
+                <th>&nbsp;</th> <th>Price</th>
+                <th>Count</th>
+            </tr>
+        </thead>
+        <tbody>
+`;
 
-        if (globalStats) {
-             const globalAvgDisplay = globalStats.avg !== null ? globalStats.avg.toFixed(2) : '-';
-             statsHtml += `<div class="price-supplementary">All VFM: Avg $${globalAvgDisplay} • ${globalStats.count} total</div>`;
-        }
+// This VFM row
+if (gameStats) {
+    statsHtml += `
+            <tr>
+                <td>This VFM:</td>
+                <td>$${gameStats.avg.toFixed(2)}</td>
+                <td>${gameStats.count}</td>
+            </tr>
+    `;
+}
+
+// All VFM row
+if (globalStats) {
+    const globalAvgDisplay = globalStats.avg !== null ? globalStats.avg.toFixed(2) : '-';
+    statsHtml += `
+            <tr>
+                <td>All VFM:</td>
+                <td>Avg $${globalAvgDisplay}</td>
+                <td>${globalStats.count}</td>
+            </tr>
+    `;
+}
+
+statsHtml += `
+        </tbody>
+    </table>
+`;
             
         // --- NEW: Add Price Paid (Request 2) ---
         if (pData && pData.pricePaid) {
