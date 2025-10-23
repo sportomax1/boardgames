@@ -838,22 +838,30 @@
             }
         }
         
-        function filterVFM(filterType) {
-            document.querySelectorAll('.vfm-filter-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            event.target.classList.add('active');
-            
-            activeVFMFiles.clear();
-            if (filterType === 'all') {
-                xmlFiles.forEach(f => activeVFMFiles.add(f.name));
-            } else if (filterType === 'none') {
-                // No files active
-            } else if (filterType === 'bgg' || filterType === 'spr' || filterType === 'dte' || filterType === 'dtw') {
-                xmlFiles.filter(f => f.category === filterType).forEach(f => activeVFMFiles.add(f.name));
-            } else if (filterType === '2025' || filterType === '2024' || filterType === '2023' || filterType === '2022') {
-                xmlFiles.filter(f => f.year === filterType).forEach(f => activeVFMFiles.add(f.name));
-            }
+      function filterVFM(filterType) {
+    document.querySelectorAll('.vfm-filter-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    event.target.classList.add('active');
+    
+    activeVFMFiles.clear();
+    
+    if (filterType === 'all') {
+        xmlFiles.forEach(f => activeVFMFiles.add(f.name));
+    } else if (filterType === 'none') {
+        // No files active
+    } else if (filterType === 'bgg' || filterType === 'spr' || filterType === 'dte' || filterType === 'dtw') {
+        xmlFiles.filter(f => f.category === filterType).forEach(f => activeVFMFiles.add(f.name));
+    } else if (filterType === '2025' || filterType === '2024' || filterType === '2023' || filterType === '2022') {
+        xmlFiles.filter(f => f.year === filterType).forEach(f => activeVFMFiles.add(f.name));
+    }
+    // *** ADD THIS NEW BLOCK ***
+    else if (filterType === 'BGG VFM 2023') {
+        // This assumes the full, unique name of the file is stored in f.name
+        xmlFiles.filter(f => f.name === filterType).forEach(f => activeVFMFiles.add(f.name));
+    }
+    // *************************
+}
             
             refilterByVFM();
         }
