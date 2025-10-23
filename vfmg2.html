@@ -2007,11 +2007,19 @@ statsHtml += `
         <tbody>
 `;
 
+statsHtml += `
+            <tr>
+                <td>This Listing</td>
+                <td>$${formattedPrice}</td>
+                <td></td>
+            </tr>
+    `;
+
 // This VFM row
 if (gameStats) {
     statsHtml += `
             <tr>
-                <td>This VFM:</td>
+                <td>This VFM</td>
                 <td>$${gameStats.avg.toFixed(2)}</td>
                 <td>${gameStats.count}</td>
             </tr>
@@ -2023,12 +2031,20 @@ if (globalStats) {
     const globalAvgDisplay = globalStats.avg !== null ? globalStats.avg.toFixed(2) : '-';
     statsHtml += `
             <tr>
-                <td>All VFM:</td>
-                <td>Avg $${globalAvgDisplay}</td>
+                <td>All VFM</td>
+                <td>$${globalAvgDisplay}</td>
                 <td>${globalStats.count}</td>
             </tr>
     `;
 }
+
+statsHtml += `
+            <tr>
+                <td>My Price</td>
+                <td>$${pData.pricePaid}</td>
+                <td></td>
+            </tr>
+    `;
 
 statsHtml += `
         </tbody>
@@ -2120,7 +2136,7 @@ statsHtml += `
                 
                 <div class="price-row">
                     <div>
-                        <div class="price">${formattedPrice}</div>
+                        <div class="price">$${formattedPrice}</div>
                         ${statsHtml} </div>
                     
                     <div class="button-group" style="margin-top: 0; flex-shrink: 0; flex-wrap: wrap;">
