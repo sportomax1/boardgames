@@ -2010,7 +2010,7 @@ statsHtml += `
 statsHtml += `
             <tr>
                 <td>This Listing</td>
-                <td>$${formattedPrice}</td>
+                <td style="font-weight: bold; **font-size: 22px;**">$${formattedPrice}</td>                
                 <td></td>
             </tr>
     `;
@@ -2045,7 +2045,7 @@ if (pData && pData.pricePaid) {
     statsHtml += `
             <tr>
                 <td style="font-weight: bold;">Price Paid:</td>
-                <td style="font-weight: bold; color: #34c759;">$${paidPrice}</td>
+                <td style="font-weight: bold; **font-size: 16px;**">$${paidPrice}</td>
                 <td>—</td> </tr>
     `;
 }
@@ -2054,11 +2054,6 @@ statsHtml += `
         </tbody>
     </table>
 `;
-            
-        // --- NEW: Add Price Paid (Request 2) ---
-        if (pData && pData.pricePaid) {
-            statsHtml += `<div class="price-supplementary" style="color: #34c759; font-weight: bold;">Price Paid: $${parseFloat(pData.pricePaid).toFixed(2)}</div>`;
-        }
         
         // --- NEW: Add Rank and Average (Request 3) ---
         let privateStatsHtml = '';
@@ -2140,9 +2135,7 @@ statsHtml += `
                 
                 <div class="price-row">
                     <div>
-                        <div class="price">$${formattedPrice}</div>
                         ${statsHtml} </div>
-                    
                     <div class="button-group" style="margin-top: 0; flex-shrink: 0; flex-wrap: wrap;">
                         <a href="${geeklistUrl}" target="_blank" class="btn btn-link" style="padding: 8px; font-size: 11px; flex: auto;">Listing</a>
                         <button class="btn btn-details" onclick="showDetails(${index})" style="background: #ff9500; padding: 8px; font-size: 11px; flex: auto;">Details</button>
