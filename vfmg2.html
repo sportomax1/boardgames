@@ -1291,47 +1291,6 @@
             statsEl.style.display = 'block';
         }
 
-            const now = new Date();
-            const oneHourAgo = new Date(now.getTime() - (60 * 60 * 1000));
-            const oneDayAgo = new Date(now.getTime() - (24 * 60 * 60 * 1000));
-            const oneWeekAgo = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
-            const oneMonthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
-            const oneYearAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
-
-            let counts = { hour: 0, day: 0, week: 0, month: 0, year: 0 };
-
-            for (const item of filteredItemList) {
-                const objectId = item.getAttribute('objectid');
-                const pData = privateData.get(objectId);
-                if (pData) { console.log(`Found private data for ${objectName}:`, pData); }
-
-                if (pData && pData.acquisitionDate) {
-                    try {
-                        const acqDate = new Date(pData.acquisitionDate);
-                        if (isNaN(acqDate.getTime())) continue; // Skip invalid dates
-
-                        // These are cumulative, so we check each one
-                        if (acqDate >= oneHourAgo) counts.hour++;
-                        if (acqDate >= oneDayAgo) counts.day++;
-                        if (acqDate >= oneWeekAgo) counts.week++;
-                        if (acqDate >= oneMonthAgo) counts.month++;
-                        if (acqDate >= oneYearAgo) counts.year++;
-                    } catch (e) { /* ignore invalid dates */ }
-                }
-            }
-
-            statsEl.innerHTML = `
-                <strong>Items Added (Filtered):</strong>
-                Last Hour: <span>${counts.hour}</span> |
-                Last Day: <span>${counts.day}</span> |
-                Last Week: <span>${counts.week}</span> |
-                Last Month: <span>${counts.month}</span> |
-                Last Year: <span>${counts.year}</span>
-            `;
-            statsEl.style.display = 'block';
-        }
-
-
         // Global variable to store stats across ALL VFM files
 let globalGameStats = {}; 
 
