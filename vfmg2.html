@@ -1241,10 +1241,13 @@
         }
 
         // --- NEW: Function to update "Creation Stats" (Request 5) ---
+       // --- NEW: Function to update "Creation Stats" (Request 5) ---
+        // --- MODIFIED: Now uses VFM 'postdate' instead of private 'acquisitiondate' ---
         function updateCreationStats(filteredItemList) {
             const statsEl = document.getElementById('creationStats');
-            // Don't show stats if private data isn't loaded or no filters are active
-            if (privateData.size === 0 || !isFilterActive) {
+            
+            // Only show stats if filters are active, otherwise it's just "all"
+            if (!isFilterActive) {
                 statsEl.style.display = 'none';
                 return;
             }
@@ -1259,8 +1262,48 @@
             let counts = { hour: 0, day: 0, week: 0, month: 0, year: 0 };
 
             for (const item of filteredItemList) {
+                // Get 'postdate' directly from the filtered VFM item
+                const postDateStr = item.getAttribute('postdate');
+
+                if (postDateStr) {
+                    try {
+                        const postDate = new Date(postDateStr);
+                        if (isNaN(postDate.getTime())) continue; // Skip invalid dates
+
+                        // These are cumulative, so we check each one
+                        if (postDate >= oneHourAgo) counts.hour++;
+                        if (postDate >= oneDayAgo) counts.day++;
+                        if (postDate >= oneWeekAgo) counts.week++;
+                        if (postDate >= oneMonthAgo) counts.month++;
+                        if (postDate >= oneYearAgo) counts.year++;
+                    } catch (e) { /* ignore invalid dates */ }
+                }
+            }
+
+            statsEl.innerHTML = `
+                <strong>Filtered Items Posted:</strong>
+                Last Hour: <span>${counts.hour}</span> |
+                Last Day: <span>${counts.day}</span> |
+                Last Week: <span>${counts.week}</span> |
+                Last Month: <span>${counts.month}</span> |
+                Last Year: <span>${counts.year}</span>
+            `;
+            statsEl.style.display = 'block';
+        }
+
+            const now = new Date();
+            const oneHourAgo = new Date(now.getTime() - (60 * 60 * 1000));
+            const oneDayAgo = new Date(now.getTime() - (24 * 60 * 60 * 1000));
+            const oneWeekAgo = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
+            const oneMonthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+            const oneYearAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+
+            let counts = { hour: 0, day: 0, week: 0, month: 0, year: 0 };
+
+            for (const item of filteredItemList) {
                 const objectId = item.getAttribute('objectid');
                 const pData = privateData.get(objectId);
+                if (pData) { console.log(`Found private data for ${objectName}:`, pData); }
 
                 if (pData && pData.acquisitionDate) {
                     try {
