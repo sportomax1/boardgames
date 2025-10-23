@@ -51,7 +51,6 @@
         #creationStats {
             font-size: 11px;
             margin-top: 6px;
-            display: none;
             line-height: 1.5;
             background: #f5f5f7;
             padding: 8px;
@@ -860,7 +859,7 @@
         let isLoadingMore = false;
         let vfmDisplayVisible = false;
         let activeVFMFiles = new Set();
-        let dashboardSortColumn = 'avg';
+        let dashboardSortColumn = 'margin';
         let dashboardSortDirection = 'desc';
         
         // --- NEW: Variables for private data and loading status ---
@@ -2274,86 +2273,157 @@ statsHtml += `
                 }
             });
             
-            const gameArray = Object.values(gameStats).map(game => {
-                const listings = game.listings;
-                let min = null, max = null, avg = null, median = null;
-                let firstPrice = null, lastPrice = null;
-                
-                if (listings.length > 0) {
-                    const prices = listings.map(l => l.price);
-                    
-                    min = Math.min(...prices);
-                    max = Math.max(...prices);
-                    avg = prices.reduce((a, b) => a + b, 0) / prices.length;
-                    
-                    const sortedPrices = [...prices].sort((a, b) => a - b);
-                    const mid = Math.floor(sortedPrices.length / 2);
-                    median = sortedPrices.length % 2 === 0 
-                        ? (sortedPrices[mid - 1] + sortedPrices[mid]) / 2 
-                        : sortedPrices[mid];
-                    
-                    const sortedListings = [...listings].sort((a, b) => a.date - b.date);
-                    firstPrice = sortedListings[0].price;
-                    lastPrice = sortedListings[sortedListings.length - 1].price;
-                }
-                
-                return {
-                    objectId: game.objectId,
-                    objectName: game.objectName,
-                    min: min,
-                    max: max,
-                    avg: avg,
-                    median: median,
-                    firstPrice: firstPrice,
-                    lastPrice: lastPrice,
-                    totalListings: game.totalListings,
-                    soldListings: game.soldListings,
-                    availableListings: game.totalListings - game.soldListings
-                };
-            });
+           const gameArray = Object.values(gameStats).map(game => {
+    const listings = game.listings;
+    let min = null, max = null, avg = null, median = null;
+    let firstPrice = null, lastPrice = null;
+    
+    if (listings.length > 0) {
+        const prices = listings.map(l => l.price);
+        
+        min = Math.min(...prices);
+        max = Math.max(...prices);
+        avg = prices.reduce((a, b) => a + b, 0) / prices.length;
+        
+        const sortedPrices = [...prices].sort((a, b) => a - b);
+        const mid = Math.floor(sortedPrices.length / 2);
+        median = sortedPrices.length % 2 === 0 
+            ? (sortedPrices[mid - 1] + sortedPrices[mid]) / 2 
+            : sortedPrices[mid];
+        
+        const sortedListings = [...listings].sort((a, b) => a.date - b.date);
+        firstPrice = sortedListings[0].price;
+        lastPrice = sortedListings[sortedListings.length - 1].price;
+    }
+    
+    // Get private data for price paid and own status
+    const pData = privateData.get(game.objectId);
+    const collData = collectionData[game.objectId];
+    const own = collData ? collData.own : 0;
+    
+    let pricePaid = null;
+    let margin = null;
+    
+    if (pData && pData.pricePaid) {
+        pricePaid = parseFloat(pData.pricePaid);
+        if (avg !== null) {
+            margin = avg - pricePaid;
+        }
+    } else if (own === 1) {
+        pricePaid = 0;
+        if (avg !== null) {
+            margin = avg;
+        }
+    }
+    
+    return {
+        objectId: game.objectId,
+        objectName: game.objectName,
+        min: min,
+        max: max,
+        avg: avg,
+        median: median,
+        firstPrice: firstPrice,
+        lastPrice: lastPrice,
+        pricePaid: pricePaid,
+        margin: margin,
+        own: own,
+        totalListings: game.totalListings,
+        soldListings: game.soldListings,
+        availableListings: game.totalListings - game.soldListings,
+        priceHistory: listings.length > 0 ? listings.map(l => l.price).join(',') : null
+    };
+});
             
             sortDashboardData(gameArray);
             
             let tableHtml = `
-                <table class="dashboard-table">
-                    <thead>
-                        <tr>
-                            <th onclick="sortDashboard('thumbnail')">IMG</th>
-                            <th onclick="sortDashboard('name')">Game</th>
-                            <th onclick="sortDashboard('first')">First</th>
-                            <th onclick="sortDashboard('last')">Last</th>
-                            <th onclick="sortDashboard('min')">Min</th>
-                            <th onclick="sortDashboard('avg')" class="sorted-desc">Avg</th>
-                            <th onclick="sortDashboard('max')">Max</th>
-                            <th onclick="sortDashboard('median')">Med</th>
-                            <th onclick="sortDashboard('sold')">Sold</th>
-                            <th onclick="sortDashboard('available')">Avail</th>
-                            <th onclick="sortDashboard('total')">Total</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-            `;
+    <table class="dashboard-table">
+        <thead>
+            <tr>
+                <th onclick="sortDashboard('thumbnail')">IMG</th>
+                <th onclick="sortDashboard('name')">Game</th>
+                <th onclick="sortDashboard('first')">First</th>
+                <th onclick="sortDashboard('last')">Last</th>
+                <th onclick="sortDashboard('min')">Min</th>
+                <th onclick="sortDashboard('avg')">Avg</th>
+                <th onclick="sortDashboard('max')">Max</th>
+                <th onclick="sortDashboard('median')">Med</th>
+                <th onclick="sortDashboard('pricePaid')">Paid</th>
+                <th onclick="sortDashboard('margin')" class="sorted-desc">Margin</th>
+                <th onclick="sortDashboard('sold')">Sold</th>
+                <th onclick="sortDashboard('available')">Avail</th>
+                <th onclick="sortDashboard('total')">Total</th>
+                <th>Trend</th>
+            </tr>
+        </thead>
+        <tbody>
+`;
             
-            gameArray.forEach(game => {
-                const thumbnailUrl = thumbnailCache[game.objectId] || '';
-                const formatPrice = (val) => val !== null ? `${val.toFixed(2)}` : '-';
-                
-                tableHtml += `
-                    <tr>
-                        <td><img src="${thumbnailUrl}" class="dashboard-thumbnail" data-objectid="${game.objectId}"></td>
-                        <td><div class="dashboard-game-name" title="${escapeHtml(game.objectName)}">${escapeHtml(game.objectName)}</div></td>
-                        <td class="dashboard-stat">${formatPrice(game.firstPrice)}</td>
-                        <td class="dashboard-stat">${formatPrice(game.lastPrice)}</td>
-                        <td class="dashboard-stat">${formatPrice(game.min)}</td>
-                        <td class="dashboard-stat">${formatPrice(game.avg)}</td>
-                        <td class="dashboard-stat">${formatPrice(game.max)}</td>
-                        <td class="dashboard-stat">${formatPrice(game.median)}</td>
-                        <td class="dashboard-count">${game.soldListings}</td>
-                        <td class="dashboard-count">${game.availableListings}</td>
-                        <td class="dashboard-count">${game.totalListings}</td>
-                    </tr>
-                `;
-            });
+          gameArray.forEach(game => {
+    const thumbnailUrl = thumbnailCache[game.objectId] || '';
+    const formatPrice = (val) => val !== null ? `${val.toFixed(2)}` : '-';
+    
+    // Format price paid column
+    let pricePaidDisplay = '-';
+    if (game.pricePaid !== null) {
+        pricePaidDisplay = formatPrice(game.pricePaid);
+    } else if (game.own === 0) {
+        pricePaidDisplay = '—';
+    }
+    
+    // Format margin column with color coding
+    let marginDisplay = '-';
+    let marginStyle = '';
+    if (game.margin !== null) {
+        marginDisplay = formatPrice(game.margin);
+        if (game.margin > 0) {
+            marginStyle = 'color: #34c759; font-weight: bold;';
+        } else if (game.margin < 0) {
+            marginStyle = 'color: #ff3b30;';
+        }
+    }
+    
+    // Create mini sparkline for price history
+    let sparkline = '';
+    if (game.priceHistory) {
+        const prices = game.priceHistory.split(',').map(p => parseFloat(p));
+        const minPrice = Math.min(...prices);
+        const maxPrice = Math.max(...prices);
+        const range = maxPrice - minPrice || 1;
+        
+        const width = 60;
+        const height = 20;
+        const points = prices.map((price, i) => {
+            const x = (i / (prices.length - 1)) * width;
+            const y = height - ((price - minPrice) / range) * height;
+            return `${x},${y}`;
+        }).join(' ');
+        
+        sparkline = `<svg width="${width}" height="${height}" style="vertical-align: middle;">
+            <polyline points="${points}" fill="none" stroke="#007aff" stroke-width="1.5"/>
+        </svg>`;
+    }
+    
+    tableHtml += `
+        <tr>
+            <td><img src="${thumbnailUrl}" class="dashboard-thumbnail" data-objectid="${game.objectId}"></td>
+            <td><div class="dashboard-game-name" title="${escapeHtml(game.objectName)}">${escapeHtml(game.objectName)}</div></td>
+            <td class="dashboard-stat">${formatPrice(game.firstPrice)}</td>
+            <td class="dashboard-stat">${formatPrice(game.lastPrice)}</td>
+            <td class="dashboard-stat">${formatPrice(game.min)}</td>
+            <td class="dashboard-stat">${formatPrice(game.avg)}</td>
+            <td class="dashboard-stat">${formatPrice(game.max)}</td>
+            <td class="dashboard-stat">${formatPrice(game.median)}</td>
+            <td class="dashboard-stat">${pricePaidDisplay}</td>
+            <td class="dashboard-stat" style="${marginStyle}">${marginDisplay}</td>
+            <td class="dashboard-count">${game.soldListings}</td>
+            <td class="dashboard-count">${game.availableListings}</td>
+            <td class="dashboard-count">${game.totalListings}</td>
+            <td>${sparkline}</td>
+        </tr>
+    `;
+});
             
             tableHtml += `
                     </tbody>
