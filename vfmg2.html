@@ -869,7 +869,7 @@
             { name: 'vfm22dtw.xml', label: 'DTW VFM 2022', geeklistId: '293627', category: 'dtw', year: '2022' }
         ];
         
-        // --- NEW: Total lists to load (VFM files + private_all.html) ---
+        // --- NEW: Total lists to load (VFM files + private_all.xml) ---
         let totalListsToLoad = xmlFiles.length + 1;
 
         xmlFiles.forEach(f => activeVFMFiles.add(f.name));
@@ -909,9 +909,9 @@
             return el ? el.textContent : null;
         }
 
-        // --- NEW: Function to load private_all.html data (Request 1) ---
+        // --- NEW: Function to load private_all.xml data (Request 1) ---
         async function loadPrivateData() {
-            const fileName = 'private_all.html';
+            const fileName = 'private_all.xml';
             try {
                 const response = await fetch(fileName + '?t=' + Date.now()); // Add cache buster
                 if (!response.ok) {
