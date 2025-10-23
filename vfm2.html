@@ -1801,10 +1801,10 @@ function calculateGlobalGameStats() {
                                     ${sold ? 'SOLD' : 'AVAILABLE'}
                                 </div>
                                 <div class="time-since">${timeSince}</div>
-                                <div class="card-stats">
-                                    <span class="card-stat">👍 ${thumbs}</span>
-                                    <span class="card-stat">💬 ${commentCount}</span>
-                                </div>
+                             <div class="card-stats">
+    <span class="card-stat">👍 ${thumbs}</span>
+    <span class="card-stat-link" onclick="showComments(${index})" style="cursor: pointer; padding-left: 8px;">💬 ${commentCount}</span>
+</div>
                             </div>
                         </div>
                     </div>
@@ -1820,7 +1820,7 @@ function calculateGlobalGameStats() {
                         <a href="${geeklistUrl}" target="_blank" class="btn btn-link" style="padding: 8px; font-size: 11px; flex: auto;">Listing</a>
                         <a href="${gameUrl}" target="_blank" class="btn btn-details" style="padding: 8px; font-size: 11px; flex: auto;">Game</a>
                         <button class="btn btn-details" onclick="showDetails(${index})" style="background: #ff9500; padding: 8px; font-size: 11px; flex: auto;">Details</button>
-                        <button class="btn btn-comments" onclick="showComments(${index})" style="padding: 8px; font-size: 11px; flex: auto;">Comments (${commentCount})</button>
+                      <button class="btn btn-comments" onclick="showComments(${index})" style="padding: 8px; font-size: 11px; flex: auto;">Comments (${commentCount})</button>
                     </div>
                 </div>
             `;
