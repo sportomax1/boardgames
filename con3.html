@@ -195,7 +195,8 @@
         const defaultVisibleFields = {
             players: true, playtime: true, checkouts: true, publisher: false, catalogNumber: false,
             location: true, dateCreated: true, age: false, gameWeight: false, bggRank: false,
-            dateUpdated: false, lastCheckinDate: false, lastCheckoutDate: false, desireToPlay: true, own: true
+            dateUpdated: false, lastCheckinDate: false, lastCheckoutDate: false, desireToPlay: true, own: true,
+            avgRating: true, bggRating: false, avgWeight: true, bestWith: true, recommendedWith: true
         };
         let visibleFields = { ...defaultVisibleFields };
 
@@ -220,7 +221,12 @@
             lastCheckinDate: { label: 'Last Check In', type: 'string', sortable: true },
             lastCheckoutDate: { label: 'Last Check Out', type: 'string', sortable: true },
             desireToPlay: { label: 'Desire to Play Score', type: 'number', sortable: true },
-            own: { label: 'Owned', type: 'boolean', sortable: true }
+            own: { label: 'Owned', type: 'boolean', sortable: true },
+            avgRating: { label: 'Avg Rating', type: 'number', sortable: true },
+            bggRating: { label: 'BGG Rating', type: 'number', sortable: true },
+            avgWeight: { label: 'Avg Weight', type: 'number', sortable: true },
+            bestWith: { label: 'Best With', type: 'string', sortable: false },
+            recommendedWith: { label: 'Recommended With', type: 'string', sortable: false }
         };
 
         const gamesGrid = document.getElementById('gamesGrid');
@@ -239,6 +245,16 @@
             loadingIndicator.classList.add('hidden');
             document.getElementById('error').classList.remove('hidden');
             document.getElementById('errorMessage').textContent = message;
+        }
+
+        function updateLoadingProgress(percent, text) {
+            const progressBar = document.getElementById('progressBar');
+            const loadingProgress = document.getElementById('loadingProgress');
+            const loadingText = document.getElementById('loadingText');
+            
+            if (progressBar) progressBar.style.width = `${percent}%`;
+            if (loadingProgress) loadingProgress.textContent = `${Math.round(percent)}%`;
+            if (loadingText && text) loadingText.textContent = text;
         }
 
         function getTextContent(node, tagName) {
@@ -418,17 +434,80 @@
             for (let i = 0; i < visibleIds.length; i += BATCH_SIZE) {
                 const batchIds = visibleIds.slice(i, i + BATCH_SIZE).join(',');
                 try {
-                    const response = await fetch(`${BGG_API_URL}?id=${batchIds}&type=boardgame`);
+                    const response = await fetch(`${BGG_API_URL}?id=${batchIds}&type=boardgame&stats=1`);
                     if (!response.ok) throw new Error(`BGG API error: ${response.status}`);
                     const xmlText = await response.text();
                     const xmlDoc = new DOMParser().parseFromString(xmlText, 'text/xml');
                     xmlDoc.querySelectorAll('item').forEach(item => {
                         const id = item.getAttribute('id');
                         const thumbnail = item.querySelector('thumbnail')?.textContent || '';
+                        
+                        
+                        
+                   const stats = item.querySelector('statistics ratings');
+                        const avgRating = stats?.querySelector('average')?.getAttribute('value') || '';
+                        const bggRating = stats?.querySelector('bayesaverage')?.getAttribute('value') || '';
+                        const avgWeight = stats?.querySelector('averageweight')?.getAttribute('value') || '';
+                        
+                        const ranks = item.querySelectorAll('statistics ratings ranks rank');
+                        let bggRank = '';
+                        ranks.forEach(rank => {
+                            if (rank.getAttribute('name') === 'boardgame') {
+                                bggRank = rank.getAttribute('value') || '';
+                            }
+                        });
+                        
+                        let bestWith = '';
+                        let recommendedWith = '';
+                        const pollResults = item.querySelectorAll('poll[name="suggested_numplayers"] results');
+                        
+                        let bestVotes = 0;
+                        let bestCount = '';
+                        const recommendedCounts = [];
+                        
+                        pollResults.forEach(result => {
+                            const numplayers = result.getAttribute('numplayers');
+                            const best = parseInt(result.querySelector('result[value="Best"]')?.getAttribute('numvotes') || '0');
+                            const recommended = parseInt(result.querySelector('result[value="Recommended"]')?.getAttribute('numvotes') || '0');
+                            const notRecommended = parseInt(result.querySelector('result[value="Not Recommended"]')?.getAttribute('numvotes') || '0');
+                            
+                            if (best > bestVotes) {
+                                bestVotes = best;
+                                bestCount = numplayers;
+                            }
+                            
+                            if (recommended > notRecommended && (best + recommended) > notRecommended) {
+                                recommendedCounts.push(numplayers);
+                            }
+                        });
+                        
+                        if (bestCount) {
+                            bestWith = bestCount.includes('+') ? `${bestCount}` : `${bestCount}p`;
+                        }
+                        
+                        if (recommendedCounts.length > 0) {
+                            const formatted = recommendedCounts.map(c => c.includes('+') ? c : `${c}p`);
+                            recommendedWith = formatted.join(', ');
+                        }
+                        
                         const game = allGames.find(g => g.bggId === id);
                         if (game) {
                             game.thumbnailUrl = thumbnail;
+                            game.avgRating = avgRating ? parseFloat(avgRating).toFixed(1) : '';
+                            game.bggRating = bggRating ? parseFloat(bggRating).toFixed(1) : '';
+                            game.avgWeight = avgWeight ? parseFloat(avgWeight).toFixed(2) : '';
+                            game.bestWith = bestWith;
+                            game.recommendedWith = recommendedWith;
+                            if (bggRank && bggRank !== 'Not Ranked') {
+                                game.bggRank = parseInt(bggRank);
+                            }
+                            
                             gameImages[id] = thumbnail;
+                            gameDetails[id] = { avgRating:
+
+
+
+                            
                             const imgElement = document.querySelector(`.game-card[data-bggid="${id}"] .game-thumbnail`);
                             if (imgElement && thumbnail) {
                                 imgElement.src = thumbnail;
