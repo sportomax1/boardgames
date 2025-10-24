@@ -476,11 +476,13 @@
                         });
                         
                         if (bestCount) {
-                            bestWith = bestCount.includes('+') ? `${bestCount}` : `${bestCount}p`;
+                           // bestWith = bestCount.includes('+') ? `${bestCount}` : `${bestCount}p`;
+                            bestWith = bestCount.includes('+') ? `${bestCount}` : `${bestCount}`;
                         }
                         
                         if (recommendedCounts.length > 0) {
-                            const formatted = recommendedCounts.map(c => c.includes('+') ? c : `${c}p`);
+                            //const formatted = recommendedCounts.map(c => c.includes('+') ? c : `${c}p`);
+                            const formatted = recommendedCounts.map(c => c.includes('+') ? c : `${c}`); // Removed 'p'
                             recommendedWith = formatted.join(', ');
                         }
                         
@@ -642,8 +644,8 @@
 
             if (visibleFields.desireToPlay) createDetailItem('❤️', game.desireToPlay || 'N/A');
             // --- FIX 2: Add missing BGG stats to card details ---
-            if (visibleFields.avgRating && game.avgRating) createDetailItem('⭐ Avg Rating', game.avgRating);
-            if (visibleFields.bggRating && game.bggRating) createDetailItem('📉 BGG Rating', game.bggRating);
+            if (visibleFields.avgRating && game.avgRating) createDetailItem('⭐ Avg', game.avgRating);
+            if (visibleFields.bggRating && game.bggRating) createDetailItem('📉 BGG', game.bggRating);
             if (visibleFields.avgWeight && game.avgWeight) createDetailItem('⚖️', game.avgWeight);
             if (visibleFields.bggRank && game.bggRank > 0) createDetailItem('🏆', `${game.bggRank}`);
             if (visibleFields.bestWith && game.bestWith) createDetailItem('🎯', game.bestWith);
@@ -807,8 +809,8 @@
                     sortByFieldSelect.appendChild(option);
                 }
             });
-            sortByFieldSelect.value = 'dateCreated';
-            sortBy = 'dateCreated';
+            sortByFieldSelect.value = 'desireToPlay';
+            sortBy = 'desireToPlay';
         }
 
         async function init() {
