@@ -190,7 +190,7 @@
             players: true, playtime: true, checkouts: true, publisher: false, catalogNumber: false,
             location: true, dateCreated: true, age: false, gameWeight: true, bggRank: true,
             dateUpdated: false, lastCheckinDate: false, lastCheckoutDate: false, desireToPlay: true, own: false,
-            avgRating: true, bggRating: true, avgWeight: true, bestWith: true, recommendedWith: true
+            avgRating: true, bggRating: true, avgWeight: true, bestWith: false, recommendedWith: false
         };
         let visibleFields = { ...defaultVisibleFields };
 
@@ -415,7 +415,14 @@
             return Array.from(gameMap.values());
         }
 
-        async function loadThumbnails() {
+
+
+
+
+
+
+        
+       async function loadThumbnails() {
             const visibleIds = Array.from(gamesGrid.querySelectorAll('.game-card'))
                 .map(el => el.dataset.bggid)
                 .filter(id => {
@@ -435,6 +442,11 @@
                     xmlDoc.querySelectorAll('item').forEach(item => {
                         const id = item.getAttribute('id');
                         const thumbnail = item.querySelector('thumbnail')?.textContent || '';
+                        
+                        // 🌟 Specific Change 1: Extract the primary name from the BGG API v2 XML
+                        const primaryNameNode = item.querySelector('name[type="primary"]');
+                        const bggApiName = primaryNameNode ? primaryNameNode.getAttribute('value') : '';
+                        // ----------------------------------------------------------------------
                         
                         
                         
@@ -488,6 +500,12 @@
                         
                         const game = allGames.find(g => g.bggId === id);
                         if (game) {
+                            // 🌟 Specific Change 2: Update the name in the JavaScript data array
+                            if (bggApiName) {
+                                game.name = bggApiName;
+                            }
+                            // -----------------------------------------------------------
+                            
                             game.thumbnailUrl = thumbnail;
                             game.avgRating = avgRating ? parseFloat(avgRating).toFixed(1) : '';
                             game.bggRating = bggRating ? parseFloat(bggRating).toFixed(1) : '';
@@ -499,8 +517,13 @@
                             }
                             
                             gameImages[id] = thumbnail;
-                            // The following line caused a Syntax Error because the object literal was not closed
-                            // gameDetails[id] = { avgRating:
+                            
+                            // 🌟 Specific Change 3: Update the name on the already rendered HTML card
+                            const nameElement = document.querySelector(`.game-card[data-bggid="${id}"] h3`);
+                            if (nameElement && bggApiName) {
+                                nameElement.textContent = bggApiName;
+                            }
+                            // -------------------------------------------------------------------
                             
                             const imgElement = document.querySelector(`.game-card[data-bggid="${id}"] .game-thumbnail`);
                             if (imgElement && thumbnail) {
