@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BGG Game Library</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --primary-color: #FFFFFF;
+            --secondary-color: #FAFAFA;
+            --bg-light: #f9fafb;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            min-height: 100vh;
+            padding: 1rem;
+            color: #000000;
+        }
+        .container { max-width: 1400px; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-light); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: #555; border-radius: 10px; } /* Darkened scrollbar for visibility */
+        ::-webkit-scrollbar-thumb:hover { background: #777; }
+        .game-card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+            border: 2px solid transparent;
+        }
+        .game-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        }
+        .game-image { background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); }
+        .loader-ring {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #3b82f6; /* Tailwind indigo-500 equivalent */
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .modal-backdrop { background-color: rgba(0, 0, 0, 0.5); }
+    </style>
+</head>
+<body class="p-4 sm:p-6 md:p-10">
+    <div class="container mx-auto">
+        <header class="text-center mb-4">
+            <h1 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-1">🎲 BGG Game Library</h1>
+        </header>
+
+        <div class="stats-container bg-white bg-opacity-95 p-4 rounded-xl shadow-xl mb-6">
+            
+            <div class="flex flex-wrap justify-around gap-4 mb-4 pb-4 border-b border-gray-200">
+                <div class="text-center p-2">
+                    <div class="text-3xl font-extrabold text-indigo-600" id="totalGames">-</div>
+                    <div class="text-xs text-gray-600">Total Games (Unique)</div>
+                </div>
+                <div class="text-center p-2">
+                    <div class="text-3xl font-extrabold text-green-600" id="availableGames">-</div>
+                    <div class="text-xs text-gray-600">Available</div>
+                </div>
+                <div class="text-center p-2">
+                    <div class="text-3xl font-extrabold text-red-600" id="checkedOutGames">-</div>
+                    <div class="text-xs text-gray-600">Checked Out</div>
+                </div>
+            </div>
+
+            <h2 class="text-base font-bold text-gray-700 mb-2 mt-2 border-b border-gray-100 pb-1">Desire to Play Score (Unique Games)</h2>
+            <div id="dtpMetrics" class="grid grid-cols-4 sm:grid-cols-7 gap-3 mb-4">
+                <div class="text-center p-2 bg-green-50 rounded-lg shadow-sm">
+                    <div class="text-2xl font-bold text-green-700" id="dtp-10">-</div>
+                    <div class="text-xs text-gray-500">Desire 10</div>
+                </div>
+                <div class="text-center p-2 bg-green-50 rounded-lg shadow-sm">
+                    <div class="text-2xl font-bold text-green-600" id="dtp-9">-</div>
+                    <div class="text-xs text-gray-500">Desire 9</div>
+                </div>
+                <div class="text-center p-2 bg-yellow-50 rounded-lg shadow-sm">
+                    <div class="text-2xl font-bold text-yellow-600" id="dtp-8">-</div>
+                    <div class="text-xs text-gray-500">Desire 8</div>
+                </div>
+                <div class="text-center p-2 bg-yellow-50 rounded-lg shadow-sm">
+                    <div class="text-2xl font-bold text-yellow-500" id="dtp-7">-</div>
+                    <div class="text-xs text-gray-500">Desire 7</div>
+                </div>
+                <div class="text-center p-2 bg-orange-50 rounded-lg shadow-sm">
+                    <div class="text-2xl font-bold text-orange-500" id="dtp-6">-</div>
+                    <div class="text-xs text-gray-500">Desire 6</div>
+                </div>
+                <div class="text-center p-2 bg-orange-50 rounded-lg shadow-sm">
+                    <div class="text-2xl font-bold text-red-500" id="dtp-5">-</div>
+                    <div class="text-xs text-gray-500">Desire 5</div>
+                </div>
+                <div class="text-center p-2 bg-gray-50 rounded-lg shadow-sm col-span-4 sm:col-span-1">
+                    <div class="text-2xl font-bold text-gray-500" id="dtp-0">-</div>
+                    <div class="text-xs text-gray-500">Desire 0</div>
+                </div>
+            </div>
+
+            <h2 class="text-base font-bold text-gray-700 mb-2 mt-2 border-b border-gray-100 pb-1">Recent Record Activity</h2>
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="col-span-2 lg:col-span-2">
+                    <h3 class="font-semibold text-sm text-gray-600 mb-2 border-b border-gray-100 pb-1">Date Updated (Games)</h3>
+                    <div id="dateUpdatedMetrics" class="grid grid-cols-2 gap-y-2 gap-x-4 text-sm">
+                        <div class="flex justify-between items-center text-gray-800"><span class="font-medium">Last Day:</span><span id="updated-day" class="font-bold text-indigo-500">-</span></div>
+                        <div class="flex justify-between items-center text-gray-800"><span class="font-medium">Last Week:</span><span id="updated-week" class="font-bold text-indigo-500">-</span></div>
+                        <div class="flex justify-between items-center text-gray-800"><span class="font-medium">Last Month:</span><span id="updated-month" class="font-bold text-indigo-500">-</span></div>
+                        <div class="flex justify-between items-center text-gray-800"><span class="font-medium">Last Year:</span><span id="updated-year" class="font-bold text-indigo-500">-</span></div>
+                    </div>
+                </div>
+                <div class="col-span-2 lg:col-span-2">
+                    <h3 class="font-semibold text-sm text-gray-600 mb-2 border-b border-gray-100 pb-1">Date Created (Games)</h3>
+                    <div id="dateCreatedMetrics" class="grid grid-cols-2 gap-y-2 gap-x-4 text-sm">
+                        <div class="flex justify-between items-center text-gray-800"><span class="font-medium">Last Day:</span><span id="created-day" class="font-bold text-indigo-500">-</span></div>
+                        <div class="flex justify-between items-center text-gray-800"><span class="font-medium">Last Week:</span><span id="created-week" class="font-bold text-indigo-500">-</span></div>
+                        <div class="flex justify-between items-center text-gray-800"><span class="font-medium">Last Month:</span><span id="created-month" class="font-bold text-indigo-500">-</span></div>
+                        <div class="flex justify-between items-center text-gray-800"><span class="font-medium">Last Year:</span><span id="created-year" class="font-bold text-indigo-500">-</span></div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        <div class="controls bg-white bg-opacity-95 p-3 rounded-lg shadow-lg mb-4">
+            <div class="flex flex-col md:flex-row gap-4 items-end">
+                <input type="text" id="searchInput" placeholder="🔍 Search by name..." class="flex-1 w-full md:w-auto p-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150">
+                <select type="text" id="statusFilter" class="p-3 border-2 border-gray-300 rounded-lg transition duration-150">
+                    <option value="all">All Status</option>
+                    <option value="available">Available</option>
+                    <option value="checked-out">Checked Out</option>
+                </select>
+                <select type="text" id="sortByField" class="p-3 border-2 border-gray-300 rounded-lg transition duration-150"></select>
+                <button id="sortDirectionToggle" class="p-3 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition duration-150 font-bold flex items-center justify-center">
+                    <span id="sortDirectionIcon">↓</span>
+                </button>
+                <button id="openSettingsButton" class="p-3 bg-gray-700 text-white rounded-lg hover:bg-gray-800 transition duration-150 font-bold flex items-center justify-center">⚙️ Fields</button>
+            </div>
+        </div>
+
+        <div id="gamesGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
+
+        <div id="loading" class="text-center py-8 text-white text-lg font-semibold">
+            <div class="flex justify-center items-center space-x-2">
+                <div class="loader-ring"></div>
+                <span>Loading game library...</span>
+            </div>
+        </div>
+
+        <div id="noMoreGames" class="text-center py-8 text-white opacity-75 text-lg font-semibold hidden">End of Library.</div>
+
+        <div id="error" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl relative mt-8 hidden" role="alert">
+            <strong class="font-bold">Error:</strong>
+            <span class="block sm:inline" id="errorMessage"></span>
+        </div>
+    </div>
+
+    <div id="settingsModal" class="fixed inset-0 z-50 flex items-center justify-center modal-backdrop hidden">
+        <div class="bg-white rounded-xl shadow-2xl p-6 w-11/12 max-w-md transform transition-all duration-300 scale-95 opacity-0" id="settingsContent">
+            <h2 class="text-2xl font-bold mb-4 text-gray-800">Card Display Fields</h2>
+            <p class="text-sm text-gray-500 mb-4">Select the details you want to see on each game card.</p>
+            <div id="fieldCheckboxes" class="grid grid-cols-2 gap-3 mb-6"></div>
+            <button id="closeSettingsButton" class="w-full py-3 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 font-bold transition duration-150">Done</button>
+        </div>
+    </div>
+
+    <script>
+        const BGG_API_URL = 'https://boardgamegeek.com/xmlapi2/thing';
+        const COLLECTION_API_URL = 'https://boardgamegeek.com/xmlapi2/collection?username=sportomax&stats=1';
+        const XML_FILE = 'bggcon.xml';
+        const FALLBACK_XML_FILE = 'private_all.xml';
+        const GAMES_PER_PAGE = 20;
+        const RETRY_DELAYS = [3000, 6000, 10000];
+        
+        // Date constants for metric calculations (in milliseconds)
+        const ONE_DAY = 24 * 60 * 60 * 1000;
+        const ONE_WEEK = 7 * ONE_DAY;
+        const ONE_MONTH = 30 * ONE_DAY; // Approximation for month
+        const ONE_YEAR = 365 * ONE_DAY; // Approximation for year
+
+        let allGames = [], filteredGames = [], visibleGames = [], gameImages = {};
+        let currentPage = 0, isLoading = false, isLastPage = false;
+        let sortDirection = 'desc', sortBy = 'dateCreated';
+
+        const defaultVisibleFields = {
+            players: true, playtime: true, checkouts: true, publisher: false, catalogNumber: false,
+            location: true, dateCreated: true, age: false, gameWeight: false, bggRank: false,
+            dateUpdated: false, lastCheckinDate: false, lastCheckoutDate: false, desireToPlay: true, own: true,
+            avgRating: true, bggRating: false, avgWeight: true, bestWith: true, recommendedWith: true
+        };
+        let visibleFields = { ...defaultVisibleFields };
+
+        const allFields = {
+            name: { label: 'Name', type: 'string', alwaysVisible: true, sortable: true },
+            lastUpdated: { label: 'Last Update', type: 'date', sortable: true },
+            isCheckedOut: { label: 'Status', type: 'boolean', alwaysVisible: true, sortable: true },
+            condition: { label: 'Condition', type: 'string', sortable: true },
+            minPlayers: { label: 'Min Players', type: 'number', sortable: true },
+            maxPlayers: { label: 'Max Players', type: 'number', sortable: true },
+            minPlayTime: { label: 'Min Time (min)', type: 'number', sortable: true },
+            maxPlayTime: { label: 'Max Time (min)', type: 'number', sortable: true },
+            publisher: { label: 'Publisher', type: 'string', sortable: true },
+            checkoutCount: { label: 'Checkouts', type: 'number', sortable: true },
+            catalogNumber: { label: 'Catalog #', type: 'string', sortable: true },
+            location: { label: 'Location Code', type: 'string', sortable: true },
+            age: { label: 'Min Age', type: 'number', sortable: true },
+            gameWeight: { label: 'Weight (0-5)', type: 'number', sortable: true },
+            bggRank: { label: 'BGG Rank', type: 'number', sortable: true },
+            dateCreated: { label: 'Date Created', type: 'string', sortable: true },
+            dateUpdated: { label: 'Last Updated', type: 'string', sortable: true },
+            lastCheckinDate: { label: 'Last Check In', type: 'string', sortable: true },
+            lastCheckoutDate: { label: 'Last Check Out', type: 'string', sortable: true },
+            desireToPlay: { label: 'Desire to Play Score', type: 'number', sortable: true, defaultSort: true },
+            own: { label: 'Owned', type: 'boolean', sortable: true },
+            avgRating: { label: 'Avg Rating', type: 'number', sortable: true },
+            bggRating: { label: 'BGG Rating', type: 'number', sortable: true },
+            avgWeight: { label: 'Avg Weight', type: 'number', sortable: true },
+            bestWith: { label: 'Best With', type: 'string', sortable: false },
+            recommendedWith: { label: 'Recommended With', type: 'string', sortable: false }
+        };
+
+        const gamesGrid = document.getElementById('gamesGrid');
+        const loadingIndicator = document.getElementById('loading');
+        const noMoreGamesIndicator = document.getElementById('noMoreGames');
+        const searchInput = document.getElementById('searchInput');
+        const statusFilter = document.getElementById('statusFilter');
+        const sortByFieldSelect = document.getElementById('sortByField');
+        const sortDirectionToggle = document.getElementById('sortDirectionToggle');
+        const sortDirectionIcon = document.getElementById('sortDirectionIcon');
+        const settingsModal = document.getElementById('settingsModal');
+        const settingsContent = document.getElementById('settingsContent');
+        const fieldCheckboxes = document.getElementById('fieldCheckboxes');
+
+        function showError(message) {
+            loadingIndicator.classList.add('hidden');
+            document.getElementById('error').classList.remove('hidden');
+            document.getElementById('errorMessage').textContent = message;
+        }
+
+        function updateLoadingProgress(percent, text) {
+            const progressBar = document.getElementById('progressBar');
+            const loadingProgress = document.getElementById('loadingProgress');
+            const loadingText = document.getElementById('loadingText');
+            
+            if (progressBar) progressBar.style.width = `${percent}%`;
+            if (loadingProgress) loadingProgress.textContent = `${Math.round(percent)}%`;
+            if (loadingText && text) loadingText.textContent = text;
+        }
+
+        function getTextContent(node, tagName) {
+            const element = node.getElementsByTagName(tagName)[0];
+            return element ? element.textContent.trim() : '';
+        }
+
+        function calculateDTP(wantToPlay, wishlist, wishlistPriority) {
+            // DTP = 0 if not marked as 'Want To Play'
+            if (wantToPlay === 0) return 0;
+
+            // Base score for 'Want To Play'
+            let score = 5; 
+            
+            // Add bonus based on Wishlist Priority (1 is max bonus, 5 is min bonus)
+            if (wishlist === 1 && wishlistPriority >= 1 && wishlistPriority <= 5) {
+                // Priority 1 gives +5 (6-1), Priority 5 gives +1 (6-5)
+                score += 6 - wishlistPriority;
+            }
+
+            // Clamp score to max 10
+            return Math.min(score, 10);
+        }
+
+        async function fetchXML(url) {
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const xmlText = await response.text();
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+                if (xmlDoc.getElementsByTagName('parsererror').length > 0) {
+                    throw new Error('XML Parsing Error: Invalid structure.');
+                }
+                return xmlDoc;
+            } catch (error) {
+                console.error(`Error fetching XML from ${url}:`, error);
+                throw error;
+            }
+        }
+
+        async function loadCollectionData() {
+            const dtpData = {};
+            try {
+                const xmlDoc = await fetchXML(COLLECTION_API_URL);
+                const items = xmlDoc.getElementsByTagName('item');
+                for (let item of items) {
+                    const objectId = item.getAttribute('objectid');
+                    const status = item.getElementsByTagName('status')[0];
+                    if (objectId && status) {
+                        const wishlistPriority = parseInt(status.getAttribute('wishlistpriority')) || 0;
+                        const wantToPlay = parseInt(status.getAttribute('wanttoplay')) || 0;
+                        const wishlist = parseInt(status.getAttribute('wishlist')) || 0;
+
+                        dtpData[objectId] = {
+                            own: parseInt(status.getAttribute('own')) || 0,
+                            wantToPlay: wantToPlay,
+                            wishlist: wishlist,
+                            wishlistPriority: wishlistPriority
+                        };
+                        // FIXED: Corrected the case-sensitivity issue in the property lookup for wishlistPriority
+                        dtpData[objectId].desireToPlay = calculateDTP(wantToPlay, wishlist, wishlistPriority);
+                    }
+                }
+                console.log('Successfully loaded collection data from BGG API.');
+                return dtpData;
+            } catch (error) {
+                console.error('Error loading BGG collection data:', error);
+                throw error;
+            }
+        }
+
+        async function loadDataWithRetry() {
+            let lastError = null;
+            for (let i = 0; i < RETRY_DELAYS.length; i++) {
+                try {
+                    return await loadCollectionData();
+                } catch (error) {
+                    lastError = error;
+                    console.warn(`API failed on attempt ${i + 1}. Retrying in ${RETRY_DELAYS[i] / 1000}s.`);
+                    if (i < RETRY_DELAYS.length - 1) {
+                        await new Promise(resolve => setTimeout(resolve, RETRY_DELAYS[i]));
+                    }
+                }
+            }
+            console.log('API failed. Falling back to local XML.');
+            try {
+                const xmlDoc = await fetchXML(FALLBACK_XML_FILE);
+                const dtpData = {};
+                const games = xmlDoc.getElementsByTagName('game');
+                for (let game of games) {
+                    const objectId = getTextContent(game, 'objectid');
+                    if (objectId) {
+                        const wtp = parseInt(getTextContent(game, 'wanttoplay')) || 0;
+                        const wl = parseInt(getTextContent(game, 'wishlist')) || 0;
+                        const wlp = parseInt(getTextContent(game, 'wishlistpriority')) || 0;
+
+                        dtpData[objectId] = {
+                            own: parseInt(getTextContent(game, 'own')) || 0,
+                            wantToPlay: wtp,
+                            wishlist: wl,
+                            wishlistPriority: wlp,
+                            desireToPlay: calculateDTP(wtp, wl, wlp)
+                        };
+                    }
+                }
+                console.log('Successfully loaded fallback XML.');
+                return dtpData;
+            } catch (fallbackError) {
+                showError(`Failed to load collection data. API error: ${lastError?.message || 'N/A'}, Fallback error: ${fallbackError.message}`);
+                return {};
+            }
+        }
+
+        async function loadGames() {
+            const xmlDoc = await fetchXML(XML_FILE);
+            if (!xmlDoc) return [];
+            const gameNodes = xmlDoc.getElementsByTagName('game');
+            const totalNodes = gameNodes.length;
+            const gameMap = new Map();
+            
+            for (let i = 0; i < totalNodes; i++) {
+                const gameNode = gameNodes[i];
+                // syntheticTimestamp is not used for sorting after collection data is merged, so it can be simplified or removed if preferred.
+                const syntheticTimestamp = Date.now() - (totalNodes - i) * 3600000;
+                const gameName = getTextContent(gameNode, 'name');
+                const bggId = getTextContent(gameNode, 'bgg_id');
+                const isCheckedOut = getTextContent(gameNode, 'is_checked_out') === '1';
+                
+                // For 'dateCreated' and 'dateUpdated', the value is a string like "YYYY-MM-DD hh:mm:ss"
+                const gameData = {
+                    bggId: bggId, name: gameName,
+                    checkoutCount: parseInt(getTextContent(gameNode, 'checkout_count')) || 0,
+                    isCheckedOut: isCheckedOut,
+                    maxPlayers: parseInt(getTextContent(gameNode, 'max_players')) || 0,
+                    minPlayers: parseInt(getTextContent(gameNode, 'min_players')) || 0,
+                    maxPlayTime: parseInt(getTextContent(gameNode, 'max_play_time')) || 0,
+                    minPlayTime: parseInt(getTextContent(gameNode, 'min_play_time')) || 0,
+                    publisher: getTextContent(gameNode, 'publisher_name'),
+                    condition: getTextContent(gameNode, 'overall_condition'),
+                    catalogNumber: getTextContent(gameNode, 'catalog_number'),
+                    location: getTextContent(gameNode, 'location'),
+                    lastUpdated: syntheticTimestamp, // This is the internal JS timestamp used for sorting fallback
+                    age: parseInt(getTextContent(gameNode, 'age')) || 0,
+                    gameWeight: parseFloat(getTextContent(gameNode, 'game_weight')) || 0,
+                    bggRank: parseInt(getTextContent(gameNode, 'bgg_rank')) || 0,
+                    dateCreated: getTextContent(gameNode, 'date_created'),
+                    dateUpdated: getTextContent(gameNode, 'date_updated'),
+                    lastCheckinDate: getTextContent(gameNode, 'last_checkin_date'),
+                    lastCheckoutDate: getTextContent(gameNode, 'last_checkout_date'),
+                    own: 0, wantToPlay: 0, wishlist: 0, wishlistPriority: 0, desireToPlay: 0,
+                    thumbnailUrl: null, copyCount: 1
+                };
+                
+                if (gameMap.has(gameName)) {
+                    const existing = gameMap.get(gameName);
+                    existing.copyCount++;
+                    if (isCheckedOut) existing.isCheckedOut = true;
+                    existing.checkoutCount += gameData.checkoutCount;
+                } else {
+                    gameMap.set(gameName, gameData);
+                }
+            }
+            return Array.from(gameMap.values());
+        }
+
+        async function loadThumbnails() {
+            const visibleIds = Array.from(gamesGrid.querySelectorAll('.game-card'))
+                .map(el => el.dataset.bggid)
+                .filter(id => {
+                    const game = allGames.find(g => g.bggId === id);
+                    return id && game && !game.thumbnailUrl;
+                });
+            if (!visibleIds.length) return;
+
+            const BATCH_SIZE = 20;
+            for (let i = 0; i < visibleIds.length; i += BATCH_SIZE) {
+                const batchIds = visibleIds.slice(i, i + BATCH_SIZE).join(',');
+                try {
+                    const response = await fetch(`${BGG_API_URL}?id=${batchIds}&type=boardgame&stats=1`);
+                    if (!response.ok) throw new Error(`BGG API error: ${response.status}`);
+                    const xmlText = await response.text();
+                    const xmlDoc = new DOMParser().parseFromString(xmlText, 'text/xml');
+                    xmlDoc.querySelectorAll('item').forEach(item => {
+                        const id = item.getAttribute('id');
+                        const thumbnail = item.querySelector('thumbnail')?.textContent || '';
+                        
+                        
+                        
+                   const stats = item.querySelector('statistics ratings');
+                        const avgRating = stats?.querySelector('average')?.getAttribute('value') || '';
+                        const bggRating = stats?.querySelector('bayesaverage')?.getAttribute('value') || '';
+                        const avgWeight = stats?.querySelector('averageweight')?.getAttribute('value') || '';
+                        
+                        const ranks = item.querySelectorAll('statistics ratings ranks rank');
+                        let bggRank = '';
+                        ranks.forEach(rank => {
+                            if (rank.getAttribute('name') === 'boardgame') {
+                                bggRank = rank.getAttribute('value') || '';
+                            }
+                        });
+                        
+                        let bestWith = '';
+                        let recommendedWith = '';
+                        const pollResults = item.querySelectorAll('poll[name="suggested_numplayers"] results');
+                        
+                        let bestVotes = 0;
+                        let bestCount = '';
+                        const recommendedCounts = [];
+                        
+                        pollResults.forEach(result => {
+                            const numplayers = result.getAttribute('numplayers');
+                            const best = parseInt(result.querySelector('result[value="Best"]')?.getAttribute('numvotes') || '0');
+                            const recommended = parseInt(result.querySelector('result[value="Recommended"]')?.getAttribute('numvotes') || '0');
+                            const notRecommended = parseInt(result.querySelector('result[value="Not Recommended"]')?.getAttribute('numvotes') || '0');
+                            
+                            if (best > bestVotes) {
+                                bestVotes = best;
+                                bestCount = numplayers;
+                            }
+                            
+                            if (recommended > notRecommended && (best + recommended) > notRecommended) {
+                                recommendedCounts.push(numplayers);
+                            }
+                        });
+                        
+                        if (bestCount) {
+                            bestWith = bestCount.includes('+') ? `${bestCount}` : `${bestCount}p`;
+                        }
+                        
+                        if (recommendedCounts.length > 0) {
+                            const formatted = recommendedCounts.map(c => c.includes('+') ? c : `${c}p`);
+                            recommendedWith = formatted.join(', ');
+                        }
+                        
+                        const game = allGames.find(g => g.bggId === id);
+                        if (game) {
+                            game.thumbnailUrl = thumbnail;
+                            game.avgRating = avgRating ? parseFloat(avgRating).toFixed(1) : '';
+                            game.bggRating = bggRating ? parseFloat(bggRating).toFixed(1) : '';
+                            game.avgWeight = avgWeight ? parseFloat(avgWeight).toFixed(2) : '';
+                            game.bestWith = bestWith;
+                            game.recommendedWith = recommendedWith;
+                            if (bggRank && bggRank !== 'Not Ranked') {
+                                game.bggRank = parseInt(bggRank);
+                            }
+                            
+                            gameImages[id] = thumbnail;
+                            // The following line caused a Syntax Error because the object literal was not closed
+                            // gameDetails[id] = { avgRating:
+                            
+                            const imgElement = document.querySelector(`.game-card[data-bggid="${id}"] .game-thumbnail`);
+                            if (imgElement && thumbnail) {
+                                imgElement.src = thumbnail;
+                                imgElement.classList.remove('hidden');
+                                imgElement.parentElement.querySelector('.placeholder-icon')?.classList.add('hidden');
+                            }
+                        }
+                    });
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                } catch (error) {
+                    console.error('Error fetching thumbnails:', error);
+                }
+            }
+        }
+
+        function applyFiltersAndSort() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const status = statusFilter.value;
+            filteredGames = allGames.filter(game => {
+                const matchesSearch = game.name.toLowerCase().includes(searchTerm);
+                const matchesStatus = status === 'all' || (status === 'available' && !game.isCheckedOut) || (status === 'checked-out' && game.isCheckedOut);
+                return matchesSearch && matchesStatus;
+            });
+            filteredGames.sort((a, b) => {
+                let valA = a[sortBy], valB = b[sortBy];
+                
+                // Handle date/time comparisons for date fields
+                if (['dateCreated', 'dateUpdated', 'lastCheckinDate', 'lastCheckoutDate'].includes(sortBy)) {
+                    valA = new Date(valA).getTime() || 0;
+                    valB = new Date(valB).getTime() || 0;
+                }
+                
+                let comparison = typeof valA === 'string' ? valA.localeCompare(valB) : valA - valB;
+                return sortDirection === 'asc' ? comparison : -comparison;
+            });
+            currentPage = 0;
+            isLastPage = false;
+            gamesGrid.innerHTML = '';
+            noMoreGamesIndicator.classList.add('hidden');
+            loadNextPage();
+            updateStats();
+        }
+
+        function loadNextPage() {
+            if (isLoading || isLastPage) return;
+            isLoading = true;
+            loadingIndicator.classList.remove('hidden');
+
+            const start = currentPage * GAMES_PER_PAGE;
+            // FIX: Corrected GAMES_PER_PER_PAGE to GAMES_PER_PAGE
+            const end = start + GAMES_PER_PAGE; 
+            visibleGames = filteredGames.slice(0, end);
+            if (visibleGames.length === filteredGames.length) {
+                isLastPage = true;
+                noMoreGamesIndicator.classList.remove('hidden');
+            }
+
+            filteredGames.slice(start, end).forEach(game => {
+                gamesGrid.appendChild(createGameCardElement(game));
+            });
+
+            currentPage++;
+            if (gamesGrid.lastElementChild) {
+                observer.unobserve(observerTarget);
+                observerTarget = gamesGrid.lastElementChild;
+                observer.observe(observerTarget);
+            }
+
+            isLoading = false;
+            loadingIndicator.classList.add('hidden');
+            loadThumbnails();
+        }
+
+        const observer = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting) loadNextPage();
+        }, { root: null, rootMargin: '100px', threshold: 0.1 });
+
+        let observerTarget = loadingIndicator;
+        observer.observe(observerTarget);
+
+        function createGameCardElement(game) {
+            const imageUrl = gameImages[game.bggId] || game.thumbnailUrl;
+            const dtp = game.desireToPlay;
+
+            const card = document.createElement('div');
+            card.className = `game-card bg-white rounded-xl shadow-lg hover:shadow-xl cursor-pointer flex flex-row p-3 space-x-3 items-start`;
+            if (dtp >= 5) {
+                // Hue varies from green (120) for high DTP to yellow/orange (60/30) for mid DTP
+                const hue = Math.max(0, Math.min(120, (dtp - 5) * 24)); 
+                card.style.border = `4px solid hsl(${hue}, 80%, 45%)`;
+                card.style.boxShadow = `0 0 10px hsl(${hue}, 80%, 45%, 0.4)`;
+            }
+
+            card.id = `card-${game.bggId}`;
+            card.dataset.bggid = game.bggId;
+
+            const copyCount = game.copyCount > 1 ? `<span class="text-xs font-medium text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded-full">×${game.copyCount}</span>` : '';
+
+            card.innerHTML = `
+                <div class="game-image flex-shrink-0 h-28 w-28 flex items-center justify-center text-gray-400 rounded-lg overflow-hidden">
+                    <img id="img-${game.bggId}" src="${imageUrl || 'placeholder'}" alt="${game.name} thumbnail"
+                         class="game-thumbnail ${imageUrl ? '' : 'hidden'} w-full h-full object-cover"
+                         onerror="this.parentElement.querySelector('.placeholder-icon').classList.remove('hidden'); this.classList.add('hidden');">
+                    <span class="placeholder-icon ${imageUrl ? 'hidden' : 'text-4xl text-gray-500'}">🎲</span>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <h3 class="text-lg font-bold text-gray-900 mb-1 break-words">${game.name}</h3>
+                    <div class="flex items-center flex-wrap gap-1 mb-2 text-xs sm:text-sm">
+                        <span class="px-2 py-0.5 rounded-full text-xs font-semibold ${game.isCheckedOut ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}">
+                            ${game.isCheckedOut ? '📤' : '✅'}
+                        </span>
+                        ${copyCount}
+                    </div>
+                    <div class="grid grid-cols-2 gap-x-2 gap-y-1 text-xs text-gray-600" id="details-${game.bggId}"></div>
+                </div>
+            `;
+            renderDetails(card.querySelector(`#details-${game.bggId}`), game);
+            return card;
+        }
+
+        function renderDetails(container, game) {
+            container.innerHTML = '';
+            const createDetailItem = (label, value) => {
+                if (!value && value !== 0) return;
+                // Extracts the date part if the value is a full timestamp string
+                let displayValue = typeof value === 'string' && (value.includes('-') && value.includes(':')) ? value.split(' ')[0] : value;
+                const item = document.createElement('div');
+                
+                // Class for left-aligned row layout
+                item.className = 'flex flex-row items-center space-x-1'; 
+                
+                // HTML structure for label and value on the same line, left-aligned
+                item.innerHTML = `
+                    <span class="font-medium text-gray-800 flex-shrink-0">${label}</span>
+                    <span class="text-xs font-bold text-gray-600">${displayValue}</span>
+                `;
+                
+                container.appendChild(item);
+            };
+
+            if (visibleFields.desireToPlay) createDetailItem('❤️', game.desireToPlay || 'N/A');
+            // --- FIX 2: Add missing BGG stats to card details ---
+            if (visibleFields.avgRating && game.avgRating) createDetailItem('⭐ Avg Rating', game.avgRating);
+            if (visibleFields.bggRating && game.bggRating) createDetailItem('📉 BGG Rating', game.bggRating);
+            if (visibleFields.avgWeight && game.avgWeight) createDetailItem('⚖️ Weight', game.avgWeight);
+            if (visibleFields.bggRank && game.bggRank > 0) createDetailItem('⭐ BGG Rank', `#${game.bggRank}`);
+            if (visibleFields.bestWith && game.bestWith) createDetailItem('👥 Best', game.bestWith);
+            if (visibleFields.recommendedWith && game.recommendedWith) createDetailItem('👍 Rec', game.recommendedWith);
+            // ---------------------------------------------------
+            if (visibleFields.players) createDetailItem('👥', `${game.minPlayers}-${game.maxPlayers}`);
+            if (visibleFields.playtime) createDetailItem('⏱️', `${game.minPlayTime}-${game.maxPlayTime} min`);
+            if (visibleFields.checkouts) createDetailItem('🔄', game.checkoutCount);
+            if (visibleFields.age && game.age > 0) createDetailItem('👶', `${game.age}+`);
+            if (visibleFields.gameWeight && game.gameWeight > 0) createDetailItem('⚖️', game.gameWeight.toFixed(1));
+            // Removed duplicate bggRank check here
+            if (visibleFields.location && game.location) createDetailItem('📍', game.location);
+            if (visibleFields.publisher && game.publisher) createDetailItem('🏢', game.publisher);
+            if (visibleFields.catalogNumber && game.catalogNumber) createDetailItem('📦 Catalog #', game.catalogNumber);
+            if (visibleFields.dateCreated && game.dateCreated) createDetailItem('📅', game.dateCreated);
+            if (visibleFields.dateUpdated && game.dateUpdated) createDetailItem('✏️', game.dateUpdated);
+            if (visibleFields.lastCheckinDate && game.lastCheckinDate) createDetailItem('📥 Last Check In', game.lastCheckinDate);
+            if (visibleFields.lastCheckoutDate && game.lastCheckoutDate) createDetailItem('📤 Last Check Out', game.lastCheckoutDate);
+        }
+
+        function refreshVisibleCardDetails() {
+            visibleGames.forEach(game => {
+                const card = document.getElementById(`card-${game.bggId}`);
+                if (card) card.replaceWith(createGameCardElement(game));
+            });
+            loadThumbnails();
+        }
+
+        function updateStats() {
+            const now = Date.now();
+            
+            // --- 1. Core Stats ---
+            document.getElementById('totalGames').textContent = allGames.length;
+            document.getElementById('availableGames').textContent = allGames.filter(g => !g.isCheckedOut).length;
+            document.getElementById('checkedOutGames').textContent = allGames.filter(g => g.isCheckedOut).length;
+            
+            // --- 2. DTP Stats ---
+            const dtpCounts = { 10: 0, 9: 0, 8: 0, 7: 0, 6: 0, 5: 0, 0: 0 };
+            allGames.forEach(game => {
+                const dtp = game.desireToPlay || 0;
+                if (dtp >= 10) dtpCounts[10]++;
+                else if (dtp >= 9) dtpCounts[9]++;
+                else if (dtp >= 8) dtpCounts[8]++;
+                else if (dtp >= 7) dtpCounts[7]++;
+                else if (dtp >= 6) dtpCounts[6]++;
+                else if (dtp >= 5) dtpCounts[5]++;
+                else dtpCounts[0]++; // 0 or not found
+            });
+
+            document.getElementById('dtp-10').textContent = dtpCounts[10];
+            document.getElementById('dtp-9').textContent = dtpCounts[9];
+            document.getElementById('dtp-8').textContent = dtpCounts[8];
+            document.getElementById('dtp-7').textContent = dtpCounts[7];
+            document.getElementById('dtp-6').textContent = dtpCounts[6];
+            document.getElementById('dtp-5').textContent = dtpCounts[5];
+            document.getElementById('dtp-0').textContent = dtpCounts[0];
+
+            // --- 3. Date Stats ---
+            const dateMetrics = { created: { day: 0, week: 0, month: 0, year: 0 }, updated: { day: 0, week: 0, month: 0, year: 0 } };
+
+            const checkDate = (timestamp, interval) => {
+                const diff = now - timestamp;
+                if (interval === 'day') return diff < ONE_DAY;
+                if (interval === 'week') return diff < ONE_WEEK;
+                if (interval === 'month') return diff < ONE_MONTH;
+                if (interval === 'year') return diff < ONE_YEAR;
+                return false;
+            };
+
+            allGames.forEach(game => {
+                const createdDate = game.dateCreated ? new Date(game.dateCreated).getTime() : 0;
+                const updatedDate = game.dateUpdated ? new Date(game.dateUpdated).getTime() : 0;
+
+                ['day', 'week', 'month', 'year'].forEach(interval => {
+                    if (createdDate > 0 && checkDate(createdDate, interval)) {
+                        dateMetrics.created[interval]++;
+                    }
+                    if (updatedDate > 0 && checkDate(updatedDate, interval)) {
+                        dateMetrics.updated[interval]++;
+                    }
+                });
+            });
+            
+            // Update Date Created Elements
+            document.getElementById('created-day').textContent = dateMetrics.created.day;
+            document.getElementById('created-week').textContent = dateMetrics.created.week;
+            document.getElementById('created-month').textContent = dateMetrics.created.month;
+            document.getElementById('created-year').textContent = dateMetrics.created.year;
+
+            // Update Date Updated Elements
+            document.getElementById('updated-day').textContent = dateMetrics.updated.day;
+            document.getElementById('updated-week').textContent = dateMetrics.updated.week;
+            document.getElementById('updated-month').textContent = dateMetrics.updated.month;
+            document.getElementById('updated-year').textContent = dateMetrics.updated.year;
+        }
+
+        function setupSettingsModal() {
+            fieldCheckboxes.innerHTML = '';
+            Object.keys(defaultVisibleFields).forEach(key => {
+                const fieldData = allFields[key];
+                if (!fieldData) return;
+                const div = document.createElement('div');
+                div.className = 'flex items-center space-x-2';
+                div.innerHTML = `
+                    <input type="checkbox" id="toggle-${key}" data-field="${key}" ${visibleFields[key] ? 'checked' : ''} 
+                           class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+                    <label for="toggle-${key}" class="text-sm font-medium text-gray-700">${fieldData.label}</label>
+                `;
+                fieldCheckboxes.appendChild(div);
+                div.querySelector('input').addEventListener('change', (e) => {
+                    visibleFields[key] = e.target.checked;
+                    refreshVisibleCardDetails();
+                });
+            });
+
+            document.getElementById('openSettingsButton').addEventListener('click', () => {
+                settingsModal.classList.remove('hidden');
+                settingsContent.classList.remove('scale-95', 'opacity-0');
+                settingsContent.classList.add('scale-100', 'opacity-100');
+            });
+
+            document.getElementById('closeSettingsButton').addEventListener('click', () => {
+                settingsContent.classList.remove('scale-100', 'opacity-100');
+                settingsContent.classList.add('scale-95', 'opacity-0');
+                setTimeout(() => settingsModal.classList.add('hidden'), 300);
+            });
+        }
+
+        function setupEventListeners() {
+            let debounceTimer;
+            searchInput.addEventListener('input', () => {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(applyFiltersAndSort, 300);
+            });
+            statusFilter.addEventListener('change', applyFiltersAndSort);
+            sortByFieldSelect.addEventListener('change', (e) => {
+                sortBy = e.target.value;
+                // Preserve existing sort direction unless sorting by a date/score field, where desc is usually preferred
+                if (['lastUpdated', 'dateCreated', 'dateUpdated', 'lastCheckinDate', 'lastCheckoutDate', 'desireToPlay'].includes(sortBy)) {
+                    sortDirection = 'desc'; 
+                } else {
+                    sortDirection = 'asc'; // Default for names/numbers
+                }
+                sortDirectionIcon.textContent = sortDirection === 'asc' ? '↑' : '↓';
+                applyFiltersAndSort();
+            });
+            sortDirectionToggle.addEventListener('click', () => {
+                sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+                sortDirectionIcon.textContent = sortDirection === 'asc' ? '↑' : '↓';
+                applyFiltersAndSort();
+            });
+        }
+
+        function setupSortOptions() {
+            sortByFieldSelect.innerHTML = '';
+            Object.entries(allFields).forEach(([key, field]) => {
+                if (field.sortable) {
+                    const option = document.createElement('option');
+                    option.value = key;
+                    option.textContent = field.label;
+                    sortByFieldSelect.appendChild(option);
+                }
+            });
+            sortByFieldSelect.value = 'dateCreated';
+            sortBy = 'dateCreated';
+        }
+
+        async function init() {
+            loadingIndicator.classList.remove('hidden');
+            setupEventListeners();
+            setupSortOptions();
+            setupSettingsModal();
+
+            allGames = await loadGames();
+            if (!allGames.length) {
+                showError('No games found in the XML file.');
+                return;
+            }
+
+            const dtpData = await loadDataWithRetry();
+            allGames = allGames.map((game, index) => {
+                let own = 0, wtp = 0, wl = 0, priority = 0, dtp = 0;
+                const collectionData = dtpData[game.bggId];
+                if (collectionData) {
+                    own = collectionData.own;
+                    wtp = collectionData.wantToPlay;
+                    wl = collectionData.wishlist;
+                    priority = collectionData.wishlistPriority;
+                    dtp = collectionData.desireToPlay;
+                } else if (!Object.keys(dtpData).length) {
+                    // Fallback mock data when BGG API fails AND local fallback is missing DTP fields
+                    if (index === 0) { own = 1; wtp = 1; wl = 1; priority = 1; dtp = 10; }
+                    else if (index === 1) { own = 1; wtp = 1; wl = 1; priority = 3; dtp = 8; }
+                    else if (index === 2) { own = 0; wtp = 1; wl = 0; priority = 5; dtp = 5; }
+                    else if (index === 3) { own = 0; wtp = 0; wl = 1; priority = 1; dtp = 0; }
+                }
+                return { ...game, own, wantToPlay: wtp, wishlist: wl, wishlistPriority: priority, desireToPlay: dtp };
+            });
+
+            sortDirectionIcon.textContent = '↓';
+            applyFiltersAndSort();
+            loadingIndicator.classList.add('hidden');
+        }
+
+        init();
+    </script>
+</body>
+</html>
