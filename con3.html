@@ -556,8 +556,18 @@
                 if (!value && value !== 0) return;
                 let displayValue = typeof value === 'string' && (value.includes('-') && value.includes(':')) ? value.split(' ')[0] : value;
                 const item = document.createElement('div');
-                item.className = 'flex flex-col';
-                item.innerHTML = `<span class="font-medium text-gray-800">${label}</span><span class="text-xs text-gray-600">${displayValue}</span>`;
+                
+                // --- START CHANGE HERE ---
+                // Change 'flex-col' to 'flex-row' and adjust spacing classes
+                item.className = 'flex flex-row justify-between items-center'; // Ensures alignment and spacing
+                
+                // Change the innerHTML structure to put the label and value in one line
+                item.innerHTML = `
+                    <span class="font-medium text-gray-800 flex-shrink-0">${label}</span>
+                    <span class="text-xs font-bold text-gray-600 text-right">${displayValue}</span>
+                `;
+                // --- END CHANGE HERE ---
+                
                 container.appendChild(item);
             };
 
