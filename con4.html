@@ -188,9 +188,9 @@
 
         const defaultVisibleFields = {
             players: true, playtime: true, checkouts: true, publisher: false, catalogNumber: false,
-            location: true, dateCreated: true, age: false, gameWeight: false, bggRank: false,
-            dateUpdated: false, lastCheckinDate: false, lastCheckoutDate: false, desireToPlay: true, own: true,
-            avgRating: true, bggRating: false, avgWeight: true, bestWith: true, recommendedWith: true
+            location: true, dateCreated: true, age: false, gameWeight: true, bggRank: true,
+            dateUpdated: false, lastCheckinDate: false, lastCheckoutDate: false, desireToPlay: true, own: false,
+            avgRating: true, bggRating: true, avgWeight: true, bestWith: true, recommendedWith: true
         };
         let visibleFields = { ...defaultVisibleFields };
 
@@ -644,10 +644,10 @@
             // --- FIX 2: Add missing BGG stats to card details ---
             if (visibleFields.avgRating && game.avgRating) createDetailItem('⭐ Avg Rating', game.avgRating);
             if (visibleFields.bggRating && game.bggRating) createDetailItem('📉 BGG Rating', game.bggRating);
-            if (visibleFields.avgWeight && game.avgWeight) createDetailItem('⚖️ Weight', game.avgWeight);
-            if (visibleFields.bggRank && game.bggRank > 0) createDetailItem('⭐ BGG Rank', `#${game.bggRank}`);
-            if (visibleFields.bestWith && game.bestWith) createDetailItem('👥 Best', game.bestWith);
-            if (visibleFields.recommendedWith && game.recommendedWith) createDetailItem('👍 Rec', game.recommendedWith);
+            if (visibleFields.avgWeight && game.avgWeight) createDetailItem('⚖️', game.avgWeight);
+            if (visibleFields.bggRank && game.bggRank > 0) createDetailItem('🏆', `${game.bggRank}`);
+            if (visibleFields.bestWith && game.bestWith) createDetailItem('🎯', game.bestWith);
+            if (visibleFields.recommendedWith && game.recommendedWith) createDetailItem('🤝', game.recommendedWith);
             // ---------------------------------------------------
             if (visibleFields.players) createDetailItem('👥', `${game.minPlayers}-${game.maxPlayers}`);
             if (visibleFields.playtime) createDetailItem('⏱️', `${game.minPlayTime}-${game.maxPlayTime} min`);
