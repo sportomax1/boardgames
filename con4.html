@@ -190,7 +190,7 @@
             players: true, playtime: true, checkouts: true, publisher: false, catalogNumber: false,
             location: true, dateCreated: true, age: false, gameWeight: true, bggRank: true,
             dateUpdated: false, lastCheckinDate: false, lastCheckoutDate: false, desireToPlay: true, own: false,
-            avgRating: true, bggRating: true, avgWeight: true, bestWith: false, recommendedWith: false
+            avgRating: true, bggRating: true, avgWeight: true, bestWith: true, recommendedWith: true
         };
         let visibleFields = { ...defaultVisibleFields };
 
@@ -538,6 +538,7 @@
                     console.error('Error fetching thumbnails:', error);
                 }
             }
+           refreshVisibleCardDetails();
         }
 
         function applyFiltersAndSort() {
