@@ -538,10 +538,9 @@
                     <h3 class="text-lg font-bold text-gray-900 mb-1 break-words">${game.name}</h3>
                     <div class="flex items-center flex-wrap gap-1 mb-2 text-xs sm:text-sm">
                         <span class="px-2 py-0.5 rounded-full text-xs font-semibold ${game.isCheckedOut ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}">
-                            ${game.isCheckedOut ? '📤 Checked Out' : '✅ Available'}
+                            ${game.isCheckedOut ? '📤' : '✅'}
                         </span>
                         ${copyCount}
-                        ${game.wishlistPriority > 0 ? `<span class="text-xs font-medium text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">Priority: P${game.wishlistPriority}</span>` : ''}
                     </div>
                     <div class="grid grid-cols-2 gap-x-2 gap-y-1 text-xs text-gray-600" id="details-${game.bggId}"></div>
                 </div>
