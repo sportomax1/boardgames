@@ -462,7 +462,8 @@
             loadingIndicator.classList.remove('hidden');
 
             const start = currentPage * GAMES_PER_PAGE;
-            const end = start + GAMES_PER_PER_PAGE;
+            // FIX: Corrected GAMES_PER_PER_PAGE to GAMES_PER_PAGE
+            const end = start + GAMES_PER_PAGE; 
             visibleGames = filteredGames.slice(0, end);
             if (visibleGames.length === filteredGames.length) {
                 isLastPage = true;
