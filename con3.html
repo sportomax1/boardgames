@@ -554,19 +554,18 @@
             container.innerHTML = '';
             const createDetailItem = (label, value) => {
                 if (!value && value !== 0) return;
+                // Extracts the date part if the value is a full timestamp string
                 let displayValue = typeof value === 'string' && (value.includes('-') && value.includes(':')) ? value.split(' ')[0] : value;
                 const item = document.createElement('div');
                 
-                // --- START CHANGE HERE ---
-                // Change 'flex-col' to 'flex-row' and adjust spacing classes
-                item.className = 'flex flex-row justify-between items-center'; // Ensures alignment and spacing
+                // Class for left-aligned row layout
+                item.className = 'flex flex-row items-center space-x-1'; 
                 
-                // Change the innerHTML structure to put the label and value in one line
+                // HTML structure for label and value on the same line, left-aligned
                 item.innerHTML = `
                     <span class="font-medium text-gray-800 flex-shrink-0">${label}</span>
-                    <span class="text-xs font-bold text-gray-600 text-right">${displayValue}</span>
+                    <span class="text-xs font-bold text-gray-600">${displayValue}</span>
                 `;
-                // --- END CHANGE HERE ---
                 
                 container.appendChild(item);
             };
