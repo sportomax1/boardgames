@@ -561,18 +561,18 @@
                 container.appendChild(item);
             };
 
-            if (visibleFields.desireToPlay) createDetailItem('❤️ Desire Score', game.desireToPlay || 'N/A');
-            if (visibleFields.players) createDetailItem('👥 Players', `${game.minPlayers}-${game.maxPlayers}`);
-            if (visibleFields.playtime) createDetailItem('⏱️ Play Time', `${game.minPlayTime}-${game.maxPlayTime} min`);
-            if (visibleFields.checkouts) createDetailItem('🔄 Checkouts', game.checkoutCount);
-            if (visibleFields.age && game.age > 0) createDetailItem('👶 Min Age', `${game.age}+`);
-            if (visibleFields.gameWeight && game.gameWeight > 0) createDetailItem('⚖️ Weight', game.gameWeight.toFixed(1));
+            if (visibleFields.desireToPlay) createDetailItem('❤️', game.desireToPlay || 'N/A');
+            if (visibleFields.players) createDetailItem('👥', `${game.minPlayers}-${game.maxPlayers}`);
+            if (visibleFields.playtime) createDetailItem('⏱️', `${game.minPlayTime}-${game.maxPlayTime} min`);
+            if (visibleFields.checkouts) createDetailItem('🔄', game.checkoutCount);
+            if (visibleFields.age && game.age > 0) createDetailItem('👶', `${game.age}+`);
+            if (visibleFields.gameWeight && game.gameWeight > 0) createDetailItem('⚖️', game.gameWeight.toFixed(1));
             if (visibleFields.bggRank && game.bggRank > 0) createDetailItem('⭐ BGG Rank', `#${game.bggRank}`);
-            if (visibleFields.location && game.location) createDetailItem('📍 Location', game.location);
-            if (visibleFields.publisher && game.publisher) createDetailItem('🏢 Publisher', game.publisher);
+            if (visibleFields.location && game.location) createDetailItem('📍', game.location);
+            if (visibleFields.publisher && game.publisher) createDetailItem('🏢', game.publisher);
             if (visibleFields.catalogNumber && game.catalogNumber) createDetailItem('📦 Catalog #', game.catalogNumber);
-            if (visibleFields.dateCreated && game.dateCreated) createDetailItem('📅 Created', game.dateCreated);
-            if (visibleFields.dateUpdated && game.dateUpdated) createDetailItem('✏️ Updated', game.dateUpdated);
+            if (visibleFields.dateCreated && game.dateCreated) createDetailItem('📅', game.dateCreated);
+            if (visibleFields.dateUpdated && game.dateUpdated) createDetailItem('✏️', game.dateUpdated);
             if (visibleFields.lastCheckinDate && game.lastCheckinDate) createDetailItem('📥 Last Check In', game.lastCheckinDate);
             if (visibleFields.lastCheckoutDate && game.lastCheckoutDate) createDetailItem('📤 Last Check Out', game.lastCheckoutDate);
         }
