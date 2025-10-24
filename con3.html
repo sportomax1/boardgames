@@ -75,31 +75,31 @@
             <div id="dtpMetrics" class="grid grid-cols-4 sm:grid-cols-7 gap-3 mb-4">
                 <div class="text-center p-2 bg-green-50 rounded-lg shadow-sm">
                     <div class="text-2xl font-bold text-green-700" id="dtp-10">-</div>
-                    <div class="text-xs text-gray-500">DTP 10+</div>
+                    <div class="text-xs text-gray-500">Desire 10</div>
                 </div>
                 <div class="text-center p-2 bg-green-50 rounded-lg shadow-sm">
                     <div class="text-2xl font-bold text-green-600" id="dtp-9">-</div>
-                    <div class="text-xs text-gray-500">DTP 9</div>
+                    <div class="text-xs text-gray-500">Desire 9</div>
                 </div>
                 <div class="text-center p-2 bg-yellow-50 rounded-lg shadow-sm">
                     <div class="text-2xl font-bold text-yellow-600" id="dtp-8">-</div>
-                    <div class="text-xs text-gray-500">DTP 8</div>
+                    <div class="text-xs text-gray-500">Desire 8</div>
                 </div>
                 <div class="text-center p-2 bg-yellow-50 rounded-lg shadow-sm">
                     <div class="text-2xl font-bold text-yellow-500" id="dtp-7">-</div>
-                    <div class="text-xs text-gray-500">DTP 7</div>
+                    <div class="text-xs text-gray-500">Desire 7</div>
                 </div>
                 <div class="text-center p-2 bg-orange-50 rounded-lg shadow-sm">
                     <div class="text-2xl font-bold text-orange-500" id="dtp-6">-</div>
-                    <div class="text-xs text-gray-500">DTP 6</div>
+                    <div class="text-xs text-gray-500">Desire 6</div>
                 </div>
                 <div class="text-center p-2 bg-orange-50 rounded-lg shadow-sm">
                     <div class="text-2xl font-bold text-red-500" id="dtp-5">-</div>
-                    <div class="text-xs text-gray-500">DTP 5</div>
+                    <div class="text-xs text-gray-500">Desire 5</div>
                 </div>
                 <div class="text-center p-2 bg-gray-50 rounded-lg shadow-sm col-span-4 sm:col-span-1">
                     <div class="text-2xl font-bold text-gray-500" id="dtp-0">-</div>
-                    <div class="text-xs text-gray-500">DTP 0/NF</div>
+                    <div class="text-xs text-gray-500">Desire 0</div>
                 </div>
             </div>
 
@@ -210,11 +210,11 @@
             age: { label: 'Min Age', type: 'number', sortable: true },
             gameWeight: { label: 'Weight (0-5)', type: 'number', sortable: true },
             bggRank: { label: 'BGG Rank', type: 'number', sortable: true },
-            dateCreated: { label: 'Date Created', type: 'string', sortable: true, defaultSort: true },
+            dateCreated: { label: 'Date Created', type: 'string', sortable: true },
             dateUpdated: { label: 'Last Updated', type: 'string', sortable: true },
             lastCheckinDate: { label: 'Last Check In', type: 'string', sortable: true },
             lastCheckoutDate: { label: 'Last Check Out', type: 'string', sortable: true },
-            desireToPlay: { label: 'Desire to Play Score', type: 'number', sortable: true },
+            desireToPlay: { label: 'Desire to Play Score', type: 'number', sortable: true, defaultSort: true },
             own: { label: 'Owned', type: 'boolean', sortable: true },
             avgRating: { label: 'Avg Rating', type: 'number', sortable: true },
             bggRating: { label: 'BGG Rating', type: 'number', sortable: true },
@@ -641,12 +641,20 @@
             };
 
             if (visibleFields.desireToPlay) createDetailItem('❤️', game.desireToPlay || 'N/A');
+            // --- FIX 2: Add missing BGG stats to card details ---
+            if (visibleFields.avgRating && game.avgRating) createDetailItem('⭐ Avg Rating', game.avgRating);
+            if (visibleFields.bggRating && game.bggRating) createDetailItem('📉 BGG Rating', game.bggRating);
+            if (visibleFields.avgWeight && game.avgWeight) createDetailItem('⚖️ Weight', game.avgWeight);
+            if (visibleFields.bggRank && game.bggRank > 0) createDetailItem('⭐ BGG Rank', `#${game.bggRank}`);
+            if (visibleFields.bestWith && game.bestWith) createDetailItem('👥 Best', game.bestWith);
+            if (visibleFields.recommendedWith && game.recommendedWith) createDetailItem('👍 Rec', game.recommendedWith);
+            // ---------------------------------------------------
             if (visibleFields.players) createDetailItem('👥', `${game.minPlayers}-${game.maxPlayers}`);
             if (visibleFields.playtime) createDetailItem('⏱️', `${game.minPlayTime}-${game.maxPlayTime} min`);
             if (visibleFields.checkouts) createDetailItem('🔄', game.checkoutCount);
             if (visibleFields.age && game.age > 0) createDetailItem('👶', `${game.age}+`);
             if (visibleFields.gameWeight && game.gameWeight > 0) createDetailItem('⚖️', game.gameWeight.toFixed(1));
-            if (visibleFields.bggRank && game.bggRank > 0) createDetailItem('⭐ BGG Rank', `#${game.bggRank}`);
+            // Removed duplicate bggRank check here
             if (visibleFields.location && game.location) createDetailItem('📍', game.location);
             if (visibleFields.publisher && game.publisher) createDetailItem('🏢', game.publisher);
             if (visibleFields.catalogNumber && game.catalogNumber) createDetailItem('📦 Catalog #', game.catalogNumber);
@@ -654,9 +662,6 @@
             if (visibleFields.dateUpdated && game.dateUpdated) createDetailItem('✏️', game.dateUpdated);
             if (visibleFields.lastCheckinDate && game.lastCheckinDate) createDetailItem('📥 Last Check In', game.lastCheckinDate);
             if (visibleFields.lastCheckoutDate && game.lastCheckoutDate) createDetailItem('📤 Last Check Out', game.lastCheckoutDate);
-            
-            // NOTE: avgRating, bggRating, avgWeight, bestWith, recommendedWith are fetched but not displayed by default in the card details as the logic for them is missing here.
-            // If you want them displayed, you must add the appropriate 'createDetailItem' calls based on your 'visibleFields' configuration.
         }
 
         function refreshVisibleCardDetails() {
