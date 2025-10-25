@@ -2,70 +2,82 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BGG Collection Stats Dashboard</title>
-    <!-- Load Tailwind CSS from CDN -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>BGG Collection Stats</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Custom styles for a cleaner dashboard look */
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
-        /* Simple spinner animation */
         .spinner {
-            border-top-color: #3498db;
+            border-top-color: #3b82f6;
             animation: spin 1s linear infinite;
         }
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+        button, input {
+            min-height: 44px;
+            -webkit-tap-highlight-color: transparent;
+        }
+        button:active {
+            transform: scale(0.98);
+        }
+        html {
+            scroll-behavior: smooth;
+        }
+        .stat-card {
+            touch-action: manipulation;
+        }
     </style>
 </head>
-<body class="bg-gray-900 text-gray-100 min-h-screen p-4 md:p-8">
+<body class="bg-gray-900 text-gray-100 min-h-screen">
 
-    <div class="max-w-7xl mx-auto">
+    <div class="max-w-7xl mx-auto p-4 pb-8">
         
-        <!-- Header and Controls -->
-        <header class="mb-8">
-            <h1 class="text-3xl md:text-4xl font-bold text-white mb-4">BGG Collection Stats Dashboard</h1>
-            <div class="flex flex-col sm:flex-row gap-4">
+        <!-- Header -->
+        <header class="mb-6">
+            <h1 class="text-2xl sm:text-3xl font-bold text-white mb-4">BGG Collection Stats</h1>
+            <div class="space-y-3">
                 <input 
                     type="text" 
                     id="usernameInput" 
                     value="sportomax" 
-                    class="flex-grow bg-gray-800 text-white border border-gray-700 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    class="w-full bg-gray-800 text-white text-lg border-2 border-gray-700 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-0"
                     placeholder="Enter BGG Username"
                 >
                 <button 
                     id="fetchButton" 
-                    class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition duration-200 shadow-lg"
+                    class="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold py-3.5 px-6 rounded-xl transition-all duration-150 shadow-lg text-lg"
                 >
                     Fetch Stats
                 </button>
             </div>
         </header>
 
-        <!-- Loading Indicator -->
-        <div id="loading" class="hidden flex-col items-center justify-center py-16">
-            <div class="spinner w-12 h-12 border-4 border-gray-700 rounded-full mb-4"></div>
-            <p id="loadingMessage" class="text-lg text-gray-400">Loading collection...</p>
+        <!-- Loading -->
+        <div id="loading" class="hidden flex-col items-center justify-center py-12">
+            <div class="spinner w-16 h-16 border-4 border-gray-700 rounded-full mb-4"></div>
+            <p id="loadingMessage" class="text-base text-gray-400 text-center px-4">Loading collection...</p>
         </div>
 
-        <!-- Error Message Area -->
-        <div id="error" class="hidden bg-red-900 border border-red-700 text-red-100 px-4 py-3 rounded-lg my-4" role="alert">
+        <!-- Error -->
+        <div id="error" class="hidden bg-red-900 border-2 border-red-700 text-red-100 px-4 py-3 rounded-xl my-4">
             <strong class="font-bold">Error:</strong>
-            <span id="errorMessage" class="block sm:inline"></span>
+            <span id="errorMessage" class="block mt-1"></span>
         </div>
 
         <!-- Stats Grid -->
-        <div id="statsGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-            <!-- Stat cards will be injected here by JavaScript -->
+        <div id="statsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
         </div>
 
     </div>
 
     <script>
-        // --- DOM Elements ---
         const usernameInput = document.getElementById('usernameInput');
         const fetchButton = document.getElementById('fetchButton');
         const loading = document.getElementById('loading');
@@ -74,24 +86,19 @@
         const errorMessage = document.getElementById('errorMessage');
         const statsGrid = document.getElementById('statsGrid');
 
-        // --- BGG API Config ---
         const BGG_COLLECTION_URL = 'https://boardgamegeek.com/xmlapi2/collection';
         const BGG_THING_URL = 'https://boardgamegeek.com/xmlapi2/thing';
-        const THING_BATCH_SIZE = 100; // Batch size for 'thing' API calls
-        const POLL_INTERVAL = 4000; // 4 seconds polling for 202 response
+        const THING_BATCH_SIZE = 100;
+        const POLL_INTERVAL = 4000;
 
-        // --- Event Listener ---
         fetchButton.addEventListener('click', handleFetchStats);
-        // Allow pressing Enter to fetch
         usernameInput.addEventListener('keyup', (e) => {
             if (e.key === 'Enter') {
+                usernameInput.blur(); // Close keyboard on iPhone
                 handleFetchStats();
             }
         });
 
-        /**
-         * Main function to orchestrate the fetching and processing
-         */
         async function handleFetchStats() {
             const username = usernameInput.value.trim();
             if (!username) {
@@ -99,52 +106,42 @@
                 return;
             }
 
-            // Reset UI
             showLoading(true, 'Fetching collection...');
             showError(false);
             statsGrid.innerHTML = '';
 
             try {
-                // 1. Get the source XML (either local file or BGG API)
                 const collectionXmlDoc = await getCollectionXml(username);
-                if (!collectionXmlDoc) return; // Error already shown in getCollectionXml
+                if (!collectionXmlDoc) return;
 
-                const collectionItems = collectionXmlDoc.querySelectorAll('item[own="1"]');
+                const collectionItems = Array.from(collectionXmlDoc.querySelectorAll('item'))
+                    .filter(item => item.querySelector('status[own="1"]'));
+                
                 const totalGames = collectionItems.length;
 
                 if (totalGames === 0) {
-                    showError(`No games found in the 'owned' collection for user '${username}'.`);
+                    showError(`No owned games found for user '${username}'.`);
                     showLoading(false);
                     return;
                 }
                 
                 showLoading(true, `Found ${totalGames} games. Fetching details...`);
 
-                // 2. Extract Game IDs
                 const gameIds = Array.from(collectionItems).map(item => item.getAttribute('objectid'));
-
-                // 3. Fetch 'thing' data in batches
                 const thingItems = await fetchThingsInBatches(gameIds);
                 
                 showLoading(true, 'Processing stats...');
-
-                // 4. Process all data and render stats
                 processAndRenderStats(collectionItems, thingItems);
 
             } catch (err) {
-                console.error('Error in handleFetchStats:', err);
+                console.error('Error:', err);
                 showError(`An unexpected error occurred: ${err.message}`);
             } finally {
                 showLoading(false);
             }
         }
 
-        /**
-         * Tries to fetch the special private_all.xml, falls back to BGG API.
-         * Handles BGG API 202 polling.
-         */
         async function getCollectionXml(username) {
-            // Special case for 'sportomax'
             if (username.toLowerCase() === 'sportomax') {
                 try {
                     console.log('Attempting to fetch local private_all.xml...');
@@ -154,20 +151,16 @@
                         const xmlText = await response.text();
                         return parseXml(xmlText);
                     } else {
-                        console.warn(`private_all.xml not found (${response.status}). Falling back to BGG API.`);
+                        console.warn(`private_all.xml not found. Falling back to BGG API.`);
                     }
                 } catch (err) {
-                    console.warn(`Error fetching private_all.xml: ${err.message}. Falling back to BGG API.`);
+                    console.warn(`Error fetching private_all.xml. Falling back to BGG API.`);
                 }
             }
 
-            // Standard BGG API fetch
             return fetchCollectionFromBGG(username);
         }
 
-        /**
-         * Fetches collection from BGG, handling the 202 (Accepted) polling.
-         */
         async function fetchCollectionFromBGG(username) {
             const url = `${BGG_COLLECTION_URL}?username=${username}&stats=1&own=1`;
             
@@ -175,20 +168,18 @@
                 const response = await fetch(url);
 
                 if (response.status === 202) {
-                    // BGG is processing, we need to poll
-                    showLoading(true, `BGG is preparing the collection for '${username}'. Please wait...`);
+                    showLoading(true, `BGG is preparing collection. Please wait...`);
                     await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL));
-                    return fetchCollectionFromBGG(username); // Recurse
+                    return fetchCollectionFromBGG(username);
                 }
 
                 if (!response.ok) {
-                    throw new Error(`BGG API returned status ${response.status}: ${response.statusText}`);
+                    throw new Error(`BGG API returned status ${response.status}`);
                 }
 
                 const xmlText = await response.text();
-
-                // Check for API-level errors in the XML response
                 const xmlDoc = parseXml(xmlText);
+                
                 const errorElement = xmlDoc.querySelector('error > message');
                 if (errorElement) {
                     throw new Error(`BGG API Error: ${errorElement.textContent}`);
@@ -204,16 +195,13 @@
             }
         }
 
-        /**
-         * Fetches 'thing' data for all game IDs, in batches.
-         */
         async function fetchThingsInBatches(gameIds) {
             const allThingItems = [];
             const numBatches = Math.ceil(gameIds.length / THING_BATCH_SIZE);
             
             for (let i = 0; i < numBatches; i++) {
                 const batchIds = gameIds.slice(i * THING_BATCH_SIZE, (i + 1) * THING_BATCH_SIZE);
-                showLoading(true, `Fetching game details (batch ${i + 1} of ${numBatches})...`);
+                showLoading(true, `Fetching details (${i + 1}/${numBatches})...`);
                 
                 try {
                     const url = `${BGG_THING_URL}?id=${batchIds.join(',')}&stats=1`;
@@ -221,7 +209,7 @@
 
                     if (!response.ok) {
                         console.warn(`Batch ${i+1} fetch failed: ${response.status}`);
-                        continue; // Skip this batch on error
+                        continue;
                     }
 
                     const xmlText = await response.text();
@@ -233,13 +221,10 @@
                 }
             }
             
-            console.log(`Fetched details for ${allThingItems.length} out of ${gameIds.length} games.`);
+            console.log(`Fetched details for ${allThingItems.length} games.`);
             return allThingItems;
         }
 
-        /**
-         * Main processing function. Calculates all stats and renders them.
-         */
         function processAndRenderStats(collectionItems, thingItems) {
             const stats = {
                 totalGames: 0,
@@ -257,24 +242,20 @@
                 mostPlayed: { name: 'N/A', plays: 0 },
             };
 
-            // Counters for categorical data
             const mechanicCounts = new Map();
             const categoryCounts = new Map();
             const designerCounts = new Map();
             const publisherCounts = new Map();
 
-            // Create a lookup map for 'thing' items by objectid
             const thingMap = new Map();
             thingItems.forEach(item => {
                 thingMap.set(item.getAttribute('id'), item);
             });
 
-            // --- Loop 1: Process Collection Items (User-specific data) ---
             for (const item of collectionItems) {
                 stats.totalGames++;
                 const gameName = item.querySelector('name')?.textContent || 'Unknown Game';
                 
-                // Plays
                 const numPlays = parseInt(item.querySelector('numplays')?.textContent || '0');
                 stats.totalPlays += numPlays;
                 if (numPlays === 0) {
@@ -287,7 +268,6 @@
                     stats.mostPlayed = { name: gameName, plays: numPlays };
                 }
 
-                // User Rating
                 const userRatingStr = item.querySelector('stats > rating')?.getAttribute('value');
                 if (userRatingStr && userRatingStr !== 'N/A') {
                     const userRating = parseFloat(userRatingStr);
@@ -297,12 +277,10 @@
                     }
                 }
 
-                // --- Process 'Thing' Data (Global game data) ---
                 const gameId = item.getAttribute('objectid');
                 const thing = thingMap.get(gameId);
 
                 if (thing) {
-                    // BGG Rating
                     const bggRatingStr = thing.querySelector('statistics > ratings > average')?.getAttribute('value');
                     if (bggRatingStr) {
                         const bggRating = parseFloat(bggRatingStr);
@@ -312,7 +290,6 @@
                         }
                     }
 
-                    // Weight (Complexity)
                     const weightStr = thing.querySelector('statistics > ratings > averageweight')?.getAttribute('value');
                     if (weightStr) {
                         const weight = parseFloat(weightStr);
@@ -322,7 +299,6 @@
                         }
                     }
 
-                    // Year Published
                     const yearStr = thing.querySelector('yearpublished')?.getAttribute('value');
                     if (yearStr) {
                         const year = parseInt(yearStr);
@@ -332,7 +308,6 @@
                         }
                     }
 
-                    // Links (Mechanics, Categories, etc.)
                     const links = thing.querySelectorAll('link');
                     links.forEach(link => {
                         const type = link.getAttribute('type');
@@ -355,14 +330,12 @@
                 }
             }
             
-            // --- Calculate Final Stats ---
             const avgPlays = stats.totalGames > 0 ? (stats.totalPlays / stats.totalGames) : 0;
             const avgUserRating = stats.ratedGames > 0 ? (stats.sumUserRatings / stats.ratedGames) : 0;
             const avgBggRating = stats.bggRatedGames > 0 ? (stats.sumBggRatings / stats.bggRatedGames) : 0;
             const avgWeight = stats.weightedGames > 0 ? (stats.sumWeight / stats.weightedGames) : 0;
             const percentUnplayed = stats.totalGames > 0 ? (stats.gamesWith0Plays / stats.totalGames) * 100 : 0;
 
-            // H-Index Calculation
             const sortedPlays = stats.playsList.sort((a, b) => b - a);
             let hIndex = 0;
             for (let i = 0; i < sortedPlays.length; i++) {
@@ -373,82 +346,66 @@
                 }
             }
             
-            // Get Top 3s
             const topMechanic = getTopFromMap(mechanicCounts, 1)[0] || 'N/A';
             const topCategory = getTopFromMap(categoryCounts, 1)[0] || 'N/A';
             const topDesigner = getTopFromMap(designerCounts, 1)[0] || 'N/A';
             const topPublisher = getTopFromMap(publisherCounts, 1)[0] || 'N/A';
 
-            // --- Render Stat Cards ---
-            statsGrid.innerHTML = ''; // Clear again just in case
+            statsGrid.innerHTML = '';
             
-            // Row 1: Core Stats
-            renderStatCard('Total Games', stats.totalGames.toLocaleString(), 'Owned games in collection');
-            renderStatCard('Total Plays', stats.totalPlays.toLocaleString(), `Avg ${avgPlays.toFixed(2)} per game`);
-            renderStatCard('H-Index (Plays)', hIndex, 'Based on recorded plays');
+            renderStatCard('Total Games', stats.totalGames.toLocaleString(), 'Owned in collection');
+            renderStatCard('Total Plays', stats.totalPlays.toLocaleString(), `Avg ${avgPlays.toFixed(1)} per game`);
+            renderStatCard('H-Index', hIndex, 'Based on plays');
             renderStatCard('Most Played', stats.mostPlayed.plays, stats.mostPlayed.name);
 
-            // Row 2: Play Status
-            renderStatCard('Unplayed Games', stats.gamesWith0Plays.toLocaleString(), `${percentUnplayed.toFixed(1)}% of collection`);
-            renderStatCard('Games Played', (stats.totalGames - stats.gamesWith0Plays).toLocaleString(), `Avg ${avgPlays.toFixed(2)} plays`);
+            renderStatCard('Unplayed', stats.gamesWith0Plays.toLocaleString(), `${percentUnplayed.toFixed(1)}% of collection`);
+            renderStatCard('Played', (stats.totalGames - stats.gamesWith0Plays).toLocaleString(), `${(100-percentUnplayed).toFixed(1)}% of collection`);
             renderStatCard('Oldest Game', stats.minYear === Infinity ? 'N/A' : stats.minYear, 'Year Published');
             renderStatCard('Newest Game', stats.maxYear === -Infinity ? 'N/A' : stats.maxYear, 'Year Published');
 
-            // Row 3: Ratings
-            renderStatCard('Avg. User Rating', avgUserRating.toFixed(2), `Based on ${stats.ratedGames} rated games`);
-            renderStatCard('Avg. BGG Rating', avgBggRating.toFixed(2), `Based on ${stats.bggRatedGames} BGG-rated games`);
-            renderStatCard('Avg. Complexity', avgWeight.toFixed(2) + ' / 5', `Based on ${stats.weightedGames} weighted games`);
+            renderStatCard('Avg Rating', avgUserRating.toFixed(2), `${stats.ratedGames} games rated`);
+            renderStatCard('Avg BGG Rating', avgBggRating.toFixed(2), `${stats.bggRatedGames} games`);
+            renderStatCard('Avg Complexity', avgWeight.toFixed(2), 'Out of 5.0');
+            renderStatCard('Weighted Games', stats.weightedGames, `${((stats.weightedGames/stats.totalGames)*100).toFixed(0)}% of collection`);
             
-            // Row 4: Top Links
-            renderStatCard('Top Mechanic', topMechanic, `Found in ${mechanicCounts.get(topMechanic) || 0} games`);
-            renderStatCard('Top Category', topCategory, `Found in ${categoryCounts.get(topCategory) || 0} games`);
-            renderStatCard('Top Designer', topDesigner, `Found in ${designerCounts.get(topDesigner) || 0} games`);
-            renderStatCard('Top Publisher', topPublisher, `Found in ${publisherCounts.get(topPublisher) || 0} games`);
+            renderStatCard('Top Mechanic', topMechanic, `${mechanicCounts.get(topMechanic) || 0} games`);
+            renderStatCard('Top Category', topCategory, `${categoryCounts.get(topCategory) || 0} games`);
+            renderStatCard('Top Designer', topDesigner, `${designerCounts.get(topDesigner) || 0} games`);
+            renderStatCard('Top Publisher', topPublisher, `${publisherCounts.get(topPublisher) || 0} games`);
         }
 
-        // --- Helper Functions ---
-
-        /**
-         * Renders a single stat card and appends it to the grid.
-         */
         function renderStatCard(title, value, subtitle = '') {
             const card = document.createElement('div');
-            card.className = 'bg-gray-800 p-5 rounded-lg shadow-lg';
+            card.className = 'stat-card bg-gray-800 p-4 rounded-xl shadow-lg border border-gray-700';
             
-            let valueClass = 'text-3xl md:text-4xl font-bold text-white';
+            let valueClass = 'text-3xl sm:text-4xl font-bold text-white mt-2';
             if (typeof value === 'string' && value.length > 15) {
-                valueClass = 'text-2xl font-bold text-white'; // Shrink text if it's a long string
+                valueClass = 'text-xl sm:text-2xl font-bold text-white mt-2';
             }
 
             card.innerHTML = `
-                <div class="text-sm font-medium text-blue-300 uppercase tracking-wider">${title}</div>
-                <div class="${valueClass} mt-2 truncate" title="${value}">${value}</div>
-                ${subtitle ? `<div class="text-sm text-gray-400 mt-2 truncate" title="${subtitle}">${subtitle}</div>` : ''}
+                <div class="text-xs sm:text-sm font-semibold text-blue-400 uppercase tracking-wide">${title}</div>
+                <div class="${valueClass} break-words" title="${value}">${value}</div>
+                ${subtitle ? `<div class="text-sm text-gray-400 mt-2 break-words" title="${subtitle}">${subtitle}</div>` : ''}
             `;
             statsGrid.appendChild(card);
         }
 
-        /**
-         * Toggles the loading indicator.
-         */
         function showLoading(isLoading, message = '') {
             if (isLoading) {
                 loading.classList.remove('hidden');
                 loading.classList.add('flex');
                 loadingMessage.textContent = message;
                 fetchButton.disabled = true;
-                fetchButton.classList.add('opacity-50', 'cursor-not-allowed');
+                fetchButton.classList.add('opacity-50');
             } else {
                 loading.classList.add('hidden');
                 loading.classList.remove('flex');
                 fetchButton.disabled = false;
-                fetchButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                fetchButton.classList.remove('opacity-50');
             }
         }
 
-        /**
-         * Shows or hides the error message box.
-         */
         function showError(message) {
             if (message) {
                 errorMessage.textContent = message;
@@ -458,32 +415,22 @@
             }
         }
 
-        /**
-         * Parses XML text into a DOM document.
-         */
         function parseXml(xmlText) {
             const parser = new DOMParser();
             return parser.parseFromString(xmlText, 'text/xml');
         }
 
-        /**
-         * Helper to increment a value in a Map.
-         */
         function incrementMap(map, key) {
             map.set(key, (map.get(key) || 0) + 1);
         }
 
-        /**
-         * Helper to get the top N keys from a count map.
-         */
         function getTopFromMap(map, n = 1) {
             return Array.from(map.entries())
-                .sort((a, b) => b[1] - a[1]) // Sort descending by count
+                .sort((a, b) => b[1] - a[1])
                 .slice(0, n)
-                .map(entry => entry[0]); // Get just the key (name)
+                .map(entry => entry[0]);
         }
 
     </script>
 </body>
 </html>
-
