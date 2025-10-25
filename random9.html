@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <!-- This tag is essential for mobile-first design -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BGG Random 9 Grid</title>
+    <style>
+        /* Ensures content uses the full viewport height */
+        html, body {
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f0f2f5;
+            color: #1c1e21;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Align to top for mobile */
+            padding: 16px;
+            box-sizing: border-box;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            box-sizing: border-box; /* Include padding in width calculation */
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-top: 0;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+
+        /* Mobile-first: Stack controls vertically */
+        .controls {
+            display: flex;
+            flex-direction: column; /* Stacked vertically */
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        #username-input {
+            width: 100%;
+            font-size: 16px; /* Prevents iOS zoom on tap */
+            padding: 12px 14px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            box-sizing: border-box; /* Include padding in width */
+        }
+
+        button {
+            font-size: 16px; /* Prevents iOS zoom */
+            font-weight: bold;
+            padding: 12px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            -webkit-tap-highlight-color: transparent; /* Remove tap flash on mobile */
+        }
+
+        #submit-btn {
+            background-color: #1877f2;
+            color: white;
+            width: 100%; /* Full width for easy tapping */
+        }
+
+        #submit-btn:hover {
+            background-color: #166fe5;
+        }
+        
+        #submit-btn:disabled {
+            background-color: #9dbef2;
+            cursor: not-allowed;
+        }
+
+        #game-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            border: 1px solid #ddd;
+            background-color: #f9f9f9;
+            padding: 8px;
+            border-radius: 6px;
+            aspect-ratio: 1 / 1;
+            min-height: 280px; /* Min-height for empty state */
+            touch-action: none; /* Disable page scroll when interacting with grid */
+        }
+
+        #game-grid img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            cursor: grab;
+            transition: opacity 0.2s, outline 0.2s;
+            background-color: #eee;
+            /* Prevents native image drag behavior which conflicts with our script */
+            -webkit-user-drag: none;
+            user-select: none;
+        }
+
+        /* Class for the image being actively dragged */
+        #game-grid img.dragging {
+            opacity: 0.4;
+            cursor: grabbing;
+        }
+
+        /* Class for the square being hovered over by a touch-drag */
+        #game-grid img.touch-over {
+            outline: 3px solid #1877f2;
+            outline-offset: -3px;
+            opacity: 0.7;
+        }
+        
+        #status {
+            margin: 15px 0;
+            text-align: center;
+            font-style: italic;
+            color: #606770;
+            min-height: 1.2em;
+            font-size: 0.9rem;
+        }
+
+        #generate-btn {
+            width: 100%;
+            background-color: #42b72a;
+            color: white;
+            margin-top: 15px;
+        }
+
+        #generate-btn:hover {
+            background-color: #36a420;
+        }
+        
+        #generate-btn:disabled {
+            background-color: #a3d99a;
+            cursor: not-allowed;
+        }
+        
+        #download-link {
+            display: block;
+            text-align: center;
+            margin-top: 15px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            padding: 10px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>BGG Random 9 Grid</h1>
+        <div class="controls">
+            <input type="text" id="username-input" value="sportomax" placeholder="Enter BGG Username" autocapitalize="none" autocorrect="off">
+            <button id="submit-btn">Get Games</button>
+        </div>
+        <div id="status"></div>
+        <div id="game-grid"></div>
+        <button id="generate-btn" disabled>Generate Combined Image</button>
+        <div id="download-area"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- Element References ---
+            const usernameInput = document.getElementById('username-input');
+            const submitBtn = document.getElementById('submit-btn');
+            const grid = document.getElementById('game-grid');
+            const status = document.getElementById('status');
+            const generateBtn = document.getElementById('generate-btn');
+            const downloadArea = document.getElementById('download-area');
+
+            // --- CORS Proxies ---
+            const API_PROXY = 'https://api.allorigins.win/raw?url=';
+            const IMAGE_PROXY = 'https://images.weserv.nl/?url=';
+
+            // --- State Variables ---
+            let draggedImg = null;      // For both mouse and touch
+            let touchTargetImg = null;  // For touch-move target
+
+            // --- Utility Functions ---
+
+            function shuffleArray(array) {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+            }
+
+            function wait(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+
+            async function fetchBGG(url, retries = 5) {
+                try {
+                    const response = await fetch(url);
+                    if (response.status === 202 && retries > 0) {
+                        status.textContent = 'BGG is processing... Please wait...';
+                        await wait(3000); // Wait 3 seconds
+                        return fetchBGG(url, retries - 1); // Retry
+                    }
+                    if (!response.ok) throw new Error(`BGG API fetch failed: ${response.statusText}`);
+                    return await response.text();
+                } catch (error) {
+                    console.error('Fetch error:', error);
+                    throw error;
+                }
+            }
+            
+            function parseXML(xmlText) {
+                return new DOMParser().parseFromString(xmlText, 'text/xml');
+            }
+            
+            /**
+             * Helper function to swap image data between two img elements
+             */
+            function swapImages(imgA, imgB) {
+                if (!imgA || !imgB) return;
+                
+                // Swap the src attributes
+                const tempSrc = imgA.src;
+                imgA.src = imgB.src;
+                imgB.src = tempSrc;
+
+                // Swap the data-game-id attributes
+                const tempId = imgA.dataset.gameId;
+                imgA.dataset.gameId = imgB.dataset.gameId;
+                imgB.dataset.gameId = tempId;
+            }
+
+            /**
+             * Helper function to clean up after any drag operation
+             */
+            function cleanupDragState() {
+                if (draggedImg) {
+                    draggedImg.classList.remove('dragging');
+                }
+                if (touchTargetImg) {
+                    touchTargetImg.classList.remove('touch-over');
+                }
+                
+                draggedImg = null;
+                touchTargetImg = null;
+                
+                // Clear any old download link, as the grid has changed
+                if (downloadArea.innerHTML) {
+                    downloadArea.innerHTML = '';
+                    if (status.textContent.startsWith('Image generated')) {
+                        status.textContent = 'Grid order changed. Generate a new image.';
+                    }
+                }
+            }
+
+            // --- Event Handlers ---
+
+            async function handleSubmit() {
+                const username = usernameInput.value.trim();
+                if (!username) {
+                    status.textContent = 'Please enter a username.';
+                    return;
+                }
+
+                submitBtn.disabled = true;
+                generateBtn.disabled = true;
+                grid.innerHTML = '';
+                downloadArea.innerHTML = '';
+                status.textContent = `Fetching collection for "${username}"...`;
+
+                try {
+                    const collectionUrl = `${API_PROXY}https://boardgamegeek.com/xmlapi2/collection?username=${username}&own=1`;
+                    const collectionXMLText = await fetchBGG(collectionUrl);
+                    const collectionDoc = parseXML(collectionXMLText);
+
+                    if (collectionDoc.querySelector('errors error')) {
+                        throw new Error(collectionDoc.querySelector('errors error').textContent);
+                    }
+
+                    const items = Array.from(collectionDoc.querySelectorAll('item[objectid]'));
+                    if (items.length === 0) throw new Error(`No owned games found for "${username}".`);
+                    if (items.length < 9) {
+                        status.textContent = `Warning: User only has ${items.length} games. Using all.`;
+                    }
+
+                    shuffleArray(items);
+                    const randomItems = items.slice(0, 9);
+                    const gameIds = randomItems.map(item => item.getAttribute('objectid'));
+
+                    status.textContent = 'Fetching details for 9 random games...';
+
+                    const thingUrl = `${API_PROXY}https://boardgamegeek.com/xmlapi2/thing?id=${gameIds.join(',')}`;
+                    const thingXMLText = await fetchBGG(thingUrl);
+                    const thingDoc = parseXML(thingXMLText);
+                    
+                    const gameData = [];
+                    thingDoc.querySelectorAll('item').forEach(item => {
+                        const id = item.getAttribute('id');
+                        const imageEl = item.querySelector('image');
+                        const imageUrl = imageEl ? imageEl.textContent : null;
+                        const proxiedUrl = imageUrl 
+                            ? `${IMAGE_PROXY}${imageUrl}` 
+                            : 'https://via.placeholder.com/200?text=No+Image';
+                        gameData.push({ id, proxiedUrl });
+                    });
+                    
+                    const sortedGameData = gameIds.map(id => gameData.find(g => g.id === id));
+
+                    populateGrid(sortedGameData);
+                    status.textContent = 'Drag images to reorder.';
+                    generateBtn.disabled = false;
+
+                } catch (error) {
+                    console.error(error);
+                    status.textContent = `Error: ${error.message}`;
+                } finally {
+                    submitBtn.disabled = false;
+                }
+            }
+
+            function populateGrid(gameData) {
+                grid.innerHTML = ''; // Clear previous grid
+                gameData.forEach(game => {
+                    const img = document.createElement('img');
+                    img.src = game.proxiedUrl;
+                    img.dataset.gameId = game.id; // Store BGG ID
+                    img.crossOrigin = 'Anonymous'; // CRITICAL for canvas
+                    
+                    // --- MOUSE Drag & Drop Events ---
+                    img.draggable = true;
+                    img.addEventListener('dragstart', handleDragStart);
+                    img.addEventListener('dragover', handleDragOver);
+                    img.addEventListener('drop', handleDrop);
+                    img.addEventListener('dragend', handleDragEnd);
+                    
+                    // --- TOUCH Drag & Drop Events ---
+                    // { passive: false } tells the browser we will call preventDefault()
+                    img.addEventListener('touchstart', handleTouchStart, { passive: false });
+                    img.addEventListener('touchmove', handleTouchMove, { passive: false });
+                    img.addEventListener('touchend', handleTouchEnd);
+                    
+                    grid.appendChild(img);
+                });
+            }
+
+            async function handleGenerateImage() {
+                status.textContent = 'Generating image...';
+                downloadArea.innerHTML = '';
+                
+                const images = Array.from(grid.querySelectorAll('img'));
+                if (images.length !== 9) {
+                    status.textContent = 'Error: Grid is not fully populated.';
+                    return;
+                }
+
+                const canvas = document.createElement('canvas');
+                const cellSize = 300; // High-resolution cell size
+                canvas.width = cellSize * 3;
+                canvas.height = cellSize * 3;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                try {
+                    const drawPromises = images.map((img, index) => {
+                        return new Promise((resolve) => {
+                            const x = (index % 3) * cellSize;
+                            const y = Math.floor(index / 3) * cellSize;
+                            
+                            if (img.complete && img.naturalHeight !== 0) {
+                                ctx.drawImage(img, x, y, cellSize, cellSize);
+                                resolve();
+                            } else {
+                                img.onload = () => {
+                                    ctx.drawImage(img, x, y, cellSize, cellSize);
+                                    resolve();
+                                };
+                                img.onerror = () => {
+                                    console.warn(`Failed to load image: ${img.src}`);
+                                    ctx.fillStyle = '#eee'; // Draw a fallback box
+                                    ctx.fillRect(x, y, cellSize, cellSize);
+                                    ctx.fillStyle = '#999';
+                                    ctx.textAlign = 'center';
+                                    ctx.fillText('Image Error', x + cellSize / 2, y + cellSize / 2);
+                                    resolve(); // Resolve anyway
+                                };
+                            }
+                        });
+                    });
+
+                    await Promise.all(drawPromises);
+
+                    const username = usernameInput.value.trim() || 'bgg';
+                    const link = document.createElement('a');
+                    link.href = canvas.toDataURL('image/png');
+                    link.download = `${username}-bgg-grid.png`;
+                    link.textContent = 'Download Combined Image';
+                    link.id = 'download-link';
+                    
+                    downloadArea.appendChild(link);
+                    status.textContent = 'Image generated. Click link to download.';
+
+                } catch (error) {
+                    console.error('Canvas generation error:', error);
+                    status.textContent = 'Error generating image. See console.';
+                }
+            }
+
+            // --- MOUSE Event Handlers ---
+
+            function handleDragStart(e) {
+                draggedImg = this;
+                this.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+            }
+
+            function handleDragOver(e) {
+                e.preventDefault(); // Allow drop
+                e.dataTransfer.dropEffect = 'move';
+            }
+
+            function handleDrop(e) {
+                e.preventDefault();
+                // 'this' is the <img> being dropped on
+                if (this !== draggedImg && this.tagName === 'IMG') {
+                    swapImages(this, draggedImg);
+                }
+            }
+
+            function handleDragEnd(e) {
+                cleanupDragState();
+            }
+            
+            // --- TOUCH Event Handlers ---
+            
+            function handleTouchStart(e) {
+                e.preventDefault(); // Prevent page scroll
+                draggedImg = this;
+                this.classList.add('dragging');
+            }
+
+            function handleTouchMove(e) {
+                e.preventDefault(); // Prevent page scroll while dragging
+                if (!draggedImg) return;
+
+                // Find what element is under the finger
+                const touch = e.targetTouches[0];
+                const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
+
+                // Clear previous touch target
+                if (touchTargetImg && touchTargetImg !== targetElement) {
+                    touchTargetImg.classList.remove('touch-over');
+                    touchTargetImg = null;
+                }
+
+                // Check if the new target is a valid drop spot
+                if (targetElement && targetElement.tagName === 'IMG' && 
+                    targetElement.parentElement.id === 'game-grid' && 
+                    targetElement !== draggedImg) 
+                {
+                    touchTargetImg = targetElement;
+                    touchTargetImg.classList.add('touch-over');
+                }
+            }
+
+            function handleTouchEnd(e) {
+                // Perform the swap if we ended on a valid target
+                if (touchTargetImg && draggedImg && touchTargetImg !== draggedImg) {
+                    swapImages(touchTargetImg, draggedImg);
+                }
+                
+                // Always clean up state
+                cleanupDragState();
+            }
+
+            // --- Initial Setup ---
+            submitBtn.addEventListener('click', handleSubmit);
+            generateBtn.addEventListener('click', handleGenerateImage);
+        });
+    </script>
+
+</body>
+</html>
+
