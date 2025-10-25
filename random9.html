@@ -2,81 +2,71 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <!-- This tag is essential for mobile-first design -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BGG Random 9 Grid</title>
     <style>
-        /* Ensures content uses the full viewport height */
         html, body {
             min-height: 100vh;
             margin: 0;
-        }
-
-        body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: #f0f2f5;
             color: #1c1e21;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start; /* Align to top for mobile */
-            padding: 16px;
-            box-sizing: border-box;
         }
 
         .container {
-            width: 100%;
-            max-width: 600px;
+            width: 95%;
+            max-width: 550px;
+            margin: 20px auto;
             background-color: #ffffff;
-            border-radius: 8px;
+            border-radius: 12px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             padding: 20px;
-            box-sizing: border-box; /* Include padding in width calculation */
+            box-sizing: border-box;
         }
 
         h1 {
             text-align: center;
             color: #333;
-            margin-top: 0;
-            margin-bottom: 20px;
             font-size: 1.5rem;
+            margin-top: 0;
         }
-
-        /* Mobile-first: Stack controls vertically */
+        
+        /* Mobile-First Controls Layout (Stacked) */
         .controls {
             display: flex;
-            flex-direction: column; /* Stacked vertically */
+            flex-direction: column;
             gap: 12px;
             margin-bottom: 20px;
         }
 
         #username-input {
             width: 100%;
-            font-size: 16px; /* Prevents iOS zoom on tap */
+            font-size: 16px;
             padding: 12px 14px;
             border: 1px solid #ddd;
-            border-radius: 6px;
-            box-sizing: border-box; /* Include padding in width */
+            border-radius: 8px;
+            box-sizing: border-box;
         }
 
         button {
-            font-size: 16px; /* Prevents iOS zoom */
+            font-size: 16px;
             font-weight: bold;
             padding: 12px 16px;
             border: none;
-            border-radius: 6px;
+            border-radius: 8px;
             cursor: pointer;
-            transition: background-color 0.2s;
-            -webkit-tap-highlight-color: transparent; /* Remove tap flash on mobile */
+            transition: background-color 0.2s, transform 0.1s;
+            width: 100%;
         }
 
         #submit-btn {
             background-color: #1877f2;
             color: white;
-            width: 100%; /* Full width for easy tapping */
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
         }
 
-        #submit-btn:hover {
-            background-color: #166fe5;
+        #submit-btn:active {
+            transform: scale(0.99);
         }
         
         #submit-btn:disabled {
@@ -87,43 +77,47 @@
         #game-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
+            gap: 6px;
             border: 1px solid #ddd;
             background-color: #f9f9f9;
             padding: 8px;
-            border-radius: 6px;
+            border-radius: 8px;
             aspect-ratio: 1 / 1;
-            min-height: 280px; /* Min-height for empty state */
-            touch-action: none; /* Disable page scroll when interacting with grid */
         }
 
-        #game-grid img {
+        .game-cell {
+            position: relative;
+            background-color: #fff;
+            border-radius: 6px;
+            overflow: hidden;
+            /* Use flex to center the image if needed, though 100% height/width should fill it */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            transition: box-shadow 0.2s;
+        }
+
+        .game-cell.drag-over {
+            box-shadow: 0 0 0 3px #1877f2; /* Touch target indicator */
+        }
+
+        .game-cell img {
             width: 100%;
-            height: 100%;
-            object-fit: cover;
-            border: 1px solid #ccc;
-            border-radius: 4px;
+            height: 100%; /* Image now fills the entire cell */
+            object-fit: contain; /* CRITICAL: Prevents cropping and maintains aspect ratio */
             cursor: grab;
-            transition: opacity 0.2s, outline 0.2s;
+            transition: opacity 0.2s;
             background-color: #eee;
-            /* Prevents native image drag behavior which conflicts with our script */
-            -webkit-user-drag: none;
-            user-select: none;
         }
 
-        /* Class for the image being actively dragged */
-        #game-grid img.dragging {
+        .game-cell img.dragging {
             opacity: 0.4;
             cursor: grabbing;
         }
-
-        /* Class for the square being hovered over by a touch-drag */
-        #game-grid img.touch-over {
-            outline: 3px solid #1877f2;
-            outline-offset: -3px;
-            opacity: 0.7;
-        }
         
+        /* .game-name CSS has been removed */
+
         #status {
             margin: 15px 0;
             text-align: center;
@@ -134,16 +128,16 @@
         }
 
         #generate-btn {
-            width: 100%;
             background-color: #42b72a;
             color: white;
-            margin-top: 15px;
+            margin-top: 20px;
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
         }
 
-        #generate-btn:hover {
-            background-color: #36a420;
+        #generate-btn:active {
+            transform: scale(0.99);
         }
-        
+
         #generate-btn:disabled {
             background-color: #a3d99a;
             cursor: not-allowed;
@@ -154,8 +148,16 @@
             text-align: center;
             margin-top: 15px;
             font-weight: bold;
-            font-size: 1.1rem;
+            color: #1877f2;
+            text-decoration: none;
             padding: 10px;
+            border: 2px solid #1877f2;
+            border-radius: 8px;
+            transition: background-color 0.2s;
+        }
+        
+        #download-link:hover {
+            background-color: #e7f3ff;
         }
 
     </style>
@@ -168,7 +170,7 @@
             <input type="text" id="username-input" value="sportomax" placeholder="Enter BGG Username" autocapitalize="none" autocorrect="off">
             <button id="submit-btn">Get Games</button>
         </div>
-        <div id="status"></div>
+        <div id="status">Enter your BGG username and click "Get Games" to fetch 9 random owned titles.</div>
         <div id="game-grid"></div>
         <button id="generate-btn" disabled>Generate Combined Image</button>
         <div id="download-area"></div>
@@ -184,16 +186,18 @@
             const generateBtn = document.getElementById('generate-btn');
             const downloadArea = document.getElementById('download-area');
 
-            // --- CORS Proxies ---
-            const API_PROXY = 'https://api.allorigins.win/raw?url=';
+            // --- BGG API Base URL ---
+            const BGG_API_URL = 'https://boardgamegeek.com/xmlapi2/';
+            
+            // Proxy only for images to fix Canvas 'tainted' security error
             const IMAGE_PROXY = 'https://images.weserv.nl/?url=';
 
-            // --- State Variables ---
-            let draggedImg = null;      // For both mouse and touch
-            let touchTargetImg = null;  // For touch-move target
+            let draggedCell = null;
+            let touchTargetCell = null;
 
             // --- Utility Functions ---
 
+            /** Shuffles an array in place. */
             function shuffleArray(array) {
                 for (let i = array.length - 1; i > 0; i--) {
                     const j = Math.floor(Math.random() * (i + 1));
@@ -201,72 +205,50 @@
                 }
             }
 
+            /** Helper function to delay execution. */
             function wait(ms) {
                 return new Promise(resolve => setTimeout(resolve, ms));
             }
 
+            /**
+             * Fetches data from the BGG API, handling the 202 retry logic.
+             * @param {string} url The BGG API endpoint URL (e.g., collection?username...)
+             * @param {number} retries Number of BGG 202 retries left (fixed 3s delay).
+             */
             async function fetchBGG(url, retries = 5) {
+                const fullUrl = BGG_API_URL + url;
+                
                 try {
-                    const response = await fetch(url);
+                    const response = await fetch(fullUrl);
+
+                    // 1. --- BGG-Specific 202 Retry Logic (Fixed 3-second delay) ---
                     if (response.status === 202 && retries > 0) {
-                        status.textContent = 'BGG is processing... Please wait...';
-                        await wait(3000); // Wait 3 seconds
-                        return fetchBGG(url, retries - 1); // Retry
+                        status.textContent = `BGG is processing the request queue. Retrying in 3 seconds... (${retries} attempts left)`;
+                        await wait(3000); 
+                        return fetchBGG(url, retries - 1); 
                     }
-                    if (!response.ok) throw new Error(`BGG API fetch failed: ${response.statusText}`);
+
+                    if (!response.ok) {
+                        throw new Error(`BGG API fetch failed: Status ${response.status} ${response.statusText}`);
+                    }
+
                     return await response.text();
+
                 } catch (error) {
                     console.error('Fetch error:', error);
-                    throw error;
+                    // Pass network errors up to the caller
+                    throw new Error(`Network/API error: ${error.message}`);
                 }
             }
             
+            /** Parses XML text into a DOM object. */
             function parseXML(xmlText) {
                 return new DOMParser().parseFromString(xmlText, 'text/xml');
-            }
-            
-            /**
-             * Helper function to swap image data between two img elements
-             */
-            function swapImages(imgA, imgB) {
-                if (!imgA || !imgB) return;
-                
-                // Swap the src attributes
-                const tempSrc = imgA.src;
-                imgA.src = imgB.src;
-                imgB.src = tempSrc;
-
-                // Swap the data-game-id attributes
-                const tempId = imgA.dataset.gameId;
-                imgA.dataset.gameId = imgB.dataset.gameId;
-                imgB.dataset.gameId = tempId;
-            }
-
-            /**
-             * Helper function to clean up after any drag operation
-             */
-            function cleanupDragState() {
-                if (draggedImg) {
-                    draggedImg.classList.remove('dragging');
-                }
-                if (touchTargetImg) {
-                    touchTargetImg.classList.remove('touch-over');
-                }
-                
-                draggedImg = null;
-                touchTargetImg = null;
-                
-                // Clear any old download link, as the grid has changed
-                if (downloadArea.innerHTML) {
-                    downloadArea.innerHTML = '';
-                    if (status.textContent.startsWith('Image generated')) {
-                        status.textContent = 'Grid order changed. Generate a new image.';
-                    }
-                }
             }
 
             // --- Event Handlers ---
 
+            /** Main function to fetch and display games. */
             async function handleSubmit() {
                 const username = usernameInput.value.trim();
                 if (!username) {
@@ -274,34 +256,42 @@
                     return;
                 }
 
+                // Disable buttons and clear
                 submitBtn.disabled = true;
                 generateBtn.disabled = true;
                 grid.innerHTML = '';
                 downloadArea.innerHTML = '';
-                status.textContent = `Fetching collection for "${username}"...`;
+                status.textContent = `Fetching owned collection for "${username}"...`;
 
                 try {
-                    const collectionUrl = `${API_PROXY}https://boardgamegeek.com/xmlapi2/collection?username=${username}&own=1`;
+                    // 1. Fetch the user's collection (only owned games)
+                    const collectionUrl = `collection?username=${username}&own=1`;
                     const collectionXMLText = await fetchBGG(collectionUrl);
                     const collectionDoc = parseXML(collectionXMLText);
 
                     if (collectionDoc.querySelector('errors error')) {
-                        throw new Error(collectionDoc.querySelector('errors error').textContent);
+                         throw new Error(collectionDoc.querySelector('errors error').textContent);
                     }
 
                     const items = Array.from(collectionDoc.querySelectorAll('item[objectid]'));
-                    if (items.length === 0) throw new Error(`No owned games found for "${username}".`);
-                    if (items.length < 9) {
-                        status.textContent = `Warning: User only has ${items.length} games. Using all.`;
+                    if (items.length === 0) {
+                        throw new Error(`No owned games found for user "${username}".`);
                     }
 
+                    if (items.length < 9) {
+                        status.textContent = `Warning: User only has ${items.length} owned games. Using all of them.`;
+                    }
+
+                    // 2. Get 9 random game IDs
                     shuffleArray(items);
                     const randomItems = items.slice(0, 9);
                     const gameIds = randomItems.map(item => item.getAttribute('objectid'));
+                    const gameIdString = gameIds.join(',');
 
-                    status.textContent = 'Fetching details for 9 random games...';
+                    status.textContent = `Fetching details for ${gameIds.length} random games...`;
 
-                    const thingUrl = `${API_PROXY}https://boardgamegeek.com/xmlapi2/thing?id=${gameIds.join(',')}`;
+                    // 3. Fetch the details (image and name) for those 9 games (ONE CALL)
+                    const thingUrl = `thing?id=${gameIdString}`;
                     const thingXMLText = await fetchBGG(thingUrl);
                     const thingDoc = parseXML(thingXMLText);
                     
@@ -309,17 +299,21 @@
                     thingDoc.querySelectorAll('item').forEach(item => {
                         const id = item.getAttribute('id');
                         const imageEl = item.querySelector('image');
+                        
                         const imageUrl = imageEl ? imageEl.textContent : null;
+                        
+                        // Use the image proxy for the canvas to avoid tainted canvas error
                         const proxiedUrl = imageUrl 
                             ? `${IMAGE_PROXY}${imageUrl}` 
-                            : 'https://via.placeholder.com/200?text=No+Image';
+                            : 'https://placehold.co/300x300/c0c0c0/000?text=No+Image';
+
+                        // The name element is intentionally not retrieved or stored
                         gameData.push({ id, proxiedUrl });
                     });
                     
-                    const sortedGameData = gameIds.map(id => gameData.find(g => g.id === id));
-
-                    populateGrid(sortedGameData);
-                    status.textContent = 'Drag images to reorder.';
+                    // 4. Populate the grid
+                    populateGrid(gameData);
+                    status.textContent = 'Done. Drag and drop the game tiles to organize your grid.';
                     generateBtn.disabled = false;
 
                 } catch (error) {
@@ -330,71 +324,87 @@
                 }
             }
 
+            /** Creates and adds the game cell elements to the grid. */
             function populateGrid(gameData) {
                 grid.innerHTML = ''; // Clear previous grid
                 gameData.forEach(game => {
+                    const cell = document.createElement('div');
+                    cell.className = 'game-cell';
+                    cell.draggable = true;
+                    
                     const img = document.createElement('img');
                     img.src = game.proxiedUrl;
-                    img.dataset.gameId = game.id; // Store BGG ID
-                    img.crossOrigin = 'Anonymous'; // CRITICAL for canvas
+                    img.dataset.gameId = game.id; 
+                    img.crossOrigin = 'Anonymous'; // CRITICAL for canvas access
                     
-                    // --- MOUSE Drag & Drop Events ---
-                    img.draggable = true;
-                    img.addEventListener('dragstart', handleDragStart);
-                    img.addEventListener('dragover', handleDragOver);
-                    img.addEventListener('drop', handleDrop);
-                    img.addEventListener('dragend', handleDragEnd);
+                    // Game name element creation removed
                     
-                    // --- TOUCH Drag & Drop Events ---
-                    // { passive: false } tells the browser we will call preventDefault()
-                    img.addEventListener('touchstart', handleTouchStart, { passive: false });
-                    img.addEventListener('touchmove', handleTouchMove, { passive: false });
-                    img.addEventListener('touchend', handleTouchEnd);
+                    cell.appendChild(img);
                     
-                    grid.appendChild(img);
+                    // Add Drag (Mouse) listeners
+                    cell.addEventListener('dragstart', handleDragStart);
+                    cell.addEventListener('dragover', handleDragOver);
+                    cell.addEventListener('drop', handleDrop);
+                    cell.addEventListener('dragend', handleDragEnd);
+                    
+                    // Add Touch listeners (Mobile Drag & Drop)
+                    cell.addEventListener('touchstart', handleTouchStart);
+                    cell.addEventListener('touchmove', handleTouchMove);
+                    cell.addEventListener('touchend', handleTouchEnd);
+                    
+                    grid.appendChild(cell);
                 });
             }
 
+            /** Generates a single 3x3 PNG image from the current grid order. */
             async function handleGenerateImage() {
-                status.textContent = 'Generating image...';
+                status.textContent = 'Generating image... Please wait.';
                 downloadArea.innerHTML = '';
                 
-                const images = Array.from(grid.querySelectorAll('img'));
-                if (images.length !== 9) {
+                const cells = Array.from(grid.querySelectorAll('.game-cell'));
+                if (cells.length !== 9) {
                     status.textContent = 'Error: Grid is not fully populated.';
                     return;
                 }
 
+                // Canvas dimensions: 900x900 for good resolution
                 const canvas = document.createElement('canvas');
-                const cellSize = 300; // High-resolution cell size
+                const cellSize = 300; 
                 canvas.width = cellSize * 3;
                 canvas.height = cellSize * 3;
                 const ctx = canvas.getContext('2d');
-                ctx.fillStyle = 'white';
+
+                ctx.fillStyle = '#f0f2f5';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
 
                 try {
-                    const drawPromises = images.map((img, index) => {
-                        return new Promise((resolve) => {
+                    const drawPromises = cells.map((cell, index) => {
+                        return new Promise((resolve, reject) => {
+                            const img = cell.querySelector('img');
                             const x = (index % 3) * cellSize;
                             const y = Math.floor(index / 3) * cellSize;
                             
-                            if (img.complete && img.naturalHeight !== 0) {
-                                ctx.drawImage(img, x, y, cellSize, cellSize);
+                            const drawImage = () => {
+                                // Draw Image filling the entire cell (300x300)
+                                ctx.drawImage(img, x, y, cellSize, cellSize); 
                                 resolve();
+                            };
+
+                            // Ensure image is loaded before drawing
+                            if (img.complete && img.naturalHeight !== 0) {
+                                drawImage();
                             } else {
-                                img.onload = () => {
-                                    ctx.drawImage(img, x, y, cellSize, cellSize);
-                                    resolve();
-                                };
+                                img.onload = drawImage;
                                 img.onerror = () => {
-                                    console.warn(`Failed to load image: ${img.src}`);
-                                    ctx.fillStyle = '#eee'; // Draw a fallback box
+                                    console.error(`Failed to load image: ${img.src}`);
+                                    // Draw error box as fallback
+                                    ctx.fillStyle = '#c0392b';
                                     ctx.fillRect(x, y, cellSize, cellSize);
-                                    ctx.fillStyle = '#999';
+                                    ctx.fillStyle = 'white';
+                                    ctx.font = '30px Inter, sans-serif'; 
                                     ctx.textAlign = 'center';
-                                    ctx.fillText('Image Error', x + cellSize / 2, y + cellSize / 2);
-                                    resolve(); // Resolve anyway
+                                    ctx.fillText('ERROR', x + cellSize / 2, y + cellSize / 2);
+                                    resolve(); 
                                 };
                             }
                         });
@@ -402,7 +412,8 @@
 
                     await Promise.all(drawPromises);
 
-                    const username = usernameInput.value.trim() || 'bgg';
+                    // Create a download link
+                    const username = usernameInput.value.trim() || 'bgg-grid';
                     const link = document.createElement('a');
                     link.href = canvas.toDataURL('image/png');
                     link.download = `${username}-bgg-grid.png`;
@@ -410,80 +421,142 @@
                     link.id = 'download-link';
                     
                     downloadArea.appendChild(link);
-                    status.textContent = 'Image generated. Click link to download.';
+                    status.textContent = 'Image generated. Click the link to download or long-press to share.';
 
                 } catch (error) {
                     console.error('Canvas generation error:', error);
-                    status.textContent = 'Error generating image. See console.';
+                    status.textContent = 'Error generating image. See console for details.';
                 }
             }
 
-            // --- MOUSE Event Handlers ---
+
+            // --- Drag & Drop (Mouse) Handlers ---
+
+            function swapCellContent(cell1, cell2) {
+                // We use the entire innerHTML to swap everything (image + data attributes)
+                const tempHTML = cell1.innerHTML;
+                const tempGameId = cell1.dataset.gameId;
+                
+                cell1.innerHTML = cell2.innerHTML;
+                cell1.dataset.gameId = cell2.dataset.gameId;
+
+                cell2.innerHTML = tempHTML;
+                cell2.dataset.gameId = tempGameId;
+                
+                // CRITICAL: Re-establish crossOrigin property on swapped images
+                cell1.querySelector('img').crossOrigin = 'Anonymous';
+                cell2.querySelector('img').crossOrigin = 'Anonymous';
+                
+                // Clear any old download link
+                downloadArea.innerHTML = '';
+                if (status.textContent.startsWith('Image generated')) {
+                    status.textContent = 'Grid order changed. Generate a new image.';
+                }
+            }
 
             function handleDragStart(e) {
-                draggedImg = this;
-                this.classList.add('dragging');
+                draggedCell = this;
+                this.querySelector('img').classList.add('dragging');
                 e.dataTransfer.effectAllowed = 'move';
             }
 
             function handleDragOver(e) {
-                e.preventDefault(); // Allow drop
-                e.dataTransfer.dropEffect = 'move';
+                e.preventDefault();
+                const targetCell = e.target.closest('.game-cell');
+                if (targetCell && targetCell !== draggedCell) {
+                    // Highlight the drop target
+                    targetCell.classList.add('drag-over');
+                }
             }
-
+            
             function handleDrop(e) {
                 e.preventDefault();
-                // 'this' is the <img> being dropped on
-                if (this !== draggedImg && this.tagName === 'IMG') {
-                    swapImages(this, draggedImg);
+                const targetCell = e.target.closest('.game-cell');
+                if (targetCell && targetCell !== draggedCell) {
+                    swapCellContent(targetCell, draggedCell);
                 }
             }
 
             function handleDragEnd(e) {
-                cleanupDragState();
+                this.querySelector('img').classList.remove('dragging');
+                draggedCell = null;
+                // Remove all drag-over highlights
+                grid.querySelectorAll('.game-cell').forEach(cell => cell.classList.remove('drag-over'));
             }
             
-            // --- TOUCH Event Handlers ---
+            // --- Touch (Mobile) Handlers ---
             
             function handleTouchStart(e) {
-                e.preventDefault(); // Prevent page scroll
-                draggedImg = this;
-                this.classList.add('dragging');
+                e.preventDefault(); // Prevent scrolling/zoom
+                draggedCell = this;
+                this.querySelector('img').classList.add('dragging');
+                // Capture initial touch position for move calculation
+                const touch = e.touches[0];
+                draggedCell.startX = touch.clientX;
+                draggedCell.startY = touch.clientY;
+                
+                // Store initial position relative to the viewport/document
+                const rect = draggedCell.getBoundingClientRect();
+                draggedCell.initialX = rect.left + window.scrollX;
+                draggedCell.initialY = rect.top + window.scrollY;
             }
 
             function handleTouchMove(e) {
-                e.preventDefault(); // Prevent page scroll while dragging
-                if (!draggedImg) return;
+                if (!draggedCell) return;
+                e.preventDefault(); 
 
-                // Find what element is under the finger
-                const touch = e.targetTouches[0];
-                const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
+                const touch = e.touches[0];
+                const dx = touch.clientX - draggedCell.startX;
+                const dy = touch.clientY - draggedCell.startY;
+                
+                // Visually move the element using fixed position for smooth drag feedback
+                // Note: We move the element based on its initial fixed position plus the delta
+                draggedCell.style.position = 'fixed';
+                draggedCell.style.zIndex = '10';
+                draggedCell.style.left = `${draggedCell.initialX + dx}px`;
+                draggedCell.style.top = `${draggedCell.initialY + dy}px`;
 
-                // Clear previous touch target
-                if (touchTargetImg && touchTargetImg !== targetElement) {
-                    touchTargetImg.classList.remove('touch-over');
-                    touchTargetImg = null;
-                }
+                // Determine which cell the touch is currently over
+                const elementOver = document.elementFromPoint(touch.clientX, touch.clientY);
+                const currentTargetCell = elementOver ? elementOver.closest('.game-cell') : null;
 
-                // Check if the new target is a valid drop spot
-                if (targetElement && targetElement.tagName === 'IMG' && 
-                    targetElement.parentElement.id === 'game-grid' && 
-                    targetElement !== draggedImg) 
-                {
-                    touchTargetImg = targetElement;
-                    touchTargetImg.classList.add('touch-over');
+                // Handle visual drag-over state
+                if (currentTargetCell && currentTargetCell !== draggedCell && currentTargetCell !== touchTargetCell) {
+                    if (touchTargetCell) {
+                        touchTargetCell.classList.remove('drag-over');
+                    }
+                    currentTargetCell.classList.add('drag-over');
+                    touchTargetCell = currentTargetCell;
+                } else if (!currentTargetCell && touchTargetCell) {
+                    touchTargetCell.classList.remove('drag-over');
+                    touchTargetCell = null;
                 }
             }
 
             function handleTouchEnd(e) {
-                // Perform the swap if we ended on a valid target
-                if (touchTargetImg && draggedImg && touchTargetImg !== draggedImg) {
-                    swapImages(touchTargetImg, draggedImg);
-                }
+                if (!draggedCell) return;
+                e.preventDefault();
                 
-                // Always clean up state
-                cleanupDragState();
+                // Perform the swap if we have a valid target
+                if (touchTargetCell && touchTargetCell !== draggedCell) {
+                    swapCellContent(touchTargetCell, draggedCell);
+                }
+
+                // Reset styling (must be done AFTER swap if it occurs)
+                draggedCell.style.position = 'relative';
+                draggedCell.style.zIndex = 'auto';
+                draggedCell.style.left = 'auto';
+                draggedCell.style.top = 'auto';
+                draggedCell.querySelector('img').classList.remove('dragging');
+                
+                // Clean up
+                if (touchTargetCell) {
+                    touchTargetCell.classList.remove('drag-over');
+                }
+                draggedCell = null;
+                touchTargetCell = null;
             }
+
 
             // --- Initial Setup ---
             submitBtn.addEventListener('click', handleSubmit);
