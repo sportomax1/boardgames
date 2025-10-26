@@ -36,6 +36,12 @@
         .log-success { color: #48bb78; }
         .log-info { color: #63b3ed; }
         .log-warning { color: #f6e05e; }
+
+        /* Style for the detailed stat lists */
+        .detailed-stat-list {
+            max-height: 300px; /* Limit height for better layout management */
+            overflow-y: auto;
+        }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-100 min-h-screen p-4 md:p-8">
@@ -46,21 +52,54 @@
         <header class="mb-8">
             <h1 class="text-3xl md:text-4xl font-extrabold text-blue-400 mb-4 tracking-tight">BGG Collection Stats Dashboard</h1>
             <p class="text-gray-400 mb-6">Analyze your collection with core metrics and detailed BGG data.</p>
-            <div class="flex flex-col sm:flex-row gap-4">
-                <input 
-                    type="text" 
-                    id="usernameInput" 
-                    value="sportomax" 
-                    class="flex-grow bg-gray-800 text-white border border-gray-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-inner"
-                    placeholder="Enter BGG Username"
-                    aria-label="BGG Username"
-                >
-                <button 
-                    id="fetchButton" 
-                    class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-xl transition duration-300 shadow-xl active:scale-95"
-                >
-                    Fetch Stats
-                </button>
+            
+            <div class="bg-gray-800 p-6 rounded-xl shadow-2xl mb-6">
+                <div class="flex flex-col sm:flex-row gap-4 mb-6">
+                    <input 
+                        type="text" 
+                        id="usernameInput" 
+                        value="" 
+                        class="flex-grow bg-gray-700 text-white border border-gray-600 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-inner"
+                        placeholder="Enter YOUR BGG Username"
+                        aria-label="BGG Username"
+                    >
+                    <button 
+                        id="fetchButton" 
+                        class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-xl transition duration-300 shadow-xl active:scale-95"
+                    >
+                        Fetch Stats
+                    </button>
+                </div>
+                
+                <!-- Filter Checkboxes -->
+                <h3 class="text-lg font-semibold text-gray-300 mb-3 border-b border-gray-700 pb-2">Collection Filters (What to Analyze)</h3>
+                <div id="filterContainer" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox" id="filter-own" value="1" class="form-checkbox text-blue-500 rounded bg-gray-700 border-gray-600 focus:ring-blue-500">
+                        <span class="text-sm text-gray-300">Owned</span>
+                    </label>
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox" id="filter-prevowned" value="1" class="form-checkbox text-blue-500 rounded bg-gray-700 border-gray-600 focus:ring-blue-500">
+                        <span class="text-sm text-gray-300">Previously Owned</span>
+                    </label>
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox" id="filter-fortrade" value="1" class="form-checkbox text-blue-500 rounded bg-gray-700 border-gray-600 focus:ring-blue-500">
+                        <span class="text-sm text-gray-300">For Trade</span>
+                    </label>
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox" id="filter-want" value="1" class="form-checkbox text-blue-500 rounded bg-gray-700 border-gray-600 focus:ring-blue-500">
+                        <span class="text-sm text-gray-300">Want In Trade</span>
+                    </label>
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox" id="filter-wanttoplay" value="1" class="form-checkbox text-blue-500 rounded bg-gray-700 border-gray-600 focus:ring-blue-500" checked>
+                        <span class="text-sm text-gray-300">Want To Play (WTP)</span>
+                    </label>
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox" id="filter-wishlist" value="1" class="form-checkbox text-blue-500 rounded bg-gray-700 border-gray-600 focus:ring-blue-500" checked>
+                        <span class="text-sm text-gray-300">Wishlist</span>
+                    </label>
+                </div>
+                <p class="text-xs text-blue-300 mt-4">Selected filters are used to query the BGG API. Only items matching **any** checked status will be returned.</p>
             </div>
         </header>
 
@@ -79,25 +118,31 @@
             </div>
         </div>
 
-        <!-- Stats Grid -->
+        <!-- Stats Grid (Core Metrics) -->
         <div id="statsGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6 mt-6">
             <!-- Stat cards will be injected here by JavaScript -->
         </div>
+
+        <!-- Detailed Statistics Buckets (NEW SECTION) -->
+        <h2 id="detailedStatsHeader" class="text-3xl font-extrabold text-white mt-10 mb-4 border-b border-gray-700 pb-2 hidden">Detailed Distribution Statistics</h2>
+        <div id="detailedStatsContainer" class="mt-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            <!-- Detailed stat charts/lists will be injected here by JavaScript -->
+        </div>
         
-        <!-- Detailed Troubleshooting Log (NEW) -->
+        <!-- Game List (Optional detailed view) -->
+        <div id="detailedList" class="hidden mt-10">
+            <h2 class="text-2xl font-bold text-white mb-4 border-b border-gray-700 pb-2">Most Rated Items in this Selection</h2>
+            <ul id="topPlayedList" class="space-y-3">
+                <!-- Top played games will be listed here -->
+            </div>
+        </div>
+        
+        <!-- Detailed Troubleshooting Log -->
         <div class="mt-10 p-6 bg-gray-800 rounded-xl shadow-2xl">
             <h2 class="text-xl font-bold text-gray-300 mb-3 border-b border-gray-700 pb-2">Troubleshooting & API Log</h2>
             <div id="debugLogContainer" class="bg-gray-900 p-3 rounded-lg border border-gray-700">
                 <p class="text-gray-500">Log will appear here after clicking "Fetch Stats".</p>
             </div>
-        </div>
-
-        <!-- Game List (Optional detailed view) -->
-        <div id="detailedList" class="hidden mt-10">
-            <h2 class="text-2xl font-bold text-white mb-4 border-b border-gray-700 pb-2">Top 5 Most Played</h2>
-            <ul id="topPlayedList" class="space-y-3">
-                <!-- Top played games will be listed here -->
-            </ul>
         </div>
 
     </div>
@@ -114,7 +159,9 @@
         const statsGrid = document.getElementById('statsGrid');
         const detailedList = document.getElementById('detailedList');
         const topPlayedList = document.getElementById('topPlayedList');
-        const debugLogContainer = document.getElementById('debugLogContainer'); // NEW
+        const debugLogContainer = document.getElementById('debugLogContainer');
+        const detailedStatsContainer = document.getElementById('detailedStatsContainer');
+        const detailedStatsHeader = document.getElementById('detailedStatsHeader');
 
         // --- BGG API Config ---
         const BGG_COLLECTION_URL = 'https://boardgamegeek.com/xmlapi2/collection';
@@ -123,11 +170,11 @@
         // CRITICAL FIX: CORS Proxy to allow browser fetching
         const CORS_PROXY = 'https://corsproxy.io/?'; 
 
-        const THING_BATCH_SIZE = 100; // Max recommended batch size for 'thing' API
-        const POLL_INTERVAL = 3000; // Fixed 3-second delay for BGG 202 polling
+        const THING_BATCH_SIZE = 100; 
+        const POLL_INTERVAL = 3000; 
         const MAX_POLL_ATTEMPTS = 15; 
 
-        // --- Utility Function: UI Logger (NEW) ---
+        // --- Utility Function: UI Logger ---
         /**
          * Logs messages to the console AND the dedicated UI log area for mobile troubleshooting.
          * @param {string} message The message content.
@@ -164,6 +211,35 @@
                 handleFetchStats();
             }
         });
+
+        // Get all filter checkboxes
+        const filterCheckboxes = document.querySelectorAll('#filterContainer input[type="checkbox"]');
+        
+        /**
+         * Builds the BGG API query parameters based on checked filters.
+         * @returns {string} The URL parameter string (e.g., '&wishlist=1&wanttoplay=1').
+         */
+        function getFilterParams() {
+            let params = '';
+            let activeFilters = [];
+
+            filterCheckboxes.forEach(checkbox => {
+                if (checkbox.checked) {
+                    // Filter IDs map directly to BGG API parameters (own, wishlist, wanttoplay, etc.)
+                    const filterName = checkbox.id.replace('filter-', '');
+                    params += `&${filterName}=1`;
+                    activeFilters.push(filterName.toUpperCase());
+                }
+            });
+            
+            if (activeFilters.length === 0) {
+                 showMessage('Please select at least one Collection Filter (e.g., Owned, Wishlist, Want To Play).', 'warning');
+                 return null;
+            }
+            
+            logToUI(`Active Filters: ${activeFilters.join(', ')}`, 'info');
+            return params;
+        }
         
         /**
          * Main function to orchestrate the fetching and processing
@@ -174,44 +250,46 @@
                 showMessage('Please enter a BGG username.');
                 return;
             }
+            
+            const filterParams = getFilterParams();
+            if (!filterParams) {
+                return; // Stop if no filters are selected
+            }
 
             // Reset UI and Log
             showLoading(true, 'Initiating fetch process...');
             showMessage(false); // Clear previous messages
             statsGrid.innerHTML = '';
             detailedList.classList.add('hidden');
+            detailedStatsContainer.classList.add('hidden');
+            detailedStatsHeader.classList.add('hidden');
             debugLogContainer.innerHTML = ''; // Clear log on new request
 
             try {
-                logToUI(`Starting collection fetch for user: ${username}`, 'info');
+                logToUI(`Starting collection fetch for user: ${username} with filters: ${filterParams}`, 'info');
 
                 // 1. Get the source XML (either local file or BGG API)
-                const collectionXmlDoc = await getCollectionXml(username);
+                const collectionXmlDoc = await getCollectionXml(username, filterParams);
                 if (!collectionXmlDoc) {
                     logToUI('Collection XML fetch failed, stopping process.', 'error');
                     return; 
                 }
 
-                // --- NEW FILTERING: Now selecting ALL items from the BGG response. ---
-                // The API URL no longer filters by 'own=1', so we must manually filter on the result.
-                // However, since the user requested no filtering, we will now look for any item element.
-                // NOTE: The previous code was looking for 'item[own="1"]' which matched the old API parameter.
-                // Now, we look for ALL 'item' nodes, which matches the new API parameter, and honors the "don't filter" request.
+                // IMPORTANT: collectionItems now ONLY contains items matching the filters
                 const collectionItems = Array.from(collectionXmlDoc.querySelectorAll('item'));
-                const totalItems = collectionItems.length; // This is the RAW count of ALL items returned.
+                const totalItems = collectionItems.length;
 
                 if (totalItems === 0) {
-                    showMessage(`BGG API reports 0 items for user '${username}'. Check your BGG profile and collection visibility.`);
+                    showMessage(`BGG API reports 0 items for user '${username}' matching your selected filters. Try different filters or check the username.`);
                     showLoading(false);
                     return;
                 }
                 
-                logToUI(`Raw Collection Size: Found ${totalItems} total items in the collection (no BGG status filter applied).`, 'success');
+                logToUI(`Filtered Collection Size: Found ${totalItems} items matching selected statuses.`, 'success');
 
                 showLoading(true, `Found ${totalItems} items. Fetching detailed data...`);
 
-                // 2. Extract Game IDs (We MUST filter here for 'thing' API, otherwise 'thing' API will break or return irrelevant data)
-                // We will only query BGG for details on actual games/expansions for performance.
+                // 2. Extract Game IDs 
                 const gameIds = collectionItems
                     .filter(item => {
                         const subtype = item.getAttribute('subtype');
@@ -244,34 +322,11 @@
         }
 
         /**
-         * Tries to fetch the special private_all.xml, falls back to BGG API.
+         * Fetches collection from BGG via CORS proxy, now including filter parameters.
          */
-        async function getCollectionXml(username) {
-            // Local file fallback kept for completeness
-            if (username.toLowerCase() === 'sportomax') {
-                try {
-                    const response = await fetch('private_all.xml');
-                    if (response.ok) {
-                        logToUI('Local file fallback successful (private_all.xml).', 'info');
-                        const xmlText = await response.text();
-                        return parseXml(xmlText);
-                    }
-                } catch (err) {
-                    logToUI('Local file fallback failed (expected if file is missing). Proceeding to BGG API.', 'info');
-                }
-            }
-            
-            // Standard BGG API fetch via CORS proxy
-            return fetchCollectionFromBGG(username);
-        }
-
-        /**
-         * Fetches collection from BGG via CORS proxy, using a fixed 3s delay for 202 polling.
-         * The '&own=1' filter has been removed from the BGG API request URL.
-         */
-        async function fetchCollectionFromBGG(username, attempt = 0) {
-            // Build the BGG API target URL (REMOVED: &own=1 to ensure all items are returned)
-            const bggTargetUrl = `${BGG_COLLECTION_URL}?username=${username}&stats=1`;
+        async function getCollectionXml(username, filterParams, attempt = 0) {
+            // Build the BGG API target URL
+            const bggTargetUrl = `${BGG_COLLECTION_URL}?username=${username}&stats=1${filterParams}`;
             
             // URL encoding is necessary for the proxy to work reliably
             const url = `${CORS_PROXY}${encodeURIComponent(bggTargetUrl)}`;
@@ -288,11 +343,11 @@
                         throw new Error("BGG API collection request timed out after too many retries (max 15 attempts).");
                     }
                     
-                    showLoading(true, `BGG is preparing the collection (v2 API). Retrying in ${POLL_INTERVAL / 1000}s (Attempt ${attempt + 1}/${MAX_POLL_ATTEMPTS})...`);
+                    showLoading(true, `BGG is preparing the filtered collection (v2 API). Retrying in ${POLL_INTERVAL / 1000}s (Attempt ${attempt + 1}/${MAX_POLL_ATTEMPTS})...`);
                     logToUI(`Status 202 received. Retrying in ${POLL_INTERVAL}ms. (Attempt ${attempt + 1}/${MAX_POLL_ATTEMPTS})`, 'warning');
                     await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL));
                     
-                    return fetchCollectionFromBGG(username, attempt + 1); 
+                    return getCollectionXml(username, filterParams, attempt + 1); 
                 }
 
                 if (!response.ok) {
@@ -302,14 +357,13 @@
                 const xmlText = await response.text();
                 logToUI(`Successfully received XML text (length: ${xmlText.length.toLocaleString()} bytes).`, 'success');
 
-                // Check for API-level errors in the XML response
                 const xmlDoc = parseXml(xmlText);
                 
-                const allItems = xmlDoc.querySelectorAll('item'); // Now looking for ALL item tags
+                const allItems = xmlDoc.querySelectorAll('item'); 
                 const rawItemCount = allItems.length;
 
                 // --- PROOF POINT: Display success message on the UI ---
-                showMessage(`Successfully connected and received collection XML from BGG. Found ${rawItemCount} total raw items (All Statuses).`, 'success');
+                showMessage(`Successfully connected and received collection XML from BGG. Found ${rawItemCount} items matching your filter.`, 'success');
                 // ------------------------------------------------------
                 
                 logToUI(`XML parsed. Found ${rawItemCount} 'item' elements.`, 'success');
@@ -385,23 +439,19 @@
          * Main processing function. Calculates all stats and renders them.
          */
         function processAndRenderStats(collectionItems, thingItems) {
-            // NOTE: collectionItems is the RAW owned list (all item types), so totalGames reflects this.
-            // Stats derived from BGG API ('thing' data) will only be for actual games/expansions.
+            // NOTE: collectionItems is the FILTERED list.
             
             const stats = {
-                totalGames: 0, // This is now total ALL ITEMS
-                totalPlays: 0,
-                gamesWith0Plays: 0,
-                ratedGames: 0,
+                totalItems: 0, 
+                ratedItems: 0, // items rated by user
                 sumUserRatings: 0,
-                bggRatedGames: 0,
+                bggRatedGames: 0, // games with BGG ratings
                 sumBggRatings: 0,
                 weightedGames: 0,
                 sumWeight: 0,
                 minYear: Infinity,
                 maxYear: -Infinity,
-                playsList: [],
-                mostPlayedGames: [], 
+                topRatedItems: [], // Used for the list display
             };
 
             const mechanicCounts = new Map();
@@ -412,69 +462,73 @@
                 thingMap.set(item.getAttribute('id'), item);
             });
             
-            logToUI(`Beginning statistical calculation on ${collectionItems.length} raw collection items.`, 'info');
+            // --- DETAILED STAT MAPS ---
+            const startingCharCounts = new Map();
+            const yearPublishedCounts = new Map();
+            const playerCountCounts = new Map();
+            const playingTimeCounts = new Map();
+            const averageRatingCounts = new Map();
+            const bayesAverageCounts = new Map();
+            const stdDevCounts = new Map();
+            const rankGroupCounts = new Map();
+            const userRatedCounts = new Map();
+            const lastModifiedCounts = new Map();
+            // --------------------------
+
+            logToUI(`Beginning statistical calculation on ${collectionItems.length} filtered collection items.`, 'info');
 
 
-            // --- Loop 1: Process Collection Items (User-specific data) ---
+            // --- Loop 1: Process Collection Items (User-specific data + Last Modified) ---
             for (const item of collectionItems) {
-                stats.totalGames++;
+                stats.totalItems++;
                 const gameName = item.querySelector('name')?.textContent || 'Unknown Item';
-                const subtype = item.getAttribute('subtype'); // Check subtype for logging/debug context
+                const subtype = item.getAttribute('subtype'); 
                 
-                // Plays (available for all types of items)
-                const numPlays = parseInt(item.querySelector('numplays')?.textContent || '0');
-                stats.totalPlays += numPlays;
-                if (numPlays === 0) {
-                    stats.gamesWith0Plays++;
-                } 
-                
-                stats.mostPlayedGames.push({ name: gameName, plays: numPlays, subtype: subtype });
-
-                // User Rating (available for all types of items)
+                // User Rating
                 const userRatingStr = item.querySelector('stats > rating')?.getAttribute('value');
+                let userRating = 0;
                 if (userRatingStr && userRatingStr !== 'N/A') {
-                    const userRating = parseFloat(userRatingStr);
+                    userRating = parseFloat(userRatingStr);
                     if (userRating > 0) {
-                        stats.ratedGames++;
+                        stats.ratedItems++;
                         stats.sumUserRatings += userRating;
                     }
+                }
+                
+                stats.topRatedItems.push({ name: gameName, userRating: userRating, subtype: subtype });
+
+
+                // 11. Count per lastmodified
+                const lastModifiedStr = item.querySelector('status')?.getAttribute('lastmodified');
+                if (lastModifiedStr) {
+                    incrementMap(lastModifiedCounts, groupLastModified(lastModifiedStr));
                 }
 
                 // --- Process 'Thing' Data (Global game data - ONLY available for games/expansions) ---
                 const gameId = item.getAttribute('objectid');
                 const thing = thingMap.get(gameId);
 
-                // Only calculate BGG stats for items we successfully fetched detailed data for (i.e. games/expansions)
                 if (thing) {
-                    // BGG Rating
-                    const bggRatingStr = thing.querySelector('statistics > ratings > average')?.getAttribute('value');
-                    if (bggRatingStr) {
-                        const bggRating = parseFloat(bggRatingStr);
-                        if (bggRating > 0) {
-                            stats.bggRatedGames++;
-                            stats.sumBggRatings += bggRating;
-                        }
-                    }
+                    // 1. Count per starting letter or character
+                    const thingName = thing.querySelector('name')?.getAttribute('value') || 'Unknown Game';
+                    const char = thingName.trim().toUpperCase().charAt(0);
+                    const firstChar = char.match(/[A-Z]/) ? char : '# (Non-Alpha)';
+                    incrementMap(startingCharCounts, firstChar);
 
-                    // Weight (Complexity)
-                    const weightStr = thing.querySelector('statistics > ratings > averageweight')?.getAttribute('value');
-                    if (weightStr) {
-                        const weight = parseFloat(weightStr);
-                        if (weight > 0) {
-                            stats.weightedGames++;
-                            stats.sumWeight += weight;
-                        }
-                    }
-
-                    // Year Published
+                    // 2. Count per year published
                     const yearStr = thing.querySelector('yearpublished')?.getAttribute('value');
-                    if (yearStr) {
+                    if (yearStr && yearStr !== '0' && yearStr !== '9999') {
                         const year = parseInt(yearStr);
-                        if (year > 0 && year !== 9999) { 
-                            if (year < stats.minYear) stats.minYear = year;
-                            if (year > stats.maxYear) stats.maxYear = year;
-                        }
+                        incrementMap(yearPublishedCounts, yearStr);
+                        
+                        // Update min/max year for core stats
+                        if (year < stats.minYear) stats.minYear = year;
+                        if (year > stats.maxYear) stats.maxYear = year;
                     }
+
+                    // 4. Playing Time (also needed for detailed stats)
+                    const playingTime = parseInt(thing.querySelector('playingtime')?.getAttribute('value') || '0');
+                    incrementMap(playingTimeCounts, groupPlayingTime(playingTime));
 
                     // Links (Mechanics, Categories, Designers)
                     const links = thing.querySelectorAll('link');
@@ -493,62 +547,124 @@
                                 break;
                         }
                     });
+
+                    // Get ratings/stats container
+                    const ratings = thing.querySelector('statistics > ratings');
+                    if (ratings) {
+                        // 3. Count of games playable at each player count (Min/Max Players)
+                        const minPlayers = parseInt(thing.querySelector('minplayers')?.getAttribute('value') || '0');
+                        const maxPlayers = parseInt(thing.querySelector('maxplayers')?.getAttribute('value') || '0');
+                        for (let p = minPlayers; p > 0 && p <= maxPlayers; p++) {
+                            incrementMap(playerCountCounts, p.toString());
+                        }
+
+                        // Core BGG Rating
+                        const bggRatingStr = ratings.querySelector('average')?.getAttribute('value');
+                        if (bggRatingStr) {
+                            const bggRating = parseFloat(bggRatingStr);
+                            if (bggRating > 0) {
+                                stats.bggRatedGames++;
+                                stats.sumBggRatings += bggRating;
+                            }
+                        }
+
+                        // Core Weight (Complexity)
+                        const weightStr = ratings.querySelector('averageweight')?.getAttribute('value');
+                        if (weightStr) {
+                            const weight = parseFloat(weightStr);
+                            if (weight > 0) {
+                                stats.weightedGames++;
+                                stats.sumWeight += weight;
+                            }
+                        }
+
+                        // 5 & 7. Count of games at each average rating (rounded down)
+                        const avgRating = parseFloat(ratings.querySelector('average')?.getAttribute('value') || '0');
+                        if (avgRating > 0) {
+                             incrementMap(averageRatingCounts, Math.floor(avgRating).toString());
+                        }
+
+                        // 8. Count per bayesaverage (rounded down)
+                        const bayesAvg = parseFloat(ratings.querySelector('bayesaverage')?.getAttribute('value') || '0');
+                        if (bayesAvg > 0) {
+                             incrementMap(bayesAverageCounts, Math.floor(bayesAvg).toString());
+                        }
+                        
+                        // 6. Count users rated (make local groupings)
+                        const usersRated = parseInt(ratings.querySelector('usersrated')?.getAttribute('value') || '0');
+                        incrementMap(userRatedCounts, groupUsersRated(usersRated));
+
+                        // 9. Count per stddev (logical groupings)
+                        const stdDev = parseFloat(ratings.querySelector('stddev')?.getAttribute('value') || '0');
+                        incrementMap(stdDevCounts, groupStdDev(stdDev));
+
+                        // 10. Count per boardgamerank groupings
+                        const rankElement = ratings.querySelector('rank[type="subtype"][id="1"]'); // Target primary boardgame rank
+                        let rank = 0;
+                        if (rankElement) {
+                            const rankValue = rankElement.getAttribute('value');
+                            if (rankValue && rankValue !== 'Not Ranked') {
+                                rank = parseInt(rankValue);
+                            }
+                        }
+                        incrementMap(rankGroupCounts, groupRank(rank));
+                    }
                 }
             }
             
-            // --- Calculate Final Stats ---
-            const avgPlays = stats.totalGames > 0 ? (stats.totalPlays / stats.totalGames) : 0;
-            const avgUserRating = stats.ratedGames > 0 ? (stats.sumUserRatings / stats.ratedGames) : 0;
+            // --- Calculate Final Core Stats ---
+            const avgUserRating = stats.ratedItems > 0 ? (stats.sumUserRatings / stats.ratedItems) : 0;
             const avgBggRating = stats.bggRatedGames > 0 ? (stats.sumBggRatings / stats.bggRatedGames) : 0;
             const avgWeight = stats.weightedGames > 0 ? (stats.sumWeight / stats.weightedGames) : 0;
-            const percentUnplayed = stats.totalGames > 0 ? (stats.gamesWith0Plays / stats.totalGames) * 100 : 0;
-            
-            // H-Index Calculation
-            const sortedPlays = stats.mostPlayedGames.map(g => g.plays).sort((a, b) => b - a);
-            let hIndex = 0;
-            for (let i = 0; i < sortedPlays.length; i++) {
-                if (sortedPlays[i] >= i + 1) {
-                    hIndex = i + 1;
-                } else {
-                    break;
-                }
-            }
             
             // Get Top 1s
             const topMechanic = getTopFromMap(mechanicCounts, 1)[0] || 'N/A';
             const topCategory = getTopFromMap(categoryCounts, 1)[0] || 'N/A';
             const topDesigner = getTopFromMap(designerCounts, 1)[0] || 'N/A';
             
-            // Find most played game
-            const sortedPlayedGames = stats.mostPlayedGames.sort((a, b) => b.plays - a.plays);
+            // Find most rated item (by user)
+            const sortedRatedItems = stats.topRatedItems
+                .filter(g => g.userRating > 0) // Only show items the user has rated
+                .sort((a, b) => b.userRating - a.userRating);
 
 
             // --- Render Stat Cards ---
             statsGrid.innerHTML = ''; // Clear again just in case
             
             // Row 1: Core Stats
-            renderStatCard('Total Collection Items (RAW)', stats.totalGames.toLocaleString(), 'Includes all items regardless of BGG status.');
-            renderStatCard('Total Plays (All Items)', stats.totalPlays.toLocaleString(), `Avg ${avgPlays.toFixed(2)} plays per item`);
-            renderStatCard('H-Index (Plays)', hIndex, 'Your personal play metric');
+            renderStatCard('Total Items in Selection', stats.totalItems.toLocaleString(), 'Count matching BGG filters (e.g., Wishlist)');
+            renderStatCard('Avg. BGG Rating', avgBggRating.toFixed(2), `Community Avg. of ${stats.bggRatedGames} filtered titles`);
+            renderStatCard('Avg. User Rating', avgUserRating.toFixed(2), `From your ${stats.ratedItems} ratings in this selection`);
             renderStatCard('Avg. Complexity', avgWeight.toFixed(2) + ' / 5', `Based on ${stats.weightedGames} filtered titles`);
 
-            // Row 2: Play Status
-            renderStatCard('Unplayed Items', stats.gamesWith0Plays.toLocaleString(), `${percentUnplayed.toFixed(1)}% of collection`);
-            renderStatCard('Items Played', (stats.totalGames - stats.gamesWith0Plays).toLocaleString(), 'Have at least 1 recorded play');
-            renderStatCard('Oldest Game', stats.minYear === Infinity ? 'N/A' : stats.minYear, `Year of oldest known game (${stats.weightedGames} tracked)`);
-            renderStatCard('Newest Game', stats.maxYear === -Infinity ? 'N/A' : stats.maxYear, `Year of newest known game (${stats.weightedGames} tracked)`);
+            // Row 2: Collection Breadth
+            renderStatCard('Min Year Published', stats.minYear === Infinity ? 'N/A' : stats.minYear, 'Oldest game in this selection');
+            renderStatCard('Max Year Published', stats.maxYear === -Infinity ? 'N/A' : stats.maxYear, 'Newest game in this selection');
+            renderStatCard('Total Designers Tracked', designerCounts.size.toLocaleString(), 'Unique designers in filtered items');
+            renderStatCard('Total Categories Tracked', categoryCounts.size.toLocaleString(), 'Unique categories in filtered items');
 
-            // Row 3: Ratings
-            renderStatCard('Avg. User Rating', avgUserRating.toFixed(2), `From your ${stats.ratedGames} ratings on any item type`);
-            renderStatCard('Avg. BGG Rating', avgBggRating.toFixed(2), `Community Avg. of ${stats.bggRatedGames} filtered titles`);
-            
-            // Row 4: Top Links
-            renderStatCard('Top Mechanic (Filtered)', topMechanic, `Found in ${mechanicCounts.get(topMechanic) || 0} games`);
-            renderStatCard('Top Category (Filtered)', topCategory, `Found in ${categoryCounts.get(topCategory) || 0} games`);
-            renderStatCard('Top Designer (Filtered)', topDesigner, `Found in ${designerCounts.get(topDesigner) || 0} games`);
+            // Row 3: Top Links
+            renderStatCard('Top Mechanic', topMechanic, `Found in ${mechanicCounts.get(topMechanic) || 0} games`);
+            renderStatCard('Top Category', topCategory, `Found in ${categoryCounts.get(topCategory) || 0} games`);
+            renderStatCard('Top Designer', topDesigner, `Found in ${designerCounts.get(topDesigner) || 0} games`);
+            renderStatCard('Item Types Found', thingItems.length === 0 ? '0' : thingItems.length.toLocaleString(), 'Number of games/expansions with full detail');
             
             // Render detailed list
-            renderTopPlayedList(sortedPlayedGames.slice(0, 5));
+            renderTopRatedList(sortedRatedItems.slice(0, 5));
+
+            // --- Render Detailed Stat Buckets ---
+            renderDetailedStats({
+                startingChar: startingCharCounts,
+                yearPublished: yearPublishedCounts,
+                playerCount: playerCountCounts,
+                playingTime: playingTimeCounts,
+                averageRating: averageRatingCounts,
+                bayesAverage: bayesAverageCounts,
+                stdDev: stdDevCounts,
+                rankGroup: rankGroupCounts,
+                userRated: userRatedCounts,
+                lastModified: lastModifiedCounts,
+            });
         }
 
         // --- Helper Functions ---
@@ -574,11 +690,16 @@
         }
         
         /**
-         * Renders a detailed list of the top N most played games.
+         * Renders a detailed list of the top N most highly user-rated games in the selection.
          */
-        function renderTopPlayedList(topGames) {
+        function renderTopRatedList(topGames) {
             topPlayedList.innerHTML = '';
-            if (topGames.length === 0 || topGames[0]?.plays === 0) {
+            
+            // Update the list header based on what we're displaying
+            const listHeader = document.querySelector('#detailedList h2');
+            listHeader.textContent = 'Top 5 User-Rated Items in Selection (Out of your rated items)';
+
+            if (topGames.length === 0) {
                 detailedList.classList.add('hidden');
                 return;
             }
@@ -593,7 +714,7 @@
                         <span class="text-white font-medium truncate">${game.name}</span>
                     </div>
                     <span class="text-xs text-gray-400 mr-2 uppercase">${game.subtype || 'Item'}</span>
-                    <span class="text-lg font-bold bg-blue-600 text-white rounded-full px-4 py-1">${game.plays} Plays</span>
+                    <span class="text-lg font-bold bg-blue-600 text-white rounded-full px-4 py-1">${game.userRating.toFixed(1)} / 10</span>
                 `;
                 topPlayedList.appendChild(listItem);
             });
@@ -625,7 +746,9 @@
             const successIconPath = "M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z";
             
             // Clear all previous coloring classes
-            messageBox.classList.remove('bg-red-800', 'border-red-500', 'text-red-100', 'bg-green-800', 'border-green-500', 'text-green-100');
+            messageBox.classList.remove('bg-red-800', 'border-red-500', 'text-red-100', 'bg-green-800', 'border-green-500', 'text-green-100', 'bg-yellow-800', 'border-yellow-500', 'text-yellow-100');
+            
+            const svgPath = messageBox.querySelector('svg path');
 
             if (message) {
                 messageContent.textContent = message;
@@ -635,11 +758,16 @@
                 if (type === 'success') {
                     messageBox.classList.add('bg-green-800', 'border-green-500', 'text-green-100');
                     messageType.textContent = 'Success:';
-                    messageBox.querySelector('svg path').setAttribute('d', successIconPath);
-                } else {
+                    svgPath.setAttribute('d', successIconPath);
+                } else if (type === 'warning') {
+                    messageBox.classList.add('bg-yellow-800', 'border-yellow-500', 'text-yellow-100');
+                    messageType.textContent = 'Warning:';
+                    svgPath.setAttribute('d', errorIconPath); // Reusing error icon path for simplicity
+                } 
+                else {
                     messageBox.classList.add('bg-red-800', 'border-red-500', 'text-red-100');
                     messageType.textContent = 'Error:';
-                    messageBox.querySelector('svg path').setAttribute('d', errorIconPath);
+                    svgPath.setAttribute('d', errorIconPath);
                 }
             } else {
                 messageBox.classList.add('hidden');
@@ -671,7 +799,131 @@
                 .map(entry => entry[0]); // Get just the key (name)
         }
 
+        // --- Grouping Functions ---
+
+        /**
+         * Groups playing time into logical buckets.
+         */
+        function groupPlayingTime(time) {
+            if (time <= 30) return '30 min or less';
+            if (time <= 60) return '31 - 60 min';
+            if (time <= 90) return '61 - 90 min';
+            if (time <= 120) return '91 - 120 min (2h)';
+            if (time <= 180) return '121 - 180 min (3h)';
+            return '180 min (3h) +';
+        }
+
+        /**
+         * Groups users rated into logical buckets.
+         */
+        function groupUsersRated(count) {
+            if (count < 100) return '< 100 Ratings';
+            if (count < 500) return '100 - 499 Ratings';
+            if (count < 1000) return '500 - 999 Ratings';
+            if (count < 5000) return '1K - 4.9K Ratings';
+            if (count < 10000) return '5K - 9.9K Ratings';
+            if (count < 25000) return '10K - 24.9K Ratings';
+            return '25K + Ratings';
+        }
+
+        /**
+         * Groups standard deviation (rating variance) into logical buckets.
+         */
+        function groupStdDev(stddev) {
+            if (stddev < 0.5) return '< 0.5 (High Consensus)';
+            if (stddev <= 1.0) return '0.5 - 1.0 (Normal)';
+            if (stddev <= 1.5) return '1.0 - 1.5 (Moderate Variance)';
+            return '1.5 + (High Variance)';
+        }
+
+        /**
+         * Groups BoardGameGeek rank into logical buckets.
+         * Rank 0 is Unranked or not a primary boardgame.
+         */
+        function groupRank(rank) {
+            if (rank === 0) return 'Unranked/N/A';
+            if (rank <= 10) return 'Top 10';
+            if (rank <= 100) return 'Top 100';
+            if (rank <= 500) return 'Top 500';
+            if (rank <= 1000) return 'Top 1000';
+            if (rank <= 5000) return '1001 - 5000';
+            return '5000+';
+        }
+
+        /**
+         * Groups last modified date into time-based buckets.
+         */
+        function groupLastModified(dateString) {
+            const now = new Date();
+            // BGG format is YYYY-MM-DD HH:mm:ss
+            const modifiedDate = new Date(dateString.replace(' ', 'T')); 
+            const diffTime = Math.abs(now - modifiedDate);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+            if (diffDays <= 30) return 'Last 30 Days';
+            if (diffDays <= 90) return '1 - 3 Months Ago';
+            if (diffDays <= 182) return '3 - 6 Months Ago'; // ~6 months
+            if (diffDays <= 365) return '6 - 12 Months Ago'; // ~1 year
+            return 'Over 1 Year Ago';
+        }
+
+        /**
+         * Renders the detailed statistical buckets.
+         */
+        function renderDetailedStats(data) {
+            const container = document.getElementById('detailedStatsContainer');
+            container.innerHTML = '';
+
+            const statConfigs = [
+                { title: '1. Count by Starting Character', map: data.startingChar, sort: (a, b) => a[0].localeCompare(b[0]) },
+                { title: '2. Count by Year Published', map: data.yearPublished, sort: (a, b) => parseInt(a[0]) - parseInt(b[0]) },
+                { title: '3. Count by Player Count', map: data.playerCount, sort: (a, b) => parseInt(a[0]) - parseInt(b[0]), description: 'Number of items playable at this count.' },
+                { title: '4. Count by Playing Time', map: data.playingTime, sort: (a, b) => b[1] - a[1] },
+                { title: '5. Count by BGG Avg Rating (Rounded)', map: data.averageRating, sort: (a, b) => parseInt(a[0]) - parseInt(b[0]) },
+                { title: '6. Count by Users Rated Group', map: data.userRated, sort: (a, b) => b[1] - a[1] },
+                { title: '7. Count by BGG Avg Rating (Rounded)', map: data.averageRating, sort: (a, b) => parseInt(a[0]) - parseInt(b[0]) }, // Duplicate, but keeping for user requested sequence
+                { title: '8. Count by Bayesaverage (Rounded)', map: data.bayesAverage, sort: (a, b) => parseInt(a[0]) - parseInt(b[0]) },
+                { title: '9. Count by Standard Deviation', map: data.stdDev, sort: (a, b) => b[1] - a[1] },
+                { title: '10. Count by BGG Rank Group', map: data.rankGroup, sort: (a, b) => b[1] - a[1] },
+                { title: '11. Count by Last Modified', map: data.lastModified, sort: (a, b) => b[1] - a[1], description: 'When the item status was last modified on BGG.' },
+            ];
+
+            let contentGenerated = false;
+
+            // Use a temporary array to store configs that actually have data
+            const configsWithData = statConfigs.filter(config => Array.from(config.map.entries()).length > 0);
+
+            configsWithData.forEach(config => {
+                // Convert map to array and sort
+                const sortedData = Array.from(config.map.entries()).sort(config.sort);
+
+                const card = document.createElement('div');
+                card.className = 'bg-gray-800 p-6 rounded-xl shadow-2xl';
+
+                let contentHTML = sortedData.map(([key, count]) => `
+                    <li class="flex justify-between items-center py-1 border-b border-gray-700 last:border-b-0">
+                        <span class="text-gray-300 font-medium">${key}</span>
+                        <span class="text-blue-400 font-bold">${count.toLocaleString()}</span>
+                    </li>
+                `).join('');
+
+                card.innerHTML = `
+                    <h3 class="text-xl font-bold text-white mb-3 border-b border-gray-700 pb-2">${config.title}</h3>
+                    ${config.description ? `<p class="text-sm text-gray-500 mb-3">${config.description}</p>` : ''}
+                    <ul class="space-y-1 detailed-stat-list">${contentHTML}</ul>
+                `;
+                container.appendChild(card);
+                contentGenerated = true;
+            });
+
+            if (contentGenerated) {
+                container.classList.remove('hidden');
+                detailedStatsHeader.classList.remove('hidden');
+            } else {
+                 container.classList.add('hidden');
+                 detailedStatsHeader.classList.add('hidden');
+            }
+        }
     </script>
 </body>
 </html>
-
