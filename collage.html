@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BGG 9-Grid Game Search</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Base mobile-first styling for iPhone design */
+        html, body {
+            min-height: 100vh;
+            margin: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f0f2f5;
+            color: #1c1e21;
+        }
+
+        .container {
+            width: 95%;
+            max-width: 550px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border-radius: 16px; /* Increased rounding for modern look */
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            font-size: 1.75rem;
+            margin-top: 0;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+        
+        h2 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-top: 15px;
+            margin-bottom: 10px;
+            color: #1877f2;
+        }
+
+        /* Search & Controls Layout (Flex for better control) */
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        #search-input, #search-type {
+            width: 100%;
+            font-size: 16px;
+            padding: 12px 14px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            box-sizing: border-box;
+            background-color: #fff;
+            -webkit-appearance: none; /* Remove default styling on select */
+        }
+        
+        button {
+            font-size: 16px;
+            font-weight: bold;
+            padding: 12px 16px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+            width: 100%;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        #search-btn {
+            background-color: #1877f2;
+            color: white;
+        }
+
+        #search-btn:active {
+            transform: scale(0.99);
+        }
+        
+        #search-btn:disabled {
+            background-color: #9dbef2;
+            cursor: not-allowed;
+        }
+
+        /* Search Results Styling */
+        #search-results-area {
+            max-height: 250px;
+            overflow-y: auto;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 5px;
+            margin-bottom: 15px;
+            background-color: #f9f9f9;
+        }
+        
+        .result-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 10px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background-color 0.1s;
+            border-radius: 6px;
+        }
+        
+        .result-item:last-child {
+            border-bottom: none;
+        }
+
+        .result-item:hover {
+            background-color: #e7f3ff;
+        }
+        
+        .result-item.selected {
+            background-color: #d0e7ff;
+            font-weight: 600;
+        }
+
+        .result-item span {
+            flex-grow: 1;
+        }
+        
+        .result-item.selected::after {
+            content: '✓';
+            color: #1877f2;
+            font-size: 1.2rem;
+            margin-left: 10px;
+        }
+
+        /* Game Grid Styling (Kept) */
+        #game-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+            border: 1px solid #ddd;
+            background-color: #f9f9f9;
+            padding: 8px;
+            border-radius: 10px;
+            aspect-ratio: 1 / 1;
+        }
+
+        .game-cell {
+            position: relative;
+            background-color: #fff;
+            border-radius: 6px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            transition: box-shadow 0.2s;
+        }
+
+        .game-cell.drag-over {
+            box-shadow: 0 0 0 4px #42b72a; /* Highlight green for drop */
+        }
+        
+        /* Placeholder styling for empty cells */
+        .game-cell:empty {
+            background-color: #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #888;
+            font-size: 0.8rem;
+            text-align: center;
+            padding: 5px;
+        }
+
+        .game-cell img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            cursor: grab;
+            transition: opacity 0.2s;
+            background-color: #eee;
+        }
+
+        .game-cell img.dragging {
+            opacity: 0.4;
+            cursor: grabbing;
+        }
+        
+        #status {
+            margin: 15px 0;
+            text-align: center;
+            font-style: italic;
+            color: #606770;
+            min-height: 1.2em;
+            font-size: 0.9rem;
+        }
+
+        #generate-btn {
+            background-color: #42b72a;
+            color: white;
+            margin-top: 20px;
+        }
+
+        #generate-btn:disabled {
+            background-color: #a3d99a;
+            cursor: not-allowed;
+        }
+        
+        #download-link {
+            display: block;
+            text-align: center;
+            margin-top: 15px;
+            font-weight: bold;
+            color: #1877f2;
+            text-decoration: none;
+            padding: 12px;
+            border: 2px solid #1877f2;
+            border-radius: 10px;
+            transition: background-color 0.2s;
+        }
+        
+        #download-link:hover {
+            background-color: #e7f3ff;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>BGG 9-Grid Creator</h1>
+        
+        <div class="controls">
+            <input type="text" id="search-input" value="Catan" placeholder="Enter Game Name" autocapitalize="none" autocorrect="off">
+            <select id="search-type">
+                <option value="default">Starts With (Default)</option>
+                <option value="exact">Exact Match</option>
+                <option value="substring">Contains (Broad Match)</option>
+            </select>
+            <button id="search-btn">Search Games</button>
+        </div>
+        
+        <div id="search-results-area">
+            <h2>Search Results (<span id="results-count">0</span>)</h2>
+            <div id="search-results">
+                <!-- Search results will appear here -->
+            </div>
+        </div>
+
+        <div id="selection-area">
+            <h2>Your 9-Grid Selection (<span id="selected-count">0</span>/9)</h2>
+            <div id="status">Search for a game above, then select up to 9 titles to build your grid.</div>
+            <div id="game-grid"></div>
+        </div>
+        
+        <button id="generate-btn" disabled>Generate Combined Image</button>
+        <div id="download-area"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- Element References ---
+            const searchInput = document.getElementById('search-input');
+            const searchTypeSelect = document.getElementById('search-type');
+            const searchBtn = document.getElementById('search-btn');
+            const searchResultsDiv = document.getElementById('search-results');
+            const resultsCountSpan = document.getElementById('results-count');
+            const selectedCountSpan = document.getElementById('selected-count');
+            const grid = document.getElementById('game-grid');
+            const status = document.getElementById('status');
+            const generateBtn = document.getElementById('generate-btn');
+            const downloadArea = document.getElementById('download-area');
+
+            // --- Constants and State ---
+            const MAX_GAMES = 9;
+            const BGG_API_URL = 'https://boardgamegeek.com/xmlapi2/';
+            const IMAGE_PROXY = 'https://images.weserv.nl/?url='; // Fixes CORS for Canvas
+
+            let selectedGames = []; // Stores { id, name } for the 9 grid slots
+            let draggedCell = null;
+            let touchTargetCell = null;
+
+            // Initialize the 9-slot grid with empty cells
+            function initializeGrid() {
+                grid.innerHTML = '';
+                for (let i = 0; i < MAX_GAMES; i++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'game-cell';
+                    // Add a simple placeholder text
+                    cell.textContent = `Slot ${i + 1}`; 
+                    cell.draggable = true;
+                    // Add Drag (Mouse) listeners
+                    cell.addEventListener('dragstart', handleDragStart);
+                    cell.addEventListener('dragover', handleDragOver);
+                    cell.addEventListener('drop', handleDrop);
+                    cell.addEventListener('dragend', handleDragEnd);
+                    // Add Touch listeners (Mobile Drag & Drop)
+                    cell.addEventListener('touchstart', handleTouchStart);
+                    cell.addEventListener('touchmove', handleTouchMove);
+                    cell.addEventListener('touchend', handleTouchEnd);
+                    grid.appendChild(cell);
+                    selectedGames[i] = { id: null, name: null, proxiedUrl: null };
+                }
+                updateSelectedCount();
+                generateBtn.disabled = true;
+            }
+
+            // --- Utility Functions ---
+
+            /** Helper function to delay execution. */
+            function wait(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+
+            /** Fetches data from the BGG API, handling the 202 retry logic. */
+            async function fetchBGG(url, retries = 5) {
+                const fullUrl = BGG_API_URL + url;
+                
+                try {
+                    const response = await fetch(fullUrl);
+
+                    // BGG-Specific 202 Retry Logic 
+                    if (response.status === 202 && retries > 0) {
+                        status.textContent = `BGG is processing the request queue. Retrying in 3 seconds... (${retries} attempts left)`;
+                        await wait(3000); 
+                        return fetchBGG(url, retries - 1); 
+                    }
+
+                    if (!response.ok) {
+                        throw new Error(`BGG API fetch failed: Status ${response.status} ${response.statusText}`);
+                    }
+
+                    return await response.text();
+
+                } catch (error) {
+                    console.error('Fetch error:', error);
+                    throw new Error(`Network/API error: ${error.message}`);
+                }
+            }
+            
+            /** Parses XML text into a DOM object. */
+            function parseXML(xmlText) {
+                return new DOMParser().parseFromString(xmlText, 'text/xml');
+            }
+            
+            function updateSelectedCount() {
+                const count = selectedGames.filter(g => g.id !== null).length;
+                selectedCountSpan.textContent = count;
+                generateBtn.disabled = count !== MAX_GAMES;
+            }
+
+
+            // --- Search Logic ---
+
+            async function handleSearch() {
+                const query = searchInput.value.trim();
+                if (!query) {
+                    status.textContent = 'Please enter a game name to search.';
+                    return;
+                }
+
+                searchBtn.disabled = true;
+                searchResultsDiv.innerHTML = '';
+                resultsCountSpan.textContent = '0';
+                downloadArea.innerHTML = '';
+                status.textContent = `Searching for "${query}"...`;
+
+                try {
+                    const searchType = searchTypeSelect.value;
+                    let searchUrl = `search?query=${encodeURIComponent(query)}&type=boardgame`;
+                    
+                    if (searchType === 'exact') {
+                        searchUrl += '&exact=1';
+                    }
+                    // For 'default' (starts with) and 'substring' (contains), 
+                    // we rely on BGG's default broad/fuzzy search unless manually filtered later.
+
+                    const searchXMLText = await fetchBGG(searchUrl);
+                    const searchDoc = parseXML(searchXMLText);
+
+                    if (searchDoc.querySelector('errors error')) {
+                         throw new Error(searchDoc.querySelector('errors error').textContent);
+                    }
+
+                    let items = Array.from(searchDoc.querySelectorAll('item[id]'));
+                    
+                    // Client-side filtering for 'Starts With'
+                    if (searchType === 'default') {
+                        const lowerQuery = query.toLowerCase();
+                        items = items.filter(item => {
+                            const nameEl = item.querySelector('name[type="primary"]');
+                            return nameEl && nameEl.getAttribute('value').toLowerCase().startsWith(lowerQuery);
+                        });
+                    }
+
+                    if (items.length === 0) {
+                        status.textContent = `No games found matching "${query}" with the current search type.`;
+                        resultsCountSpan.textContent = '0';
+                        return;
+                    }
+
+                    displaySearchResults(items);
+                    status.textContent = `Found ${items.length} games. Click a title to add it to your grid.`;
+
+                } catch (error) {
+                    console.error(error);
+                    status.textContent = `Error: ${error.message}`;
+                } finally {
+                    searchBtn.disabled = false;
+                }
+            }
+
+            function displaySearchResults(items) {
+                searchResultsDiv.innerHTML = '';
+                resultsCountSpan.textContent = items.length;
+
+                items.forEach(item => {
+                    const id = item.getAttribute('id');
+                    const nameEl = item.querySelector('name[type="primary"]');
+                    const yearEl = item.querySelector('yearpublished');
+                    const name = nameEl ? nameEl.getAttribute('value') : `Game ID ${id}`;
+                    const year = yearEl ? ` (${yearEl.getAttribute('value')})` : '';
+
+                    const resultItem = document.createElement('div');
+                    resultItem.className = 'result-item';
+                    resultItem.dataset.gameId = id;
+                    resultItem.dataset.gameName = name;
+                    
+                    const isSelected = selectedGames.some(g => g.id === id);
+                    if (isSelected) {
+                        resultItem.classList.add('selected');
+                    }
+
+                    const nameSpan = document.createElement('span');
+                    nameSpan.textContent = `${name}${year}`;
+                    resultItem.appendChild(nameSpan);
+
+                    resultItem.addEventListener('click', handleResultSelection);
+                    searchResultsDiv.appendChild(resultItem);
+                });
+            }
+            
+            async function handleResultSelection(e) {
+                const item = e.currentTarget;
+                const id = item.dataset.gameId;
+                const name = item.dataset.gameName;
+
+                const existingIndex = selectedGames.findIndex(g => g.id === id);
+                
+                downloadArea.innerHTML = ''; // Clear old download link
+
+                if (existingIndex !== -1) {
+                    // Game is already selected -> Deselect it
+                    selectedGames[existingIndex] = { id: null, name: null, proxiedUrl: null };
+                    item.classList.remove('selected');
+                    // Re-sort the array to compact empty slots to the end
+                    sortSelectedGames();
+                    updateGridImages();
+                } else if (selectedGames.filter(g => g.id !== null).length < MAX_GAMES) {
+                    // Game is not selected and slots are available -> Select it
+                    item.classList.add('selected');
+                    status.textContent = `Fetching image for ${name}...`;
+                    
+                    // 1. Fetch image URL from 'thing' API
+                    const imageUrl = await fetchGameImage(id);
+                    const proxiedUrl = imageUrl 
+                        ? `${IMAGE_PROXY}${imageUrl}` 
+                        : 'https://placehold.co/300x300/c0c0c0/000?text=No+Image';
+                    
+                    // 2. Add to the first empty slot
+                    const emptyIndex = selectedGames.findIndex(g => g.id === null);
+                    if (emptyIndex !== -1) {
+                        selectedGames[emptyIndex] = { id, name, proxiedUrl };
+                    }
+                    
+                    updateGridImages();
+                    status.textContent = `Added ${name} to the grid.`;
+                } else {
+                    status.textContent = `Grid is full! Deselect a game first if you want to add ${name}.`;
+                }
+                updateSelectedCount();
+            }
+            
+            function sortSelectedGames() {
+                // Move null slots to the end
+                selectedGames.sort((a, b) => (a.id === null) - (b.id === null));
+            }
+
+            async function fetchGameImage(id) {
+                try {
+                    const thingUrl = `thing?id=${id}`;
+                    const thingXMLText = await fetchBGG(thingUrl);
+                    const thingDoc = parseXML(thingXMLText);
+                    const imageEl = thingDoc.querySelector('item image');
+                    return imageEl ? imageEl.textContent : null;
+                } catch (error) {
+                    console.error('Failed to fetch image for ID', id, error);
+                    return null;
+                }
+            }
+
+            function updateGridImages() {
+                const cells = Array.from(grid.querySelectorAll('.game-cell'));
+                
+                cells.forEach((cell, index) => {
+                    const game = selectedGames[index];
+                    cell.innerHTML = ''; // Clear cell content
+
+                    if (game && game.id) {
+                        const img = document.createElement('img');
+                        img.src = game.proxiedUrl;
+                        img.dataset.gameId = game.id; 
+                        img.dataset.gameName = game.name;
+                        img.crossOrigin = 'Anonymous'; // CRITICAL for canvas access
+                        cell.appendChild(img);
+                        cell.draggable = true;
+                    } else {
+                        // Empty cell placeholder
+                        cell.textContent = `Slot ${index + 1}`;
+                        cell.draggable = false;
+                    }
+                });
+                
+                // Update selection highlights in the results area
+                searchResultsDiv.querySelectorAll('.result-item').forEach(item => {
+                    const id = item.dataset.gameId;
+                    const isSelected = selectedGames.some(g => g.id === id);
+                    item.classList.toggle('selected', isSelected);
+                });
+            }
+
+
+            // --- Image Generation Logic (Modified to use selectedGames array) ---
+
+            /** Generates a single 3x3 PNG image from the current grid order. */
+            async function handleGenerateImage() {
+                if (selectedGames.filter(g => g.id !== null).length !== MAX_GAMES) {
+                    status.textContent = 'Please select exactly 9 games before generating the image.';
+                    return;
+                }
+                
+                status.textContent = 'Generating image... Please wait.';
+                generateBtn.disabled = true;
+                downloadArea.innerHTML = '';
+                
+                const cells = Array.from(grid.querySelectorAll('.game-cell'));
+                const canvas = document.createElement('canvas');
+                const cellSize = 300; 
+                canvas.width = cellSize * 3;
+                canvas.height = cellSize * 3;
+                const ctx = canvas.getContext('2d');
+
+                ctx.fillStyle = '#f0f2f5';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                try {
+                    const drawPromises = cells.map((cell, index) => {
+                        return new Promise((resolve, reject) => {
+                            const img = cell.querySelector('img');
+                            const x = (index % 3) * cellSize;
+                            const y = Math.floor(index / 3) * cellSize;
+                            
+                            // Check if the cell is actually empty (should not happen if check passes)
+                            if (!img) {
+                                // Fallback for empty slot
+                                ctx.fillStyle = '#e0e0e0';
+                                ctx.fillRect(x, y, cellSize, cellSize);
+                                resolve();
+                                return;
+                            }
+
+                            const drawImage = () => {
+                                // Draw Image filling the entire cell (300x300)
+                                ctx.drawImage(img, x, y, cellSize, cellSize); 
+                                resolve();
+                            };
+
+                            // Ensure image is loaded before drawing
+                            if (img.complete && img.naturalHeight !== 0) {
+                                drawImage();
+                            } else {
+                                img.onload = drawImage;
+                                img.onerror = () => {
+                                    console.error(`Failed to load image: ${img.src}`);
+                                    // Draw error box as fallback
+                                    ctx.fillStyle = '#c0392b';
+                                    ctx.fillRect(x, y, cellSize, cellSize);
+                                    ctx.fillStyle = 'white';
+                                    ctx.font = '30px Inter, sans-serif'; 
+                                    ctx.textAlign = 'center';
+                                    ctx.fillText('ERROR', x + cellSize / 2, y + cellSize / 2);
+                                    resolve(); 
+                                };
+                            }
+                        });
+                    });
+
+                    await Promise.all(drawPromises);
+
+                    // Create a download link
+                    const link = document.createElement('a');
+                    link.href = canvas.toDataURL('image/png');
+                    link.download = `bgg-game-grid.png`;
+                    link.textContent = 'Download Combined Image';
+                    link.id = 'download-link';
+                    
+                    downloadArea.appendChild(link);
+                    status.textContent = 'Image generated. Click the link to download or long-press to share.';
+
+                } catch (error) {
+                    console.error('Canvas generation error:', error);
+                    status.textContent = 'Error generating image. See console for details.';
+                } finally {
+                    updateSelectedCount(); // Re-enable button if all 9 are selected
+                }
+            }
+
+
+            // --- Drag & Drop (Mouse and Touch) Handlers ---
+
+            function swapCellContent(cell1, cell2) {
+                const idx1 = Array.from(grid.children).indexOf(cell1);
+                const idx2 = Array.from(grid.children).indexOf(cell2);
+                
+                // Swap the items in the central data structure
+                [selectedGames[idx1], selectedGames[idx2]] = [selectedGames[idx2], selectedGames[idx1]];
+                
+                // Update the visual grid based on the updated array
+                updateGridImages(); 
+
+                // Clear any old download link
+                downloadArea.innerHTML = '';
+                if (status.textContent.startsWith('Image generated')) {
+                    status.textContent = 'Grid order changed. Generate a new image.';
+                }
+            }
+
+            // Mouse Drag Handlers
+            function handleDragStart(e) {
+                if (this.querySelector('img')) {
+                    draggedCell = this;
+                    this.querySelector('img').classList.add('dragging');
+                    e.dataTransfer.effectAllowed = 'move';
+                } else {
+                    e.preventDefault(); // Do not allow dragging empty cells
+                }
+            }
+
+            function handleDragOver(e) {
+                e.preventDefault();
+                const targetCell = e.target.closest('.game-cell');
+                if (draggedCell && targetCell && targetCell !== draggedCell) {
+                    targetCell.classList.add('drag-over');
+                }
+            }
+            
+            function handleDrop(e) {
+                e.preventDefault();
+                const targetCell = e.target.closest('.game-cell');
+                if (draggedCell && targetCell && targetCell !== draggedCell) {
+                    swapCellContent(targetCell, draggedCell);
+                }
+            }
+
+            function handleDragEnd(e) {
+                if (draggedCell) {
+                    const img = draggedCell.querySelector('img');
+                    if (img) img.classList.remove('dragging');
+                    draggedCell = null;
+                }
+                grid.querySelectorAll('.game-cell').forEach(cell => cell.classList.remove('drag-over'));
+            }
+            
+            // Touch (Mobile) Handlers
+            
+            function handleTouchStart(e) {
+                if (!this.querySelector('img')) return; // Ignore empty cells
+                e.preventDefault();
+                draggedCell = this;
+                this.querySelector('img').classList.add('dragging');
+
+                const touch = e.touches[0];
+                draggedCell.startX = touch.clientX;
+                draggedCell.startY = touch.clientY;
+                
+                const rect = draggedCell.getBoundingClientRect();
+                draggedCell.initialX = rect.left; 
+                draggedCell.initialY = rect.top;
+                
+                // Temporarily detach from flow to allow fixed positioning
+                draggedCell.style.width = `${rect.width}px`;
+                draggedCell.style.height = `${rect.height}px`;
+                draggedCell.style.position = 'fixed';
+                draggedCell.style.zIndex = '1000';
+                draggedCell.style.left = `${rect.left}px`;
+                draggedCell.style.top = `${rect.top}px`;
+            }
+
+            function handleTouchMove(e) {
+                if (!draggedCell) return;
+                e.preventDefault(); 
+
+                const touch = e.touches[0];
+                const dx = touch.clientX - draggedCell.startX;
+                const dy = touch.clientY - draggedCell.startY;
+                
+                // Move the element
+                draggedCell.style.left = `${draggedCell.initialX + dx}px`;
+                draggedCell.style.top = `${draggedCell.initialY + dy}px`;
+
+                // Determine target element
+                draggedCell.style.display = 'none'; // Temporarily hide dragged element for accurate elementFromPoint
+                const elementOver = document.elementFromPoint(touch.clientX, touch.clientY);
+                draggedCell.style.display = 'flex'; // Restore display
+
+                const currentTargetCell = elementOver ? elementOver.closest('.game-cell') : null;
+
+                // Handle visual drag-over state
+                if (currentTargetCell && currentTargetCell !== draggedCell && currentTargetCell !== touchTargetCell) {
+                    if (touchTargetCell) {
+                        touchTargetCell.classList.remove('drag-over');
+                    }
+                    currentTargetCell.classList.add('drag-over');
+                    touchTargetCell = currentTargetCell;
+                } else if (!currentTargetCell && touchTargetCell) {
+                    touchTargetCell.classList.remove('drag-over');
+                    touchTargetCell = null;
+                }
+            }
+
+            function handleTouchEnd(e) {
+                if (!draggedCell) return;
+                e.preventDefault();
+                
+                // Perform the swap if we have a valid target
+                if (touchTargetCell && touchTargetCell !== draggedCell) {
+                    swapCellContent(touchTargetCell, draggedCell);
+                }
+
+                // Reset styling
+                draggedCell.style.position = 'relative';
+                draggedCell.style.zIndex = 'auto';
+                draggedCell.style.left = 'auto';
+                draggedCell.style.top = 'auto';
+                draggedCell.style.width = 'auto';
+                draggedCell.style.height = 'auto';
+                
+                const img = draggedCell.querySelector('img');
+                if (img) img.classList.remove('dragging');
+                
+                // Clean up
+                if (touchTargetCell) {
+                    touchTargetCell.classList.remove('drag-over');
+                }
+                draggedCell = null;
+                touchTargetCell = null;
+            }
+
+
+            // --- Initial Setup ---
+            initializeGrid();
+            searchBtn.addEventListener('click', handleSearch);
+            generateBtn.addEventListener('click', handleGenerateImage);
+        });
+    </script>
+
+</body>
+</html>
