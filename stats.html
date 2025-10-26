@@ -58,7 +58,7 @@
                     <input 
                         type="text" 
                         id="usernameInput" 
-                        value="" 
+                        value="sportomax" 
                         class="flex-grow bg-gray-700 text-white border border-gray-600 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-inner"
                         placeholder="Enter YOUR BGG Username"
                         aria-label="BGG Username"
@@ -75,7 +75,7 @@
                 <h3 class="text-lg font-semibold text-gray-300 mb-3 border-b border-gray-700 pb-2">Collection Filters (What to Analyze)</h3>
                 <div id="filterContainer" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
                     <label class="flex items-center space-x-2 cursor-pointer">
-                        <input type="checkbox" id="filter-own" value="1" class="form-checkbox text-blue-500 rounded bg-gray-700 border-gray-600 focus:ring-blue-500">
+                        <input type="checkbox" id="filter-own" value="1" class="form-checkbox text-blue-500 rounded bg-gray-700 border-gray-600 focus:ring-blue-500" checked>
                         <span class="text-sm text-gray-300">Owned</span>
                     </label>
                     <label class="flex items-center space-x-2 cursor-pointer">
@@ -91,11 +91,11 @@
                         <span class="text-sm text-gray-300">Want In Trade</span>
                     </label>
                     <label class="flex items-center space-x-2 cursor-pointer">
-                        <input type="checkbox" id="filter-wanttoplay" value="1" class="form-checkbox text-blue-500 rounded bg-gray-700 border-gray-600 focus:ring-blue-500" checked>
+                        <input type="checkbox" id="filter-wanttoplay" value="1" class="form-checkbox text-blue-500 rounded bg-gray-700 border-gray-600 focus:ring-blue-500">
                         <span class="text-sm text-gray-300">Want To Play (WTP)</span>
                     </label>
                     <label class="flex items-center space-x-2 cursor-pointer">
-                        <input type="checkbox" id="filter-wishlist" value="1" class="form-checkbox text-blue-500 rounded bg-gray-700 border-gray-600 focus:ring-blue-500" checked>
+                        <input type="checkbox" id="filter-wishlist" value="1" class="form-checkbox text-blue-500 rounded bg-gray-700 border-gray-600 focus:ring-blue-500">
                         <span class="text-sm text-gray-300">Wishlist</span>
                     </label>
                 </div>
@@ -289,7 +289,7 @@
 
                 showLoading(true, `Found ${totalItems} items. Fetching detailed data...`);
 
-                // 2. Extract Game IDs 
+                // 2. Extract Game IDs (for mechanics, complexity, etc.)
                 const gameIds = collectionItems
                     .filter(item => {
                         const subtype = item.getAttribute('subtype');
@@ -301,7 +301,7 @@
                 logToUI(`Extracted ${gameIds.length} game/expansion IDs for detailed 'thing' API query.`, 'info');
 
 
-                // 3. Fetch 'thing' data in batches
+                // 3. Fetch 'thing' data (for mechanics, complexity) in batches
                 const thingItems = await fetchThingsInBatches(gameIds);
                 
                 showLoading(true, 'Calculating statistics...');
@@ -326,6 +326,7 @@
          */
         async function getCollectionXml(username, filterParams, attempt = 0) {
             // Build the BGG API target URL
+            // We MUST request stats=1 here to get the rank/rating data in the collection call
             const bggTargetUrl = `${BGG_COLLECTION_URL}?username=${username}&stats=1${filterParams}`;
             
             // URL encoding is necessary for the proxy to work reliably
@@ -400,6 +401,7 @@
                 showLoading(true, `Fetching game details (batch ${i + 1} of ${numBatches}, ${batchIds.length} IDs) via proxy...`);
                 
                 try {
+                    // We only need stats=1 for complexity (averageweight)
                     const bggTargetUrl = `${BGG_THING_URL}?id=${batchIds.join(',')}&stats=1`; 
                     const url = `${CORS_PROXY}${encodeURIComponent(bggTargetUrl)}`;
                     
@@ -498,37 +500,118 @@
                 stats.topRatedItems.push({ name: gameName, userRating: userRating, subtype: subtype });
 
 
-                // 11. Count per lastmodified
+                // 10. Count per lastmodified (from collection XML)
                 const lastModifiedStr = item.querySelector('status')?.getAttribute('lastmodified');
                 if (lastModifiedStr) {
                     incrementMap(lastModifiedCounts, groupLastModified(lastModifiedStr));
                 }
 
-                // --- Process 'Thing' Data (Global game data - ONLY available for games/expansions) ---
+                // --- Process STATS Data (from collection item) ---
+                
+                // 1. Count per starting letter or character
+                const char = gameName.trim().toUpperCase().charAt(0);
+                const firstChar = char.match(/[A-Z]/) ? char : '# (Non-Alpha)';
+                incrementMap(startingCharCounts, firstChar);
+                
+                // 2. Count per year published
+                const yearStr = item.querySelector('yearpublished')?.textContent; // Use textContent for <yearpublished>
+                if (yearStr && yearStr !== '0' && yearStr !== '9999') {
+                    const year = parseInt(yearStr);
+                    incrementMap(yearPublishedCounts, yearStr);
+                    
+                    // Update min/max year for core stats
+                    if (year < stats.minYear) stats.minYear = year;
+                    if (year > stats.maxYear) stats.maxYear = year;
+                }
+                
+                // Get the <stats> tag from the collection item
+                const statsTag = item.querySelector('stats');
+                
+                if (statsTag) {
+                    // 4. Playing Time
+                    const playingTime = parseInt(statsTag.getAttribute('playingtime') || '0');
+                    incrementMap(playingTimeCounts, groupPlayingTime(playingTime));
+                    
+                    // 3. Count of games playable at each player count (Min/Max Players)
+                    const minPlayers = parseInt(statsTag.getAttribute('minplayers') || '0');
+                    const maxPlayers = parseInt(statsTag.getAttribute('maxplayers') || '0');
+                    const maxP = Math.min(maxPlayers, 10); 
+                    for (let p = minPlayers; p > 0 && p <= maxP; p++) {
+                        incrementMap(playerCountCounts, p.toString());
+                    }
+                    if (maxPlayers > 10) {
+                        incrementMap(playerCountCounts, '10+');
+                    }
+                    
+                    // Get ratings/stats container (this is <rating> *inside* <stats>)
+                    const ratings = statsTag.querySelector('rating'); // This is the <rating> tag *inside* <stats>
+                    
+                    if (ratings) {
+                        // BGG Rating
+                        const bggRatingStr = ratings.querySelector('average')?.getAttribute('value');
+                        if (bggRatingStr) {
+                            const bggRating = parseFloat(bggRatingStr);
+                            if (bggRating > 0) {
+                                stats.bggRatedGames++;
+                                stats.sumBggRatings += bggRating;
+                            }
+                            
+                            // 5. Count of games at each average rating (rounded down)
+                            incrementMap(averageRatingCounts, Math.floor(bggRating).toString());
+                        }
+                        
+                        // 6. Count users rated (make local groupings)
+                        const usersRated = parseInt(ratings.querySelector('usersrated')?.getAttribute('value') || '0');
+                        incrementMap(userRatedCounts, groupUsersRated(usersRated));
+
+                        // 7. Count per bayesaverage (rounded down)
+                        const bayesAvgStr = ratings.querySelector('bayesaverage')?.getAttribute('value');
+                        if (bayesAvgStr) {
+                            const bayesAvg = parseFloat(bayesAvgStr);
+                            if (bayesAvg > 0) {
+                                incrementMap(bayesAverageCounts, Math.floor(bayesAvg).toString());
+                            }
+                        }
+
+                        // 8. Count per stddev (logical groupings)
+                        const stdDev = parseFloat(ratings.querySelector('stddev')?.getAttribute('value') || '0');
+                        incrementMap(stdDevCounts, groupStdDev(stdDev));
+
+                        // 9. Count per boardgamerank groupings
+                        const rankElement = ratings.querySelector('rank[type="subtype"][id="1"]'); // Target primary boardgame rank
+                        let rank = 0;
+                        if (rankElement) {
+                            const rankValue = rankElement.getAttribute('value');
+                            if (rankValue && rankValue !== 'Not Ranked') {
+                                rank = parseInt(rankValue);
+                            }
+                        }
+                        incrementMap(rankGroupCounts, groupRank(rank));
+                    }
+                }
+
+                // --- Process 'Thing' Data (Complexity & Links) ---
                 const gameId = item.getAttribute('objectid');
                 const thing = thingMap.get(gameId);
 
                 if (thing) {
-                    // 1. Count per starting letter or character
-                    const thingName = thing.querySelector('name')?.getAttribute('value') || 'Unknown Game';
-                    const char = thingName.trim().toUpperCase().charAt(0);
-                    const firstChar = char.match(/[A-Z]/) ? char : '# (Non-Alpha)';
-                    incrementMap(startingCharCounts, firstChar);
-
-                    // 2. Count per year published
-                    const yearStr = thing.querySelector('yearpublished')?.getAttribute('value');
-                    if (yearStr && yearStr !== '0' && yearStr !== '9999') {
-                        const year = parseInt(yearStr);
-                        incrementMap(yearPublishedCounts, yearStr);
-                        
-                        // Update min/max year for core stats
-                        if (year < stats.minYear) stats.minYear = year;
-                        if (year > stats.maxYear) stats.maxYear = year;
+                    // This section is now *only* for data NOT in the collection call.
+                    // 1. Complexity (Average Weight)
+                    // 2. Links (Mechanics, Categories, Designers)
+                    
+                    // Get ratings/stats container
+                    const thingRatings = thing.querySelector('statistics > ratings');
+                    if (thingRatings) {
+                         // Core Weight (Complexity)
+                        const weightStr = thingRatings.querySelector('averageweight')?.getAttribute('value');
+                        if (weightStr) {
+                            const weight = parseFloat(weightStr);
+                            if (weight > 0) {
+                                stats.weightedGames++;
+                                stats.sumWeight += weight;
+                            }
+                        }
                     }
-
-                    // 4. Playing Time (also needed for detailed stats)
-                    const playingTime = parseInt(thing.querySelector('playingtime')?.getAttribute('value') || '0');
-                    incrementMap(playingTimeCounts, groupPlayingTime(playingTime));
 
                     // Links (Mechanics, Categories, Designers)
                     const links = thing.querySelectorAll('link');
@@ -547,68 +630,6 @@
                                 break;
                         }
                     });
-
-                    // Get ratings/stats container
-                    const ratings = thing.querySelector('statistics > ratings');
-                    if (ratings) {
-                        // 3. Count of games playable at each player count (Min/Max Players)
-                        const minPlayers = parseInt(thing.querySelector('minplayers')?.getAttribute('value') || '0');
-                        const maxPlayers = parseInt(thing.querySelector('maxplayers')?.getAttribute('value') || '0');
-                        for (let p = minPlayers; p > 0 && p <= maxPlayers; p++) {
-                            incrementMap(playerCountCounts, p.toString());
-                        }
-
-                        // Core BGG Rating
-                        const bggRatingStr = ratings.querySelector('average')?.getAttribute('value');
-                        if (bggRatingStr) {
-                            const bggRating = parseFloat(bggRatingStr);
-                            if (bggRating > 0) {
-                                stats.bggRatedGames++;
-                                stats.sumBggRatings += bggRating;
-                            }
-                        }
-
-                        // Core Weight (Complexity)
-                        const weightStr = ratings.querySelector('averageweight')?.getAttribute('value');
-                        if (weightStr) {
-                            const weight = parseFloat(weightStr);
-                            if (weight > 0) {
-                                stats.weightedGames++;
-                                stats.sumWeight += weight;
-                            }
-                        }
-
-                        // 5 & 7. Count of games at each average rating (rounded down)
-                        const avgRating = parseFloat(ratings.querySelector('average')?.getAttribute('value') || '0');
-                        if (avgRating > 0) {
-                             incrementMap(averageRatingCounts, Math.floor(avgRating).toString());
-                        }
-
-                        // 8. Count per bayesaverage (rounded down)
-                        const bayesAvg = parseFloat(ratings.querySelector('bayesaverage')?.getAttribute('value') || '0');
-                        if (bayesAvg > 0) {
-                             incrementMap(bayesAverageCounts, Math.floor(bayesAvg).toString());
-                        }
-                        
-                        // 6. Count users rated (make local groupings)
-                        const usersRated = parseInt(ratings.querySelector('usersrated')?.getAttribute('value') || '0');
-                        incrementMap(userRatedCounts, groupUsersRated(usersRated));
-
-                        // 9. Count per stddev (logical groupings)
-                        const stdDev = parseFloat(ratings.querySelector('stddev')?.getAttribute('value') || '0');
-                        incrementMap(stdDevCounts, groupStdDev(stdDev));
-
-                        // 10. Count per boardgamerank groupings
-                        const rankElement = ratings.querySelector('rank[type="subtype"][id="1"]'); // Target primary boardgame rank
-                        let rank = 0;
-                        if (rankElement) {
-                            const rankValue = rankElement.getAttribute('value');
-                            if (rankValue && rankValue !== 'Not Ranked') {
-                                rank = parseInt(rankValue);
-                            }
-                        }
-                        incrementMap(rankGroupCounts, groupRank(rank));
-                    }
                 }
             }
             
@@ -664,6 +685,7 @@
                 rankGroup: rankGroupCounts,
                 userRated: userRatedCounts,
                 lastModified: lastModifiedCounts,
+                mechanic: mechanicCounts, // ADDED MECHANIC COUNT
             });
         }
 
@@ -875,27 +897,48 @@
             container.innerHTML = '';
 
             const statConfigs = [
-                { title: '1. Count by Starting Character', map: data.startingChar, sort: (a, b) => a[0].localeCompare(b[0]) },
+                // 1. name (Starting Letter)
+                { title: '1. Count by Starting Letter/Character', map: data.startingChar, sort: (a, b) => a[0].localeCompare(b[0]) },
+                // 2. yearpublished
                 { title: '2. Count by Year Published', map: data.yearPublished, sort: (a, b) => parseInt(a[0]) - parseInt(b[0]) },
-                { title: '3. Count by Player Count', map: data.playerCount, sort: (a, b) => parseInt(a[0]) - parseInt(b[0]), description: 'Number of items playable at this count.' },
+                // 3. minplayers - maxplayers
+                { title: '3. Count by Playable Player Count', map: data.playerCount, sort: (a, b) => {
+                    // Custom sort to handle the '10+' bucket correctly
+                    if (a[0] === '10+') return 1;
+                    if (b[0] === '10+') return -1;
+                    return parseInt(a[0]) - parseInt(b[0]);
+                }, description: 'Number of items playable at this count (up to 10+).', limit: null },
+                // 4. playingtime
                 { title: '4. Count by Playing Time', map: data.playingTime, sort: (a, b) => b[1] - a[1] },
-                { title: '5. Count by BGG Avg Rating (Rounded)', map: data.averageRating, sort: (a, b) => parseInt(a[0]) - parseInt(b[0]) },
+                // 5. average (BGG Average Rating)
+                { title: '5. Count by BGG Average Rating (Rounded Down)', map: data.averageRating, sort: (a, b) => parseInt(a[0]) - parseInt(b[0]) },
+                // 6. usersrated
                 { title: '6. Count by Users Rated Group', map: data.userRated, sort: (a, b) => b[1] - a[1] },
-                { title: '7. Count by BGG Avg Rating (Rounded)', map: data.averageRating, sort: (a, b) => parseInt(a[0]) - parseInt(b[0]) }, // Duplicate, but keeping for user requested sequence
-                { title: '8. Count by Bayesaverage (Rounded)', map: data.bayesAverage, sort: (a, b) => parseInt(a[0]) - parseInt(b[0]) },
-                { title: '9. Count by Standard Deviation', map: data.stdDev, sort: (a, b) => b[1] - a[1] },
-                { title: '10. Count by BGG Rank Group', map: data.rankGroup, sort: (a, b) => b[1] - a[1] },
-                { title: '11. Count by Last Modified', map: data.lastModified, sort: (a, b) => b[1] - a[1], description: 'When the item status was last modified on BGG.' },
+                // 7. bayesaverage
+                { title: '7. Count per Bayesaverage (Rounded Down)', map: data.bayesAverage, sort: (a, b) => parseInt(a[0]) - parseInt(b[0]) },
+                // 8. stddev
+                { title: '8. Count per Standard Deviation Group', map: data.stdDev, sort: (a, b) => b[1] - a[1] },
+                // 9. rank / Board Game Rank
+                { title: '9. Count per Board Game Rank Group', map: data.rankGroup, sort: (a, b) => b[1] - a[1] },
+                // 10. lastmodified
+                { title: '10. Count per Last Modified Group', map: data.lastModified, sort: (a, b) => b[1] - a[1], description: 'When the item status was last modified on BGG.' },
+                // 11. Mechanic (New addition to satisfy 11 distinct stats)
+                { title: '11. Count by Mechanic', map: data.mechanic, sort: (a, b) => b[1] - a[1], description: 'Top 50 most common mechanics in this selection.', limit: 50 }, 
             ];
 
             let contentGenerated = false;
 
-            // Use a temporary array to store configs that actually have data
+            // Only consider configs that actually have data
             const configsWithData = statConfigs.filter(config => Array.from(config.map.entries()).length > 0);
 
             configsWithData.forEach(config => {
                 // Convert map to array and sort
-                const sortedData = Array.from(config.map.entries()).sort(config.sort);
+                let sortedData = Array.from(config.map.entries()).sort(config.sort);
+
+                // Apply limit if specified (used for Mechanics)
+                if (config.limit) {
+                    sortedData = sortedData.slice(0, config.limit);
+                }
 
                 const card = document.createElement('div');
                 card.className = 'bg-gray-800 p-6 rounded-xl shadow-2xl';
@@ -927,3 +970,4 @@
     </script>
 </body>
 </html>
+
