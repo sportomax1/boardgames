@@ -88,6 +88,29 @@
             cursor: not-allowed;
         }
 
+        /* --- NEW BUTTON STYLES --- */
+        .secondary-btn {
+            background-color: #e4e6eb; /* Light grey */
+            color: #1c1e21; /* Dark text */
+        }
+
+        .secondary-btn:active {
+            background-color: #d8dadf;
+            transform: scale(0.99);
+        }
+
+        .danger-btn {
+            background-color: #fa383e; /* Red/Danger color */
+            color: white;
+            margin-top: 5px; /* Added slight separation */
+        }
+
+        .danger-btn:active {
+            transform: scale(0.99);
+        }
+        /* ------------------------- */
+
+
         /* Search Results Styling */
         #search-results-area {
             max-height: 250px;
@@ -238,6 +261,9 @@
                 <option value="substring">Contains (Broad Match)</option>
             </select>
             <button id="search-btn">Search Games</button>
+            <!-- NEW BUTTONS ADDED HERE -->
+            <button id="clear-search-btn" class="secondary-btn">Clear Search Results</button> 
+            <button id="reset-grid-btn" class="danger-btn">Reset Grid</button>
         </div>
         
         <div id="search-results-area">
@@ -270,6 +296,10 @@
             const status = document.getElementById('status');
             const generateBtn = document.getElementById('generate-btn');
             const downloadArea = document.getElementById('download-area');
+            // NEW: References for the reset buttons
+            const clearSearchBtn = document.getElementById('clear-search-btn'); 
+            const resetGridBtn = document.getElementById('reset-grid-btn');
+
 
             // --- Constants and State ---
             const MAX_GAMES = 9;
@@ -347,6 +377,29 @@
                 generateBtn.disabled = count !== MAX_GAMES;
             }
 
+            // --- NEW: Clear Search Function ---
+            function handleClearSearch() {
+                searchInput.value = '';
+                searchResultsDiv.innerHTML = '';
+                resultsCountSpan.textContent = '0';
+                status.textContent = 'Search area cleared.';
+            }
+
+            // --- NEW: Reset Grid Function ---
+            function handleResetGrid() {
+                // Re-initialize the grid structure, which resets the selectedGames array
+                initializeGrid(); 
+                
+                // Clear the search results highlights (if any are still visible)
+                searchResultsDiv.querySelectorAll('.result-item').forEach(item => {
+                    item.classList.remove('selected');
+                });
+                
+                // Clear the download area
+                downloadArea.innerHTML = '';
+                
+                status.textContent = 'Grid has been completely reset.';
+            }
 
             // --- Search Logic ---
 
@@ -370,8 +423,6 @@
                     if (searchType === 'exact') {
                         searchUrl += '&exact=1';
                     }
-                    // For 'default' (starts with) and 'substring' (contains), 
-                    // we rely on BGG's default broad/fuzzy search unless manually filtered later.
 
                     const searchXMLText = await fetchBGG(searchUrl);
                     const searchDoc = parseXML(searchXMLText);
@@ -759,6 +810,9 @@
             initializeGrid();
             searchBtn.addEventListener('click', handleSearch);
             generateBtn.addEventListener('click', handleGenerateImage);
+            // NEW: Add listeners for the new control buttons
+            clearSearchBtn.addEventListener('click', handleClearSearch);
+            resetGridBtn.addEventListener('click', handleResetGrid);
         });
     </script>
 
