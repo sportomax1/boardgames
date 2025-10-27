@@ -34,18 +34,7 @@
     <div class="card w-full max-w-lg shadow-2xl rounded-xl p-8 space-y-6">
         <h1 class="text-3xl font-bold text-bgg-dark text-center">Board Game Geek Data Fetcher</h1>
         <p class="text-center text-gray-500">Retrieving data for Mille Fiori (ID: 346501) via XML API 2.</p>
-
-        <!-- Token Input Group -->
-        <div class="space-y-2 pt-2">
-            <label for="tokenInput" class="block text-sm font-medium text-gray-700">Bearer Token (Injected or Manual):</label>
-            <input 
-                type="text" 
-                id="tokenInput" 
-                placeholder="Paste your token value here to authorize the API call"
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-bgg-blue focus:border-bgg-blue shadow-sm text-gray-700"
-            >
-            <p class="text-xs text-gray-500">The field defaults to "TOKEN" (your assumed secret value).</p>
-        </div>
+        <p class="text-xs text-center text-gray-500 font-semibold border-b pb-4">Authorization relies solely on the 'TOKEN' secret injected by the environment.</p>
 
         <!-- Action Button -->
         <div class="flex justify-center">
@@ -77,10 +66,9 @@
     <script type="module">
         const API_URL = "https://boardgamegeek.com/xmlapi2/thing?id=346501&stats=1";
 
-        // Assume your CI/CD pipeline injects the token into a global variable 
-        // named __BGG_API_TOKEN. If not available, we use "TOKEN" as the default
-        // based on your GitHub secret name.
-        const ENV_TOKEN = typeof __BGG_API_TOKEN !== 'undefined' ? __BGG_API_TOKEN : 'TOKEN';
+        // Application ONLY uses the token injected by the environment.
+        // It checks for a global variable __BGG_API_TOKEN (assuming CI/CD injection).
+        const BEARER_TOKEN = typeof __BGG_API_TOKEN !== 'undefined' ? __BGG_API_TOKEN : 'TOKEN';
 
         // Global DOM Elements
         const fetchButton = document.getElementById('fetchButton');
@@ -89,10 +77,8 @@
         const gameNameElement = document.getElementById('gameName');
         const statsGrid = document.getElementById('statsGrid');
         const errorMsg = document.getElementById('errorMsg');
-        const tokenInput = document.getElementById('tokenInput');
-
-        // Set the initial value of the token input field to the default/injected token
-        tokenInput.value = ENV_TOKEN;
+        
+        // Removed tokenInput element
 
         /**
          * Utility function to create a key/value display card.
@@ -122,14 +108,13 @@
          * Makes the API call and processes the XML data.
          */
         const fetchThingData = async () => {
-            // Get token value directly from input (which might be the default or a manual entry)
-            const token = tokenInput.value.trim();
-
-            // 1. Basic Token Validation
-            if (!token) {
+            
+            // Check if the token is still the placeholder or empty, meaning injection failed
+            if (BEARER_TOKEN === 'TOKEN' || !BEARER_TOKEN) {
                 resultsContainer.classList.add('hidden');
-                errorMsg.textContent = "Error: Please enter your Bearer Token to authorize the request.";
+                errorMsg.textContent = "Error: The required 'TOKEN' secret was not injected from the environment. API call blocked.";
                 errorMsg.classList.remove('hidden');
+                fetchButton.disabled = false;
                 return;
             }
 
@@ -140,12 +125,11 @@
             fetchButton.disabled = true;
 
             try {
-                // Fetch the XML data, using the token from the input field
+                // Fetch the XML data, using the injected BEARER_TOKEN
                 const response = await fetch(API_URL, {
                     method: 'GET',
                     headers: {
-                        // This uses the Token entered by the user for authorization.
-                        'Authorization': `Bearer ${token}`
+                        'Authorization': `Bearer ${BEARER_TOKEN}`
                     }
                 });
                 
@@ -189,7 +173,7 @@
 
             } catch (error) {
                 console.error("API Call Error:", error);
-                errorMsg.textContent = `Failed to load data: ${error.message}. Please check your token and try again.`;
+                errorMsg.textContent = `Failed to load data: ${error.message}. Please verify the injected token's validity.`;
                 errorMsg.classList.remove('hidden');
             } finally {
                 loading.classList.add('hidden');
