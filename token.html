@@ -35,9 +35,21 @@
         <h1 class="text-3xl font-bold text-bgg-dark text-center">Board Game Geek Data Fetcher</h1>
         <p class="text-center text-gray-500">Retrieving data for Mille Fiori (ID: 346501) via XML API 2.</p>
 
+        <!-- Token Input Group -->
+        <div class="space-y-2 pt-2">
+            <label for="tokenInput" class="block text-sm font-medium text-gray-700">Bearer Token (Injected or Manual):</label>
+            <input 
+                type="text" 
+                id="tokenInput" 
+                placeholder="Paste your token value here to authorize the API call"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-bgg-blue focus:border-bgg-blue shadow-sm text-gray-700"
+            >
+            <p class="text-xs text-gray-500">The field defaults to "TOKEN" (your assumed secret value).</p>
+        </div>
+
         <!-- Action Button -->
         <div class="flex justify-center">
-            <button id="fetchButton" class="bg-bgg-blue hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-300">
+            <button id="fetchButton" class="w-full bg-bgg-blue hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-300">
                 Fetch Game Statistics
             </button>
         </div>
@@ -57,17 +69,18 @@
             <div id="statsGrid" class="grid grid-cols-2 gap-4 text-sm">
                 <!-- Data will be injected here -->
             </div>
-            <p id="errorMsg" class="text-red-600 font-medium hidden"></p>
         </div>
+        
+        <p id="errorMsg" class="text-red-600 font-medium hidden text-center pt-4"></p>
     </div>
 
     <script type="module">
         const API_URL = "https://boardgamegeek.com/xmlapi2/thing?id=346501&stats=1";
-        
-        // WARNING: Storing a secret directly in frontend JavaScript is highly insecure
-        // as anyone can view it. Use this only for public or non-sensitive tokens.
-        // For a true secret, you MUST use a backend proxy.
-        const BEARER_TOKEN = "TOKEN"; 
+
+        // Assume your CI/CD pipeline injects the token into a global variable 
+        // named __BGG_API_TOKEN. If not available, we use "TOKEN" as the default
+        // based on your GitHub secret name.
+        const ENV_TOKEN = typeof __BGG_API_TOKEN !== 'undefined' ? __BGG_API_TOKEN : 'TOKEN';
 
         // Global DOM Elements
         const fetchButton = document.getElementById('fetchButton');
@@ -76,6 +89,10 @@
         const gameNameElement = document.getElementById('gameName');
         const statsGrid = document.getElementById('statsGrid');
         const errorMsg = document.getElementById('errorMsg');
+        const tokenInput = document.getElementById('tokenInput');
+
+        // Set the initial value of the token input field to the default/injected token
+        tokenInput.value = ENV_TOKEN;
 
         /**
          * Utility function to create a key/value display card.
@@ -105,6 +122,17 @@
          * Makes the API call and processes the XML data.
          */
         const fetchThingData = async () => {
+            // Get token value directly from input (which might be the default or a manual entry)
+            const token = tokenInput.value.trim();
+
+            // 1. Basic Token Validation
+            if (!token) {
+                resultsContainer.classList.add('hidden');
+                errorMsg.textContent = "Error: Please enter your Bearer Token to authorize the request.";
+                errorMsg.classList.remove('hidden');
+                return;
+            }
+
             // Reset state
             resultsContainer.classList.add('hidden');
             errorMsg.classList.add('hidden');
@@ -112,17 +140,17 @@
             fetchButton.disabled = true;
 
             try {
-                // Fetch the XML data, including the Authorization header
+                // Fetch the XML data, using the token from the input field
                 const response = await fetch(API_URL, {
                     method: 'GET',
                     headers: {
-                        // This header provides the Bearer Token for authorization
-                        'Authorization': `Bearer ${BEARER_TOKEN}`
-                        // Note: The BGG API does not actually require this header.
+                        // This uses the Token entered by the user for authorization.
+                        'Authorization': `Bearer ${token}`
                     }
                 });
                 
                 if (!response.ok) {
+                    // Throw error with the status code (like 401)
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 const xmlText = await response.text();
@@ -131,7 +159,7 @@
                 const parser = new DOMParser();
                 const xmlDoc = parser.parseFromString(xmlText, "text/xml");
 
-                // Check for BGG error messages (e.g., if ID is invalid)
+                // Check for BGG error messages 
                 if (xmlDoc.querySelector('error')) {
                     const message = xmlDoc.querySelector('error message')?.textContent || 'An unknown BGG API error occurred.';
                     throw new Error(message);
@@ -142,7 +170,7 @@
                 const yearPublished = getXmlAttribute(xmlDoc, 'yearpublished', 'value');
                 const minPlayers = getXmlAttribute(xmlDoc, 'minplayers', 'value');
                 const maxPlayers = getXmlAttribute(xmlDoc, 'maxplayers', 'value');
-                // The average weight (complexity) is nested deeper in the statistics section
+                // The average weight (complexity) is nested deeper
                 const averageWeight = getXmlAttribute(xmlDoc, 'statistics ratings averageweight', 'value');
 
                 // Format the average weight to 2 decimal places
@@ -161,7 +189,7 @@
 
             } catch (error) {
                 console.error("API Call Error:", error);
-                errorMsg.textContent = `Failed to load data: ${error.message}.`;
+                errorMsg.textContent = `Failed to load data: ${error.message}. Please check your token and try again.`;
                 errorMsg.classList.remove('hidden');
             } finally {
                 loading.classList.add('hidden');
@@ -171,9 +199,6 @@
 
         // Attach event listener to the button
         fetchButton.addEventListener('click', fetchThingData);
-
-        // Optional: Pre-fetch data when the page loads
-        window.onload = fetchThingData;
 
     </script>
 </body>
