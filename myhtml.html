@@ -3,69 +3,432 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Application Index</title>
+    <title>Application Index (Sorted by Update)</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 20px; 
+            background-color: #fdfdfd;
+            color: #333;
+        }
         .container { max-width: 800px; margin: auto; }
+        h1 { 
+            border-bottom: 2px solid #eee; 
+            padding-bottom: 10px; 
+        }
+        
+        /* --- Sorting Button Styles --- */
+        .sort-controls {
+            margin-bottom: 20px;
+        }
+        .sort-btn {
+            padding: 8px 12px;
+            font-size: 14px;
+            border: 1px solid #ccc;
+            background-color: #f7f7f7;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-right: 5px;
+            transition: background-color 0.2s, box-shadow 0.2s;
+        }
+        .sort-btn:hover {
+            background-color: #eee;
+        }
+        .sort-btn.active {
+            background-color: #0366d6;
+            color: white;
+            border-color: #0366d6;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        /* --- End Sorting Button Styles --- */
+
+        .app-entry {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            background-color: #fff;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            transition: box-shadow 0.2s ease;
+        }
+        .app-entry:hover {
+            box-shadow: 0 3px 6px rgba(0,0,0,0.08);
+        }
+
         .app-button {
             display: block;
             width: 100%;
-            padding: 10px;
-            margin-bottom: 10px;
+            padding: 12px 15px;
             text-align: left;
-            background-color: #f0f0f0;
-            border: 1px solid #ccc;
+            background-color: #f9f9f9;
+            border: none;
+            border-bottom: 1px solid #eee;
             cursor: pointer;
             text-decoration: none;
-            color: #333;
+            color: #0366d6;
             font-size: 16px;
-            border-radius: 5px;
-            transition: background-color 0.3s;
+            font-weight: 600;
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
         }
         .app-button:hover {
-            background-color: #ddd;
+            background-color: #f0f6fc;
         }
-        h1 { border-bottom: 2px solid #ccc; padding-bottom: 10px; }
+
+        .file-info {
+            padding: 10px 15px;
+            font-size: 13px;
+            color: #555;
+            line-height: 1.6;
+        }
+        .file-info strong { color: #222; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Available Applications</h1>
-        <p>Click a button to "simulate" or view the application.</p>
-        <div>
-            <a href="all-in-one.html" class="app-button" role="button" aria-label="Simulate All In One">All In One - Simulate Application 🚀</a>
-            <a href="alt/vfm.html" class="app-button" role="button" aria-label="Simulate Vfm">Vfm - Simulate Application 🚀</a>
-            <a href="api-helper.html" class="app-button" role="button" aria-label="Simulate Api Helper">Api Helper - Simulate Application 🚀</a>
-            <a href="bga_test.html" class="app-button" role="button" aria-label="Simulate Bga Test">Bga Test - Simulate Application 🚀</a>
-            <a href="bggcon-backup.html" class="app-button" role="button" aria-label="Simulate Bggcon Backup">Bggcon Backup - Simulate Application 🚀</a>
-            <a href="bggcon-live.html" class="app-button" role="button" aria-label="Simulate Bggcon Live">Bggcon Live - Simulate Application 🚀</a>
-            <a href="bggcon.html" class="app-button" role="button" aria-label="Simulate Bggcon">Bggcon - Simulate Application 🚀</a>
-            <a href="collage.html" class="app-button" role="button" aria-label="Simulate Collage">Collage - Simulate Application 🚀</a>
-            <a href="collection.html" class="app-button" role="button" aria-label="Simulate Collection">Collection - Simulate Application 🚀</a>
-            <a href="convert.html" class="app-button" role="button" aria-label="Simulate Convert">Convert - Simulate Application 🚀</a>
-            <a href="dtw.html" class="app-button" role="button" aria-label="Simulate Dtw">Dtw - Simulate Application 🚀</a>
-            <a href="firstplayer.html" class="app-button" role="button" aria-label="Simulate Firstplayer">Firstplayer - Simulate Application 🚀</a>
-            <a href="freshplays.html" class="app-button" role="button" aria-label="Simulate Freshplays">Freshplays - Simulate Application 🚀</a>
-            <a href="freshplaysdownload.html" class="app-button" role="button" aria-label="Simulate Freshplaysdownload">Freshplaysdownload - Simulate Application 🚀</a>
-            <a href="geeklist.html" class="app-button" role="button" aria-label="Simulate Geeklist">Geeklist - Simulate Application 🚀</a>
-            <a href="github-actions/github-actions.html" class="app-button" role="button" aria-label="Simulate Github Actions">Github Actions - Simulate Application 🚀</a>
-            <a href="github-actions/xml-parse.html" class="app-button" role="button" aria-label="Simulate Xml Parse">Xml Parse - Simulate Application 🚀</a>
-            <a href="hotgames.html" class="app-button" role="button" aria-label="Simulate Hotgames">Hotgames - Simulate Application 🚀</a>
-            <a href="index.html" class="app-button" role="button" aria-label="Simulate Index">Index - Simulate Application 🚀</a>
-            <a href="menu-print.html" class="app-button" role="button" aria-label="Simulate Menu Print">Menu Print - Simulate Application 🚀</a>
-            <a href="menu.html" class="app-button" role="button" aria-label="Simulate Menu">Menu - Simulate Application 🚀</a>
-            <a href="playingcards.html" class="app-button" role="button" aria-label="Simulate Playingcards">Playingcards - Simulate Application 🚀</a>
-            <a href="private.html" class="app-button" role="button" aria-label="Simulate Private">Private - Simulate Application 🚀</a>
-            <a href="private_print.html" class="app-button" role="button" aria-label="Simulate Private Print">Private Print - Simulate Application 🚀</a>
-            <a href="random9.html" class="app-button" role="button" aria-label="Simulate Random9">Random9 - Simulate Application 🚀</a>
-            <a href="stats.html" class="app-button" role="button" aria-label="Simulate Stats">Stats - Simulate Application 🚀</a>
-            <a href="tabletop.html" class="app-button" role="button" aria-label="Simulate Tabletop">Tabletop - Simulate Application 🚀</a>
-            <a href="tabletop_cleaned.html" class="app-button" role="button" aria-label="Simulate Tabletop Cleaned">Tabletop Cleaned - Simulate Application 🚀</a>
-            <a href="vfm.html" class="app-button" role="button" aria-label="Simulate Vfm">Vfm - Simulate Application 🚀</a>
-            <a href="vfmZ.html" class="app-button" role="button" aria-label="Simulate Vfmz">Vfmz - Simulate Application 🚀</a>
-            <a href="vfm_old.html" class="app-button" role="button" aria-label="Simulate Vfm Old">Vfm Old - Simulate Application 🚀</a>
-            <a href="welcome.html" class="app-button" role="button" aria-label="Simulate Welcome">Welcome - Simulate Application 🚀</a>
+        <p>Click a button to view the application. Default sort is by last file update (newest first).</p>
+        
+        <!-- Sorting Controls -->
+        <div class="sort-controls">
+            <button id="sortByUpdate" class="sort-btn active">Sort by Last Update (Newest)</button>
+            <button id="sortByName" class="sort-btn">Sort by Name (A-Z)</button>
         </div>
-    </div>
+
+        <!-- Container for App Entries -->
+        <div id="app-list">
+
+            <div class="app-entry" data-mtime="1761588235.2636998" data-name="vfm old">
+                <a href="vfm_old.html" class="app-button" role="button">Vfm Old - Simulate Application</a>
+                <div class="file-info">
+                    <strong>App Name:</strong> Vfm Old<br>
+                    <strong>File Name:</strong> vfm_old.html<br>
+                    <strong>Last Update:</strong> 2025-10-27 18:03:55 UTC (Just now)
+                </div>
+            </div>
+
+            <div class="app-entry" data-mtime="1761588235.2636998" data-name="welcome">
+                <a href="welcome.html" class="app-button" role="button">Welcome - Simulate Application</a>
+                <div class="file-info">
+                    <strong>App Name:</strong> Welcome<br>
+                    <strong>File Name:</strong> welcome.html<br>
+                    <strong>Last Update:</strong> 2025-10-27 18:03:55 UTC (Just now)
+                </div>
+            </div>
+
+            <div class="app-entry" data-mtime="1761588235.2636998" data-name="vfmz">
+                <a href="vfmZ.html" class="app-button" role="button">Vfmz - Simulate Application</a>
+                <div class="file-info">
+                    <strong>App Name:</strong> Vfmz<br>
+                    <strong>File Name:</strong> vfmZ.html<br>
+                    <strong>Last Update:</strong> 2025-10-27 18:03:55 UTC (Just now)
+                </div>
+            </div>
+
+            <div class="app-entry" data-mtime="1761588234.9747002" data-name="vfm">
+                <a href="vfm.html" class="app-button" role="button">Vfm - Simulate Application</a>
+                <div class="file-info">
+                    <strong>App Name:</strong> Vfm<br>
+                    <strong>File Name:</strong> vfm.html<br>
+                    <strong>Last Update:</strong> 2025-10-27 18:03:54 UTC (Just now)
+                </div>
+            </div>
+
+            <div class="app-entry" data-mtime="1761588234.9737" data-name="tabletop cleaned">
+                <a href="tabletop_cleaned.html" class="app-button" role="button">Tabletop Cleaned - Simulate Application</a>
+                <div class="file-info">
+                    <strong>App Name:</strong> Tabletop Cleaned<br>
+                    <strong>File Name:</strong> tabletop_cleaned.html<br>
+                    <strong>Last Update:</strong> 2025-10-27 18:03:54 UTC (Just now)
+                </div>
+            </div>
+
+            <div class="app-entry" data-mtime="1761588234.9737" data-name="tabletop">
+                <a href="tabletop.html" class="app-button" role="button">Tabletop - Simulate Application</a>
+                <div class="file-info">
+                    <strong>App Name:</strong> Tabletop<br>
+                    <strong>File Name:</strong> tabletop.html<br>
+                    <strong>Last Update:</strong> 2025-10-27 18:03:54 UTC (Just now)
+                </div>
+            </div>
+
+            <div class="app-entry" data-mtime="1761588234.9727" data-name="random9">
+                <a href="random9.html" class="app-button" role="button">Random9 - Simulate Application</a>
+                <div class="file-info">
+                    <strong>App Name:</strong> Random9<br>
+                    <strong>File Name:</strong> random9.html<br>
+                    <strong>Last Update:</strong> 2025-10-27 18:03:54 UTC (Just now)
+                </div>
+            </div>
+
+            <div class="app-entry" data-mtime="1761588234.9727" data-name="private print">
+                <a href="private_print.html" class="app-button" role="button">Private Print - Simulate Application</a>
+                <div class="file-info">
+                    <strong>App Name:</strong> Private Print<br>
+                    <strong>File Name:</strong> private_print.html<br>
+                    <strong>Last Update:</strong> 2025-10-27 18:03:54 UTC (Just now)
+                </div>
+            </div>
+
+            <div class="app-entry" data-mtime="1761588234.9727" data-name="stats">
+                <a href="stats.html" class="app-button" role="button">Stats - Simulate Application</a>
+                <div class="file-info">
+                    <strong>App Name:</strong> Stats<br>
+                    <strong>File Name:</strong> stats.html<br>
+                    <strong>Last Update:</strong> 2025-10-27 18:03:54 UTC (Just now)
+                </div>
+            </div>
+
+            <div class="app-entry" data-mtime="1761588234.9517002" data-name="playingcards">
+                <a href="playingcards.html" class="app-button" role="button">Playingcards - Simulate Application</a>
+                <div class="file-info">
+                    <strong>App Name:</strong> Playingcards<br>
+                    <strong>File Name:</strong> playingcards.html<br>
+                    <strong>Last Update:</strong> 2025-10-27 18:03:54 UTC (Just now)
+                </div>
+            </div>
+
+            <div class="app-entry" data-mtime="1761588234.9517002" data-name="private">
+                <a href="private.html" class="app-button" role="button">Private - Simulate Application</a>
+                <div class="file-info">
+                    <strong>App Name:</strong> Private<br>
+                    <strong>File Name:</strong> private.html<br>
+                    <strong>Last Update:</strong> 2025-10-27 18:03:54 UTC (Just now)
+                </div>
+            </div>
+
+            <div class="app-entry" data-mtime="1761588234.9507003" data-name="hotgames">
+                <a href="hotgames.html" class="app-button" role="button">Hotgames - Simulate Application</a>
+                <div class="file-info">
+                    <strong>App Name:</strong> Hotgames<br>
+                    <strong>File Name:</strong> hotgames.html<br>
+                    <strong>Last Update:</strong> 2025-10-27 18:03:54 UTC (Just now)
+                </div>
+            </div>
+
+            <div class="app-entry" data-mtime="1761588234.9507003" data-name="index">
+                <a href="index.html" class="app-button" role="button">Index - Simulate Application</a>
+                <div class="file-info">
+                    <strong>App Name:</strong> Index<br>
+                    <strong>File Name:</strong> index.html<br>
+                    <strong>Last Update:</strong> 2025-10-27 18:03:54 UTC (Just now)
+                </div>
+            </div>
+
+            <div class="app-entry" data-mtime="1761588234.9507003" data-name="menu">
+                <a href="menu.html" class="app-button" role="button">Menu - Simulate Application</a>
+                <div class="file-info">
+                    <strong>App Name:</strong> Menu<br>
+                    <strong>File Name:</strong> menu.html<br>
+                    <strong>Last Update:</strong> 2025-10-27 18:03:54 UTC (Just now)
+                </div>
+            </div>
+
+            <div class="app-entry" data-mtime="1761588234.9507003" data-name="menu print">
+                <a href="menu-print.html" class="app-button" role="button">Menu Print - Simulate Application</a>
+                <div class="file-info">
+                    <strong>App Name:</strong> Menu Print<br>
+                    <strong>File Name:</strong> menu-print.html<br>
+                    <strong>Last Update:</strong> 2025-10-27 18:03:54 UTC (Just now)
+                </div>
+            </div>
+
+            <div class="app-entry" data-mtime="1761588234.9507003" data-name="github actions">
+                <a href="github-actions/github-actions.html" class="app-button" role="button">Github Actions - Simulate Application</a>
+                <div class="file-info">
+                    <strong>App Name:</strong> Github Actions<br>
+                    <strong>File Name:</strong> github-actions/github-actions.html<br>
+                    <strong>Last Update:</strong> 2025-10-27 18:03:54 UTC (Just now)
+                </div>
+            </div>
+
+            <div class="app-entry" data-mtime="1761588234.9507003" data-name="xml parse">
+                <a href="github-actions/xml-parse.html" class="app-button" role="button">Xml Parse - Simulate Application</a>
+                <div class="file-info">
+                    <strong>App Name:</strong> Xml Parse<br>
+                    <strong>File Name:</strong> github-actions/xml-parse.html<br>
+                    <strong>Last Update:</strong> 2025-10-27 18:03:54 UTC (Just now)
+                </div>
+            </div>
+
+            <div class="app-entry" data-mtime="1761588234.9497" data-name="freshplays">
+                <a href="freshplays.html" class="app-button" role="button">Freshplays - Simulate Application</a>
+                <div class="file-info">
+                    <strong>App Name:</strong> Freshplays<br>
+                    <strong>File Name:</strong> freshplays.html<br>
+                    <strong>Last Update:</strong> 2025-10-27 18:03:54 UTC (Just now)
+                </div>
+            </div>
+
+            <div class="app-entry" data-mtime="1761588234.9497" data-name="geeklist">
+                <a href="geeklist.html" class="app-button" role="button">Geeklist - Simulate Application</a>
+                <div class="file-info">
+                    <strong>App Name:</strong> Geeklist<br>
+                    <strong>File Name:</strong> geeklist.html<br>
+                    <strong>Last Update:</strong> 2025-10-27 18:03:54 UTC (Just now)
+                </div>
+            </div>
+
+            <div class="app-entry" data-mtime="1761588234.9497" data-name="freshplaysdownload">
+                <a href="freshplaysdownload.html" class="app-button" role="button">Freshplaysdownload - Simulate Application</a>
+                <div class="file-info">
+                    <strong>App Name:</strong> Freshplaysdownload<br>
+                    <strong>File Name:</strong> freshplaysdownload.html<br>
+                    <strong>Last Update:</strong> 2025-10-27 18:03:54 UTC (Just now)
+                </div>
+            </div>
+
+            <div class="app-entry" data-mtime="1761588234.9497" data-name="convert">
+                <a href="convert.html" class="app-button" role="button">Convert - Simulate Application</a>
+                <div class="file-info">
+                    <strong>App Name:</strong> Convert<br>
+                    <strong>File Name:</strong> convert.html<br>
+                    <strong>Last Update:</strong> 2025-10-27 18:03:54 UTC (Just now)
+                </div>
+            </div>
+
+            <div class="app-entry" data-mtime="1761588234.9497" data-name="firstplayer">
+                <a href="firstplayer.html" class="app-button" role="button">Firstplayer - Simulate Application</a>
+                <div class="file-info">
+                    <strong>App Name:</strong> Firstplayer<br>
+                    <strong>File Name:</strong> firstplayer.html<br>
+                    <strong>Last Update:</strong> 2025-10-27 18:03:54 UTC (Just now)
+                </div>
+            </div>
+
+            <div class="app-entry" data-mtime="1761588234.9497" data-name="dtw">
+                <a href="dtw.html" class="app-button" role="button">Dtw - Simulate Application</a>
+                <div class="file-info">
+                    <strong>App Name:</strong> Dtw<br>
+                    <strong>File Name:</strong> dtw.html<br>
+                    <strong>Last Update:</strong> 2025-10-27 18:03:54 UTC (Just now)
+                </div>
+            </div>
+
+            <div class="app-entry" data-mtime="1761588234.9327002" data-name="collection">
+                <a href="collection.html" class="app-button" role="button">Collection - Simulate Application</a>
+                <div class="file-info">
+                    <strong>App Name:</strong> Collection<br>
+                    <strong>File Name:</strong> collection.html<br>
+                    <strong>Last Update:</strong> 2025-10-27 18:03:54 UTC (Just now)
+                </div>
+            </div>
+
+            <div class="app-entry" data-mtime="1761588234.9317002" data-name="collage">
+                <a href="collage.html" class="app-button" role="button">Collage - Simulate Application</a>
+                <div class="file-info">
+                    <strong>App Name:</strong> Collage<br>
+                    <strong>File Name:</strong> collage.html<br>
+                    <strong>Last Update:</strong> 2025-10-27 18:03:54 UTC (Just now)
+                </div>
+            </div>
+
+            <div class="app-entry" data-mtime="1761588234.8797002" data-name="bga test">
+                <a href="bga_test.html" class="app-button" role="button">Bga Test - Simulate Application</a>
+                <div class="file-info">
+                    <strong>App Name:</strong> Bga Test<br>
+                    <strong>File Name:</strong> bga_test.html<br>
+                    <strong>Last Update:</strong> 2025-10-27 18:03:54 UTC (Just now)
+                </div>
+            </div>
+
+            <div class="app-entry" data-mtime="1761588234.8797002" data-name="bggcon backup">
+                <a href="bggcon-backup.html" class="app-button" role="button">Bggcon Backup - Simulate Application</a>
+                <div class="file-info">
+                    <strong>App Name:</strong> Bggcon Backup<br>
+                    <strong>File Name:</strong> bggcon-backup.html<br>
+                    <strong>Last Update:</strong> 2025-10-27 18:03:54 UTC (Just now)
+                </div>
+            </div>
+
+            <div class="app-entry" data-mtime="1761588234.8797002" data-name="bggcon">
+                <a href="bggcon.html" class="app-button" role="button">Bggcon - Simulate Application</a>
+                <div class="file-info">
+                    <strong>App Name:</strong> Bggcon<br>
+                    <strong>File Name:</strong> bggcon.html<br>
+                    <strong>Last Update:</strong> 2025-10-27 18:03:54 UTC (Just now)
+                </div>
+            </div>
+
+            <div class="app-entry" data-mtime="1761588234.8797002" data-name="bggcon live">
+                <a href="bggcon-live.html" class="app-button" role="button">Bggcon Live - Simulate Application</a>
+                <div class="file-info">
+                    <strong>App Name:</strong> Bggcon Live<br>
+                    <strong>File Name:</strong> bggcon-live.html<br>
+                    <strong>Last Update:</strong> 2025-10-27 18:03:54 UTC (Just now)
+                </div>
+            </div>
+
+            <div class="app-entry" data-mtime="1761588234.8787003" data-name="api helper">
+                <a href="api-helper.html" class="app-button" role="button">Api Helper - Simulate Application</a>
+                <div class="file-info">
+                    <strong>App Name:</strong> Api Helper<br>
+                    <strong>File Name:</strong> api-helper.html<br>
+                    <strong>Last Update:</strong> 2025-10-27 18:03:54 UTC (Just now)
+                </div>
+            </div>
+
+            <div class="app-entry" data-mtime="1761588234.8787003" data-name="vfm">
+                <a href="alt/vfm.html" class="app-button" role="button">Vfm - Simulate Application</a>
+                <div class="file-info">
+                    <strong>App Name:</strong> Vfm<br>
+                    <strong>File Name:</strong> alt/vfm.html<br>
+                    <strong>Last Update:</strong> 2025-10-27 18:03:54 UTC (Just now)
+                </div>
+            </div>
+
+            <div class="app-entry" data-mtime="1761588234.8757002" data-name="all in one">
+                <a href="all-in-one.html" class="app-button" role="button">All In One - Simulate Application</a>
+                <div class="file-info">
+                    <strong>App Name:</strong> All In One<br>
+                    <strong>File Name:</strong> all-in-one.html<br>
+                    <strong>Last Update:</strong> 2025-10-27 18:03:54 UTC (Just now)
+                </div>
+            </div>
+        </div> <!-- /#app-list -->
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const btnSortUpdate = document.getElementById('sortByUpdate');
+            const btnSortName = document.getElementById('sortByName');
+            const appListContainer = document.getElementById('app-list');
+
+            function sortItems(criteria) {
+                // Get all app entries from the container
+                const items = Array.from(appListContainer.querySelectorAll('.app-entry'));
+                
+                let sortedItems;
+
+                if (criteria === 'name') {
+                    // Sort by data-name attribute (A-Z)
+                    sortedItems = items.sort((a, b) => {
+                        return a.dataset.name.localeCompare(b.dataset.name);
+                    });
+                    // Update button active state
+                    btnSortName.classList.add('active');
+                    btnSortUpdate.classList.remove('active');
+                } else { // Default to 'update'
+                    // Sort by data-mtime attribute (Newest first)
+                    sortedItems = items.sort((a, b) => {
+                        // b - a for descending order (newest first)
+                        return b.dataset.mtime - a.dataset.mtime;
+                    });
+                    // Update button active state
+                    btnSortUpdate.classList.add('active');
+                    btnSortName.classList.remove('active');
+                }
+
+                // Re-append sorted items to the container
+                sortedItems.forEach(item => {
+                    appListContainer.appendChild(item);
+                });
+            }
+
+            // Add click event listeners
+            btnSortUpdate.addEventListener('click', () => sortItems('update'));
+            btnSortName.addEventListener('click', () => sortItems('name'));
+        });
+    </script>
+
+    </div> <!-- /.container -->
 </body>
 </html>
