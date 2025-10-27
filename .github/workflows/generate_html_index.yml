@@ -1,165 +1,44 @@
-import os
-import glob
-from pathlib import Path
-from datetime import datetime, timezone
+# This 'name' is what you see in the GitHub Actions tab.
+name: Generate HTML Index
 
-def format_time_since(delta):
-    """Converts a timedelta object to a user-friendly 'time since' string."""
-    seconds = int(delta.total_seconds())
-    
-    if seconds < 60:
-        return "Just now"
-    elif seconds < 3600:
-        minutes = seconds // 60
-        return f"{minutes} minute{'s' if minutes > 1 else ''} ago"
-    elif seconds < 86400:
-        hours = seconds // 3600
-        return f"{hours} hour{'s' if hours > 1 else ''} ago"
-    else:
-        days = seconds // 86400
-        return f"{days} day{'s' if days > 1 else ''} ago"
+# This sets permissions for the GITHUB_TOKEN
+permissions: 
+  contents: write 
 
-def generate_html_index(output_file='myhtml.html'):
-    """
-    Scans for all HTML files, sorts them by modification date (newest first),
-    and generates an index file with buttons and file metadata.
-    """
+# This 'on' block defines when the action runs
+on:
+  schedule:
+    # Runs every 4 hours
+    - cron: '0 */4 * * *'
+  
+  # This 'workflow_dispatch' adds the "Run workflow" button
+  # in the GitHub Actions tab, allowing you to run it manually.
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
     
-    # Start of the HTML content
-    html_content = f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Application Index (Sorted by Update)</title>
-    <style>
-        body {{ 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            margin: 20px; 
-            background-color: #fdfdfd;
-        }}
-        .container {{ max-width: 800px; margin: auto; }}
-        h1 {{ 
-            border-bottom: 2px solid #eee; 
-            padding-bottom: 10px; 
-            color: #333;
-        }}
+    steps:
+    
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
         
-        /* New styles for the entry wrapper */
-        .app-entry {{
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            background-color: #fff;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            transition: box-shadow 0.2s ease;
-        }}
-        .app-entry:hover {{
-            box-shadow: 0 3px 6px rgba(0,0,0,0.08);
-        }}
-
-        /* Updated button style */
-        .app-button {{
-            display: block;
-            width: 100%;
-            padding: 12px 15px;
-            text-align: left;
-            background-color: #f9f9f9;
-            border: none;
-            border-bottom: 1px solid #eee;
-            cursor: pointer;
-            text-decoration: none;
-            color: #0366d6;
-            font-size: 16px;
-            font-weight: 600;
-            border-top-left-radius: 8px;
-            border-top-right-radius: 8px;
-            transition: background-color 0.2s;
-        }}
-        .app-button:hover {{
-            background-color: #f0f6fc;
-        }}
-
-        /* New styles for the file info box */
-        .file-info {{
-            padding: 10px 15px;
-            font-size: 13px;
-            color: #555;
-            line-height: 1.6;
-        }}
-        .file-info strong {{
-            color: #222;
-        }}
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>Available Applications</h1>
-        <p>Click a button to view the application. Sorted by last file update (newest first).</p>
-        <div>
-"""
-    
-    # 1. Find all HTML files
-    all_files = glob.glob('**/*.html', recursive=True)
-    
-    # 2. Get stats and filter out the output file
-    file_stats = []
-    now_utc = datetime.now(timezone.utc)
-    
-    for file_path_str in all_files:
-        path_obj = Path(file_path_str)
-        if path_obj.name == output_file:
-            continue
-            
-        # Get file modification time (as UTC)
-        mtime_epoch = os.path.getmtime(path_obj)
-        mod_time_dt_utc = datetime.fromtimestamp(mtime_epoch, timezone.utc)
+    - name: Install dependencies
+      run: python -m pip install --upgrade pip
         
-        file_stats.append({
-            'path': path_obj.as_posix(),
-            'mtime': mtime_epoch,
-            'mod_time_str': mod_time_dt_utc.strftime('%Y-%m-%d %H:%M:%S UTC'),
-            'time_since': format_time_since(now_utc - mod_time_dt_utc)
-        })
-
-    # 3. Sort the list by modification time (mtime), descending
-    sorted_files = sorted(file_stats, key=lambda x: x['mtime'], reverse=True)
-
-    # 4. Generate HTML for each file
-    if not sorted_files:
-        html_content += f'<p>No other HTML files found in the repository (excluding {output_file}).</p>'
-    else:
-        for file_data in sorted_files:
-            file_path = file_data['path']
-            
-            # App Name (from file name)
-            app_name_label = Path(file_path).stem.replace('-', ' ').replace('_', ' ').title()
-            
-            # Button text (no emoji)
-            button_text = f"{app_name_label} - Simulate Application"
-            
-            html_content += f"""
-            <div class="app-entry">
-                <a href="{file_path}" class="app-button" role="button">{button_text}</a>
-                <div class="file-info">
-                    <strong>App Name:</strong> {app_name_label}<br>
-                    <strong>File Name:</strong> {file_path}<br>
-                    <strong>Last Update:</strong> {file_data['mod_time_str']} ({file_data['time_since']})
-                </div>
-            </div>
-"""
-
-    # End of the HTML content
-    html_content += """        </div>
-    </div>
-</body>
-</html>"""
-
-    # Write the content to the specified output file
-    with open(output_file, 'w', encoding='utf-8') as f:
-        f.write(html_content)
-
-    print(f"Successfully generated {output_file} with {len(sorted_files)} links, sorted by modification date.")
-
-if __name__ == "__main__":
-    generate_html_index()
+    - name: Run HTML index generation script
+      run: python generate_index.py
+      
+    - name: Commit and Push myhtml.html
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git add myhtml.html
+        git commit -m "🤖 CI: Recreate myhtml.html index" || echo "No changes to commit."
+        git push
