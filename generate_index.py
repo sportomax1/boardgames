@@ -49,7 +49,7 @@ def get_git_commit_time(file_path):
         print(f"Error getting git time for {file_path}: {e}")
         return os.path.getmtime(file_path)
 
-def generate_html_index(output_file='myhtml.html'):
+def generate_html_index(output_file='index.html'):
     """
     Scans for all HTML files, sorts them by their Git commit date (newest first),
     and generates an index file with client-side sorting and search controls.
