@@ -52,14 +52,14 @@
 
         <!-- Token Input Group -->
         <div class="space-y-2">
-            <label for="tokenInput" class="block text-sm font-medium text-gray-700">Bearer Token (Paste for Manual Test):</label>
+            <label for="tokenInput" class="block text-sm font-medium text-gray-700">Bearer Token (REQUIRED for BOTH tests):</label>
             <input 
                 type="text" 
                 id="tokenInput" 
-                placeholder="Paste your token value here for the manual test"
+                placeholder="Paste your token value here to authorize ALL tests"
                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-bgg-blue focus:border-bgg-blue shadow-sm text-gray-700"
             >
-            <p class="text-xs text-gray-500">Only used for the "Test with Pasted Token" button.</p>
+            <p class="text-xs text-red-500 font-semibold">NOTE: In a development environment, you must paste your token above for testing.</p>
         </div>
 
         <!-- Action Buttons (TWO BUTTONS NOW) -->
@@ -68,7 +68,7 @@
                 1. Test with Pasted Token (Manual)
             </button>
             <button id="fetchInjectedButton" class="w-full bg-bgg-green hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-300">
-                2. Test with Injected Secret ('TOKEN' value)
+                2. Test with Environment/Simulated Secret
             </button>
         </div>
 
@@ -93,7 +93,12 @@
     </div>
 
     <script type="module">
-        // Attempt to get the token injected by the environment (e.g., CI/CD)
+        // --- START_TOKEN_INJECTION_TARGET ---
+        // Placeholder for CI/CD injection: const __BGG_API_TOKEN = '...';
+        // --- END_TOKEN_INJECTION_TARGET ---
+        
+        // In a real environment, this would hold the value of your GitHub Secret 'TOKEN'
+        // If injection is set up via CI/CD, the build process replaces __BGG_API_TOKEN with the actual secret value.
         const INJECTED_TOKEN = typeof __BGG_API_TOKEN !== 'undefined' ? __BGG_API_TOKEN : '';
 
         // Global DOM Elements
@@ -144,9 +149,10 @@
             }
 
             // 2. Final token validation
+            // Check if token is empty or still holds the name of the secret, preventing unauthorized calls.
             if (!token || token.toUpperCase() === 'TOKEN') {
                 resultsContainer.classList.add('hidden');
-                errorMsg.textContent = `Error: The ${source} failed. Token is missing or is the literal secret name 'TOKEN'.`;
+                errorMsg.textContent = `Error: Token is missing. Please paste your token into the input field above.`;
                 errorMsg.classList.remove('hidden');
                 return;
             }
@@ -170,7 +176,7 @@
                 });
                 
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    throw new Error(`HTTP error! status: ${response.status} (Check if your token is valid)`);
                 }
                 const xmlText = await response.text();
 
@@ -226,15 +232,28 @@
             fetchInjectedButton.disabled = true;
             loading.classList.remove('hidden');
             const token = tokenInput.value.trim();
-            fetchData(token, 'Pasted Token');
+            fetchData(token, 'Pasted Token (Manual)');
         };
 
         const handleInjectedFetch = () => {
             fetchManualButton.disabled = true;
             fetchInjectedButton.disabled = true;
             loading.classList.remove('hidden');
-            // Use the global INJECTED_TOKEN constant
-            fetchData(INJECTED_TOKEN, 'Injected Secret (TOKEN)');
+            
+            let token;
+            let source;
+
+            // 1. Check if the token was successfully injected by the environment (CI/CD)
+            if (INJECTED_TOKEN && INJECTED_TOKEN.toUpperCase() !== 'TOKEN' && INJECTED_TOKEN.length > 5) {
+                token = INJECTED_TOKEN;
+                source = 'Environment Injected Secret';
+            } else {
+                // 2. FALLBACK for local testing or failed injection: Use the pasted token
+                token = tokenInput.value.trim();
+                source = INJECTED_TOKEN ? 'Simulated Injected Secret (Injection Failed - Used Input)' : 'Simulated Injected Secret (from Input)';
+            }
+
+            fetchData(token, source);
         };
 
         // Attach event listeners to the new buttons
