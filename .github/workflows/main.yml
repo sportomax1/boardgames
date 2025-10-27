@@ -18,6 +18,11 @@ jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
     
+    # ADD THIS: Environment configuration for GitHub Pages
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
