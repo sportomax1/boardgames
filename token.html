@@ -6,7 +6,6 @@
     <title>BGG Data Fetcher</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Custom styles for background and font */
         body {
             font-family: 'Inter', sans-serif;
             background-color: #f7f9fc;
@@ -34,7 +33,7 @@
 
     <div class="card w-full max-w-lg shadow-2xl rounded-xl p-8 space-y-6">
         <h1 class="text-3xl font-bold text-bgg-dark text-center">Board Game Geek Data Fetcher</h1>
-        <p id="descriptionText" class="text-center text-gray-500">Test API calls using either a manually pasted token or an environment-injected secret.</p>
+        <p id="descriptionText" class="text-center text-gray-500">Fetch BGG data using either a manually provided token or an environment-injected secret.</p>
 
         <!-- ID Input Group -->
         <div class="space-y-2">
@@ -52,23 +51,29 @@
 
         <!-- Token Input Group -->
         <div class="space-y-2">
-            <label for="tokenInput" class="block text-sm font-medium text-gray-700">Bearer Token (REQUIRED for BOTH tests):</label>
+            <label for="tokenInput" class="block text-sm font-medium text-gray-700">Bearer Token (for Manual Mode):</label>
             <input 
                 type="text" 
                 id="tokenInput" 
-                placeholder="Paste your token value here to authorize ALL tests"
+                placeholder="Paste your token here for manual testing"
                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-bgg-blue focus:border-bgg-blue shadow-sm text-gray-700"
             >
-            <p class="text-xs text-red-500 font-semibold">NOTE: In a development environment, you must paste your token above for testing.</p>
+            <p class="text-xs text-gray-500">Required for Manual Mode. Optional if injected token is available.</p>
         </div>
 
-        <!-- Action Buttons (TWO BUTTONS NOW) -->
+        <!-- Token Status Indicator -->
+        <div id="tokenStatus" class="bg-gray-100 border border-gray-300 rounded-lg p-3">
+            <p class="text-sm font-medium text-gray-700">Token Status:</p>
+            <p id="tokenStatusText" class="text-xs text-gray-600 mt-1">Checking...</p>
+        </div>
+
+        <!-- Action Buttons -->
         <div class="flex flex-col space-y-3 pt-2">
             <button id="fetchManualButton" class="w-full bg-bgg-blue hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-300">
-                1. Test with Pasted Token (Manual)
+                🔑 Test with Manual Token
             </button>
             <button id="fetchInjectedButton" class="w-full bg-bgg-green hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-300">
-                2. Test with Environment/Simulated Secret
+                🔐 Test with Injected Token
             </button>
         </div>
 
@@ -97,11 +102,10 @@
         // Placeholder for CI/CD injection: const __BGG_API_TOKEN = '...';
         // --- END_TOKEN_INJECTION_TARGET ---
         
-        // In a real environment, this would hold the value of your GitHub Secret 'TOKEN'
-        // If injection is set up via CI/CD, the build process replaces __BGG_API_TOKEN with the actual secret value.
+        // Check if token was injected by CI/CD (GitHub Actions)
         const INJECTED_TOKEN = typeof __BGG_API_TOKEN !== 'undefined' ? __BGG_API_TOKEN : '';
 
-        // Global DOM Elements
+        // DOM Elements
         const fetchManualButton = document.getElementById('fetchManualButton');
         const fetchInjectedButton = document.getElementById('fetchInjectedButton');
         const loading = document.getElementById('loading');
@@ -112,9 +116,54 @@
         const tokenInput = document.getElementById('tokenInput');
         const thingIdInput = document.getElementById('thingIdInput'); 
         const descriptionText = document.getElementById('descriptionText');
+        const tokenStatusText = document.getElementById('tokenStatusText');
         
         /**
-         * Utility function to create a key/value display card.
+         * Validates if a token is usable (not empty, not placeholder value)
+         */
+        const isValidToken = (token) => {
+            return token && 
+                   token.trim().length > 0 && 
+                   token.toUpperCase() !== 'TOKEN' &&
+                   token !== 'undefined' &&
+                   token !== 'null';
+        };
+
+        /**
+         * Updates the token status display
+         */
+        const updateTokenStatus = () => {
+            const hasInjected = isValidToken(INJECTED_TOKEN);
+            const hasManual = isValidToken(tokenInput.value.trim());
+            
+            let statusHTML = '';
+            if (hasInjected) {
+                statusHTML += '<span class="text-green-600">✓ Injected token available</span><br>';
+            } else {
+                statusHTML += '<span class="text-gray-500">✗ No injected token</span><br>';
+            }
+            
+            if (hasManual) {
+                statusHTML += '<span class="text-blue-600">✓ Manual token provided</span>';
+            } else {
+                statusHTML += '<span class="text-gray-500">✗ No manual token</span>';
+            }
+            
+            tokenStatusText.innerHTML = statusHTML;
+            
+            // Enable/disable buttons based on token availability
+            fetchInjectedButton.disabled = !hasInjected;
+            if (!hasInjected) {
+                fetchInjectedButton.classList.add('opacity-50', 'cursor-not-allowed');
+                fetchInjectedButton.title = 'No injected token available';
+            } else {
+                fetchInjectedButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                fetchInjectedButton.title = '';
+            }
+        };
+
+        /**
+         * Utility function to create a key/value display card
          */
         const createStatItem = (key, value) => `
             <div class="bg-gray-50 p-3 rounded-lg border border-gray-100">
@@ -124,7 +173,7 @@
         `;
 
         /**
-         * Finds an attribute value from an XML document using a CSS selector.
+         * Finds an attribute value from an XML document
          */
         const getXmlAttribute = (xmlDoc, selector, attribute) => {
             const element = xmlDoc.querySelector(selector);
@@ -132,42 +181,42 @@
         };
 
         /**
-         * The core API fetch logic, which accepts the token to use.
-         * @param {string} token - The Bearer token to use for authorization.
-         * @param {string} source - Description of the token source (for error messages).
+         * Core API fetch logic
+         * @param {string} token - The Bearer token to use
+         * @param {string} source - Description of the token source
          */
         const fetchData = async (token, source) => {
-            
             const thingId = thingIdInput.value.trim();
 
-            // 1. Validate inputs
-            if (!thingId || isNaN(parseInt(thingId))) {
+            // Validate Thing ID
+            if (!thingId || isNaN(parseInt(thingId)) || parseInt(thingId) < 1) {
                 resultsContainer.classList.add('hidden');
-                errorMsg.textContent = "Error: Please enter a valid BGG Thing ID (Game ID).";
+                errorMsg.textContent = "Error: Please enter a valid BGG Thing ID (positive number).";
                 errorMsg.classList.remove('hidden');
+                loading.classList.add('hidden');
                 return;
             }
 
-            // 2. Final token validation
-            // Check if token is empty or still holds the name of the secret, preventing unauthorized calls.
-            if (!token || token.toUpperCase() === 'TOKEN') {
+            // Validate Token
+            if (!isValidToken(token)) {
                 resultsContainer.classList.add('hidden');
-                errorMsg.textContent = `Error: Token is missing. Please paste your token into the input field above.`;
+                errorMsg.textContent = `Error: Invalid or missing token for ${source}. Please provide a valid token.`;
                 errorMsg.classList.remove('hidden');
+                loading.classList.add('hidden');
                 return;
             }
 
-            // 3. Construct API URL dynamically
+            // Construct API URL
             const API_URL = `https://boardgamegeek.com/xmlapi2/thing?id=${thingId}&stats=1`;
             
-            // 4. Reset state and update UI feedback
+            // Reset UI
             resultsContainer.classList.add('hidden');
             errorMsg.classList.add('hidden');
             loading.classList.remove('hidden');
-            descriptionText.textContent = `Fetching data for BGG ID: ${thingId} using ${source}...`;
+            descriptionText.textContent = `Fetching BGG ID: ${thingId} using ${source}...`;
 
             try {
-                // 5. Fetch the XML data
+                // Fetch data from BGG API
                 const response = await fetch(API_URL, {
                     method: 'GET',
                     headers: {
@@ -176,90 +225,93 @@
                 });
                 
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status} (Check if your token is valid)`);
+                    throw new Error(`HTTP ${response.status}: ${response.statusText} - Check if your token is valid`);
                 }
+                
                 const xmlText = await response.text();
-
-                // 6. Parse the XML string into a DOM Document
                 const parser = new DOMParser();
                 const xmlDoc = parser.parseFromString(xmlText, "text/xml");
 
-                // Check for BGG error messages 
+                // Check for BGG API errors
                 if (xmlDoc.querySelector('error')) {
-                    const message = xmlDoc.querySelector('error message')?.textContent || 'An unknown BGG API error occurred.';
+                    const message = xmlDoc.querySelector('error message')?.textContent || 'Unknown BGG API error';
                     throw new Error(message);
                 }
 
-                // --- Extract Data from XML ---
+                // Extract game data
                 const gameName = getXmlAttribute(xmlDoc, 'name[type="primary"]', 'value');
                 const yearPublished = getXmlAttribute(xmlDoc, 'yearpublished', 'value');
                 const minPlayers = getXmlAttribute(xmlDoc, 'minplayers', 'value');
                 const maxPlayers = getXmlAttribute(xmlDoc, 'maxplayers', 'value');
                 const averageWeight = getXmlAttribute(xmlDoc, 'statistics ratings averageweight', 'value');
 
-                // Format the average weight to 2 decimal places
                 const complexity = averageWeight !== 'N/A' ? parseFloat(averageWeight).toFixed(2) : 'N/A';
 
-                // --- Update UI ---
+                // Display results
                 gameNameElement.textContent = gameName;
                 statsGrid.innerHTML = [
                     createStatItem("Year Published", yearPublished),
                     createStatItem("Min Players", minPlayers),
                     createStatItem("Max Players", maxPlayers),
-                    createStatItem("Complexity (Weight)", complexity),
+                    createStatItem("Complexity", complexity),
                 ].join('');
 
                 resultsContainer.classList.remove('hidden');
-                descriptionText.textContent = `Successfully retrieved data for BGG ID: ${thingId} using ${source}.`;
-
+                descriptionText.textContent = `✓ Successfully fetched data for "${gameName}" using ${source}`;
 
             } catch (error) {
-                console.error("API Call Error:", error);
-                errorMsg.textContent = `Failed to load data for ID ${thingId} via ${source}: ${error.message}.`;
+                console.error("API Error:", error);
+                errorMsg.textContent = `Failed to load ID ${thingId} via ${source}: ${error.message}`;
                 errorMsg.classList.remove('hidden');
-                descriptionText.textContent = "Test API calls using either a manually pasted token or an environment-injected secret.";
+                descriptionText.textContent = "Error occurred. Please check your inputs and try again.";
             } finally {
                 loading.classList.add('hidden');
                 fetchManualButton.disabled = false;
-                fetchInjectedButton.disabled = false;
+                fetchInjectedButton.disabled = !isValidToken(INJECTED_TOKEN);
             }
         };
 
-        // --- Button Handlers ---
-
+        /**
+         * Handler for manual token button
+         */
         const handleManualFetch = () => {
-            fetchManualButton.disabled = true;
-            fetchInjectedButton.disabled = true;
-            loading.classList.remove('hidden');
             const token = tokenInput.value.trim();
-            fetchData(token, 'Pasted Token (Manual)');
-        };
-
-        const handleInjectedFetch = () => {
+            
+            if (!isValidToken(token)) {
+                errorMsg.textContent = "Error: Please enter a valid token in the input field above.";
+                errorMsg.classList.remove('hidden');
+                return;
+            }
+            
             fetchManualButton.disabled = true;
             fetchInjectedButton.disabled = true;
-            loading.classList.remove('hidden');
-            
-            let token;
-            let source;
-
-            // 1. Check if the token was successfully injected by the environment (CI/CD)
-            if (INJECTED_TOKEN && INJECTED_TOKEN.toUpperCase() !== 'TOKEN' && INJECTED_TOKEN.length > 5) {
-                token = INJECTED_TOKEN;
-                source = 'Environment Injected Secret';
-            } else {
-                // 2. FALLBACK for local testing or failed injection: Use the pasted token
-                token = tokenInput.value.trim();
-                source = INJECTED_TOKEN ? 'Simulated Injected Secret (Injection Failed - Used Input)' : 'Simulated Injected Secret (from Input)';
-            }
-
-            fetchData(token, source);
+            fetchData(token, 'Manual Token');
         };
 
-        // Attach event listeners to the new buttons
+        /**
+         * Handler for injected token button
+         */
+        const handleInjectedFetch = () => {
+            if (!isValidToken(INJECTED_TOKEN)) {
+                errorMsg.textContent = "Error: No valid injected token available. Use Manual Token mode instead.";
+                errorMsg.classList.remove('hidden');
+                return;
+            }
+            
+            fetchManualButton.disabled = true;
+            fetchInjectedButton.disabled = true;
+            fetchData(INJECTED_TOKEN, 'Environment Injected Token (GitHub Secret)');
+        };
+
+        // Event listeners
         fetchManualButton.addEventListener('click', handleManualFetch);
         fetchInjectedButton.addEventListener('click', handleInjectedFetch);
+        
+        // Update status when user types in token field
+        tokenInput.addEventListener('input', updateTokenStatus);
 
+        // Initial status check
+        updateTokenStatus();
     </script>
 </body>
 </html>
