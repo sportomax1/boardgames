@@ -1,0 +1,78 @@
+name: Fetch BGG Game Data
+
+on:
+  # This makes the action run every time you push a change to the 'main' branch
+  push:
+    branches: [ "main" ]
+  # This allows you to manually trigger the workflow from the GitHub Actions tab
+  workflow_dispatch:
+
+jobs:
+  fetch_data:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+
+    # This step executes a Python script to fetch the data
+    - name: Execute API Call and Save Data
+      run: |
+        # Create a simple Python script inline
+        cat << 'EOF' > fetch_data.py
+import requests
+import os
+import json
+
+# Your BGG Thing ID (the number you want to look up)
+GAME_ID = 822
+# The secret token is passed as an environment variable from GitHub Secrets
+TOKEN = os.getenv('BGG_API_TOKEN') 
+OUTPUT_FILE = 'bgg_data.json'
+
+# BGG XML API2 URL
+url = f"https://boardgamegeek.com/xmlapi2/thing?id={GAME_ID}&stats=1&comments=1"
+
+# The new policy requires the Authorization header
+headers = {
+    'Authorization': f'Bearer {TOKEN}',
+    'Accept': 'application/xml' # The BGG API returns XML by default
+}
+
+print(f"Fetching data for ID: {GAME_ID}...")
+
+try:
+    response = requests.get(url, headers=headers)
+    response.raise_for_status() # Raise an exception for bad status codes (4xx or 5xx)
+
+    # In a real app, you would parse the XML here. 
+    # For simplicity, we'll save the XML response content to a file.
+    # You may want to parse it into JSON for easier JavaScript use.
+    with open(OUTPUT_FILE, 'w') as f:
+        f.write(response.text)
+        
+    print(f"Successfully saved data to {OUTPUT_FILE}")
+
+except requests.exceptions.RequestException as e:
+    print(f"API Request Failed: {e}")
+    exit(1)
+EOF
+        # Install the requests library for the API call
+        pip install requests
+        # Run the Python script
+        python fetch_data.py
+      # IMPORTANT: Use the GitHub Secret here as an environment variable
+      env:
+        BGG_API_TOKEN: ${{ secrets.BGG_API_TOKEN }}
+
+    # This step commits the newly created 'bgg_data.json' file back to the repo
+    - name: Commit and Push Updated Data
+      uses: stefanzweifel/git-auto-commit-action@v5
+      with:
+        commit_message: '🤖 BGG Data Update: Refreshed game data via API'
+        # The file to commit
+        files: bgg_data.json
