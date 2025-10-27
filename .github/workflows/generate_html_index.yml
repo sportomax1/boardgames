@@ -1,18 +1,13 @@
-# This 'name' is what you see in the GitHub Actions tab.
 name: Generate HTML Index
 
-# This sets permissions for the GITHUB_TOKEN
+# Ensure the workflow token has write access globally
 permissions: 
   contents: write 
-
-# This 'on' block defines when the action runs
+  
+# Runs every 4 hours, or manually
 on:
   schedule:
-    # Runs every 4 hours
     - cron: '0 */4 * * *'
-  
-  # This 'workflow_dispatch' adds the "Run workflow" button
-  # in the GitHub Actions tab, allowing you to run it manually.
   workflow_dispatch:
 
 jobs:
@@ -21,8 +16,12 @@ jobs:
     
     steps:
     
-    - name: Checkout repository
+    # CRITICAL FIX: Fetch the complete Git history (fetch-depth: 0)
+    # This ensures 'git log' can find the last commit time for all files.
+    - name: Checkout repository (Full History)
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -31,14 +30,47 @@ jobs:
         
     - name: Install dependencies
       run: python -m pip install --upgrade pip
+      
+    # --- TEMPORARY DIAGNOSTIC STEP ---
+    # This step checks the true last commit time for all files listed by the user.
+    - name: Diagnose Git Commit Times
+      run: |
+        # List of all files to check
+        FILES=(
+          "all-in-one.html" "api-helper.html" "bga_test.html" "bggcon-backup.html" 
+          "bggcon-live.html" "bggcon.html" "collage.html" "collection.html" 
+          "convert.html" "dtw.html" "firstplayer.html" "freshplays.html" 
+          "freshplaysdownload.html" "geeklist.html" "hotgames.html" "index.html" 
+          "menu-print.html" "menu.html" "myhtml.html" "playingcards.html" 
+          "private.html" "private_print.html" "random9.html" "stats.html" 
+          "tabletop.html" "tabletop_cleaned.html" "vfm.html" "vfmZ.html" 
+          "vfm_old.html" "welcome.html"
+        )
         
+        echo "--- DIAGNOSTIC: Checking Last Commit Timestamp (Epoch Time) for 30 Files ---"
+        
+        for FILE in "${FILES[@]}"; do
+          # %ct retrieves the committer date in Unix timestamp format (epoch time)
+          TIMESTAMP=$(git log -1 --format=%ct -- "$FILE" 2>/dev/null || echo "N/A - File Not Found or No History")
+          
+          if [ "$TIMESTAMP" != "N/A - File Not Found or No History" ]; then
+            READABLE=$(date -d "@$TIMESTAMP" "+%Y-%m-%d %H:%M:%S UTC")
+            echo "✅ $FILE: $TIMESTAMP ($READABLE)"
+          else
+            echo "❌ $FILE: N/A (Using file system time in Python as fallback)"
+          fi
+        done
+        echo "--- DIAGNOSTIC COMPLETE ---"
+    
+    # Step 1: Run the Python script to generate the HTML file
     - name: Run HTML index generation script
       run: python generate_index.py
       
+    # Step 2: Commit and Push the generated file using the reliable method
     - name: Commit and Push myhtml.html
       run: |
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
         git add myhtml.html
-        git commit -m "🤖 CI: Recreate myhtml.html index" || echo "No changes to commit."
+        git commit -m "🤖 CI: Recreate myhtml.html index" || echo "No changes to commit or file already committed."
         git push
