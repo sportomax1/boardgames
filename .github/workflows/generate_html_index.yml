@@ -2,12 +2,11 @@
 
 name: Generate HTML Index
 
-# Ensure the workflow token has write access globally to avoid commit failures
+# Ensure the workflow token has write access globally
 permissions: 
   contents: write 
-  pull-requests: write # Added for robust permission handling
-
-# This schedule runs every 4 hours.
+  
+# Runs every 4 hours, or manually
 on:
   schedule:
     - cron: '0 */4 * * *'
@@ -19,42 +18,36 @@ jobs:
     
     steps:
     
-    # Step 1: Checkout the repository code
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    # Step 2: Set up Python
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.x'
         
-    # Step 3: Install dependencies
     - name: Install dependencies
       run: python -m pip install --upgrade pip
         
-    # Step 4: Run the Python script to generate the HTML file
+    # Step 1: Run the Python script to generate the HTML file
+    # This creates or overwrites myhtml.html
     - name: Run HTML index generation script
       run: python generate_index.py
       
-    # ------------------------------------------------------------------
-    # NEW STEP: MANUAL COMMIT AND PUSH
-    # ------------------------------------------------------------------
+    # Step 2: Commit and Push the generated file using the reliable method
     - name: Commit and Push myhtml.html
       run: |
-        # Configure the Git user (required for commits)
+        # 1. Configure Git identity
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
         
-        # Check if the file has changed (non-zero exit code if changes exist)
-        # The '|| true' ensures the step doesn't fail if the file is new/modified
-        if git diff --exit-code myhtml.html > /dev/null; then
-          echo "myhtml.html is unchanged. Skipping commit."
-        else
-          echo "Changes detected in myhtml.html. Committing..."
-          git add myhtml.html
-          git commit -m "🤖 CI: Recreate myhtml.html index"
-          
-          # Push the committed changes back to the origin branch (e.g., 'main')
-          git push
-        fi
+        # 2. Stage the file (this handles creation and modification)
+        git add myhtml.html
+        
+        # 3. Attempt to commit. The '|| echo "..."' is CRUCIAL 
+        #    as it prevents the step from failing if there are no changes 
+        #    (the error you were seeing previously).
+        git commit -m "🤖 CI: Recreate myhtml.html index" || echo "No changes to commit or file already committed."
+        
+        # 4. Push the changes
+        git push
