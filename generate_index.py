@@ -3,6 +3,8 @@ import glob
 from pathlib import Path
 # Added timedelta for the Mountain Time offset calculation
 from datetime import datetime, timezone, timedelta
+# NEW: Required for running Git commands
+import subprocess
 
 def format_time_since(delta):
     """Converts a timedelta object to a user-friendly 'time since' string."""
@@ -20,9 +22,32 @@ def format_time_since(delta):
         days = seconds // 86400
         return f"{days} day{'s' if days > 1 else ''} ago"
 
+def get_git_commit_time(file_path):
+    """
+    Uses the 'git log' command to get the commit timestamp of the last change 
+    to the specific file. This provides the true last update time in the repo.
+    Returns epoch timestamp (float) or falls back to os.path.getmtime().
+    """
+    try:
+        # Command: git log -1 --format=%ct -- <file_path>
+        # %ct = committer date, Unix timestamp format
+        result = subprocess.run(
+            ['git', 'log', '-1', '--format=%ct', '--', file_path],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        return float(result.stdout.strip())
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        # Fallback for new (uncommitted) files or if git fails
+        return os.path.getmtime(file_path)
+    except Exception as e:
+        # Generic error fallback
+        return os.path.getmtime(file_path)
+
 def generate_html_index(output_file='myhtml.html'):
     """
-    Scans for all HTML files, sorts them by modification date (newest first),
+    Scans for all HTML files, sorts them by their Git commit date (newest first),
     and generates an index file with client-side sorting and search controls.
     """
     
@@ -165,7 +190,10 @@ def generate_html_index(output_file='myhtml.html'):
         if path_obj.name == output_file:
             continue
             
-        mtime_epoch = os.path.getmtime(path_obj)
+        # *** CHANGE APPLIED HERE: Use Git commit time (mtime_epoch) ***
+        mtime_epoch = get_git_commit_time(file_path_str)
+        # -------------------------------------------------------------
+
         mod_time_dt_utc = datetime.fromtimestamp(mtime_epoch, timezone.utc)
         app_name_label = path_obj.stem.replace('-', ' ').replace('_', ' ').title()
 
@@ -208,7 +236,7 @@ def generate_html_index(output_file='myhtml.html'):
     # End of the app list
     html_content += "        </div> <!-- /#app-list -->\n"
     
-    # --- JavaScript for Sorting and Filtering ---
+    # --- JavaScript for Sorting and Filtering (Unchanged) ---
     html_content += """
     <script>
         document.addEventListener('DOMContentLoaded', () => {
