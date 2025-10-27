@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mille Fiori BGG Data Fetcher</title>
+    <title>BGG Data Fetcher</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* Custom styles for background and font */
@@ -23,6 +23,7 @@
                     colors: {
                         'bgg-blue': '#007bff',
                         'bgg-dark': '#343a40',
+                        'bgg-green': '#28a745',
                     }
                 }
             }
@@ -33,13 +34,41 @@
 
     <div class="card w-full max-w-lg shadow-2xl rounded-xl p-8 space-y-6">
         <h1 class="text-3xl font-bold text-bgg-dark text-center">Board Game Geek Data Fetcher</h1>
-        <p class="text-center text-gray-500">Retrieving data for Mille Fiori (ID: 346501) via XML API 2.</p>
-        <p class="text-xs text-center text-gray-500 font-semibold border-b pb-4">Authorization relies solely on the 'TOKEN' secret injected by the environment.</p>
+        <p id="descriptionText" class="text-center text-gray-500">Test API calls using either a manually pasted token or an environment-injected secret.</p>
 
-        <!-- Action Button -->
-        <div class="flex justify-center">
-            <button id="fetchButton" class="w-full bg-bgg-blue hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-300">
-                Fetch Game Statistics
+        <!-- ID Input Group -->
+        <div class="space-y-2">
+            <label for="thingIdInput" class="block text-sm font-medium text-gray-700">BGG Thing ID (Game ID):</label>
+            <input 
+                type="number" 
+                id="thingIdInput" 
+                value="346501" 
+                min="1"
+                placeholder="e.g., 346501"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-bgg-blue focus:border-bgg-blue shadow-sm text-gray-700"
+            >
+            <p class="text-xs text-gray-500">Game ID to fetch (default: Mille Fiori).</p>
+        </div>
+
+        <!-- Token Input Group -->
+        <div class="space-y-2">
+            <label for="tokenInput" class="block text-sm font-medium text-gray-700">Bearer Token (Paste for Manual Test):</label>
+            <input 
+                type="text" 
+                id="tokenInput" 
+                placeholder="Paste your token value here for the manual test"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-bgg-blue focus:border-bgg-blue shadow-sm text-gray-700"
+            >
+            <p class="text-xs text-gray-500">Only used for the "Test with Pasted Token" button.</p>
+        </div>
+
+        <!-- Action Buttons (TWO BUTTONS NOW) -->
+        <div class="flex flex-col space-y-3 pt-2">
+            <button id="fetchManualButton" class="w-full bg-bgg-blue hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-300">
+                1. Test with Pasted Token (Manual)
+            </button>
+            <button id="fetchInjectedButton" class="w-full bg-bgg-green hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-300">
+                2. Test with Injected Secret ('TOKEN' value)
             </button>
         </div>
 
@@ -64,26 +93,23 @@
     </div>
 
     <script type="module">
-        const API_URL = "https://boardgamegeek.com/xmlapi2/thing?id=346501&stats=1";
-
-        // Application ONLY uses the token injected by the environment.
-        // It checks for a global variable __BGG_API_TOKEN (assuming CI/CD injection).
-        const BEARER_TOKEN = typeof __BGG_API_TOKEN !== 'undefined' ? __BGG_API_TOKEN : 'TOKEN';
+        // Attempt to get the token injected by the environment (e.g., CI/CD)
+        const INJECTED_TOKEN = typeof __BGG_API_TOKEN !== 'undefined' ? __BGG_API_TOKEN : '';
 
         // Global DOM Elements
-        const fetchButton = document.getElementById('fetchButton');
+        const fetchManualButton = document.getElementById('fetchManualButton');
+        const fetchInjectedButton = document.getElementById('fetchInjectedButton');
         const loading = document.getElementById('loading');
         const resultsContainer = document.getElementById('resultsContainer');
         const gameNameElement = document.getElementById('gameName');
         const statsGrid = document.getElementById('statsGrid');
         const errorMsg = document.getElementById('errorMsg');
+        const tokenInput = document.getElementById('tokenInput');
+        const thingIdInput = document.getElementById('thingIdInput'); 
+        const descriptionText = document.getElementById('descriptionText');
         
-        // Removed tokenInput element
-
         /**
          * Utility function to create a key/value display card.
-         * @param {string} key - The label for the stat.
-         * @param {string} value - The value of the stat.
          */
         const createStatItem = (key, value) => `
             <div class="bg-gray-50 p-3 rounded-lg border border-gray-100">
@@ -94,10 +120,6 @@
 
         /**
          * Finds an attribute value from an XML document using a CSS selector.
-         * @param {Document} xmlDoc - The parsed XML document.
-         * @param {string} selector - CSS selector for the element.
-         * @param {string} attribute - The attribute to extract (e.g., 'value').
-         * @returns {string} The attribute value or 'N/A'.
          */
         const getXmlAttribute = (xmlDoc, selector, attribute) => {
             const element = xmlDoc.querySelector(selector);
@@ -105,41 +127,54 @@
         };
 
         /**
-         * Makes the API call and processes the XML data.
+         * The core API fetch logic, which accepts the token to use.
+         * @param {string} token - The Bearer token to use for authorization.
+         * @param {string} source - Description of the token source (for error messages).
          */
-        const fetchThingData = async () => {
+        const fetchData = async (token, source) => {
             
-            // Check if the token is still the placeholder or empty, meaning injection failed
-            if (BEARER_TOKEN === 'TOKEN' || !BEARER_TOKEN) {
+            const thingId = thingIdInput.value.trim();
+
+            // 1. Validate inputs
+            if (!thingId || isNaN(parseInt(thingId))) {
                 resultsContainer.classList.add('hidden');
-                errorMsg.textContent = "Error: The required 'TOKEN' secret was not injected from the environment. API call blocked.";
+                errorMsg.textContent = "Error: Please enter a valid BGG Thing ID (Game ID).";
                 errorMsg.classList.remove('hidden');
-                fetchButton.disabled = false;
                 return;
             }
 
-            // Reset state
+            // 2. Final token validation
+            if (!token || token.toUpperCase() === 'TOKEN') {
+                resultsContainer.classList.add('hidden');
+                errorMsg.textContent = `Error: The ${source} failed. Token is missing or is the literal secret name 'TOKEN'.`;
+                errorMsg.classList.remove('hidden');
+                return;
+            }
+
+            // 3. Construct API URL dynamically
+            const API_URL = `https://boardgamegeek.com/xmlapi2/thing?id=${thingId}&stats=1`;
+            
+            // 4. Reset state and update UI feedback
             resultsContainer.classList.add('hidden');
             errorMsg.classList.add('hidden');
             loading.classList.remove('hidden');
-            fetchButton.disabled = true;
+            descriptionText.textContent = `Fetching data for BGG ID: ${thingId} using ${source}...`;
 
             try {
-                // Fetch the XML data, using the injected BEARER_TOKEN
+                // 5. Fetch the XML data
                 const response = await fetch(API_URL, {
                     method: 'GET',
                     headers: {
-                        'Authorization': `Bearer ${BEARER_TOKEN}`
+                        'Authorization': `Bearer ${token}`
                     }
                 });
                 
                 if (!response.ok) {
-                    // Throw error with the status code (like 401)
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 const xmlText = await response.text();
 
-                // Parse the XML string into a DOM Document
+                // 6. Parse the XML string into a DOM Document
                 const parser = new DOMParser();
                 const xmlDoc = parser.parseFromString(xmlText, "text/xml");
 
@@ -154,7 +189,6 @@
                 const yearPublished = getXmlAttribute(xmlDoc, 'yearpublished', 'value');
                 const minPlayers = getXmlAttribute(xmlDoc, 'minplayers', 'value');
                 const maxPlayers = getXmlAttribute(xmlDoc, 'maxplayers', 'value');
-                // The average weight (complexity) is nested deeper
                 const averageWeight = getXmlAttribute(xmlDoc, 'statistics ratings averageweight', 'value');
 
                 // Format the average weight to 2 decimal places
@@ -170,19 +204,42 @@
                 ].join('');
 
                 resultsContainer.classList.remove('hidden');
+                descriptionText.textContent = `Successfully retrieved data for BGG ID: ${thingId} using ${source}.`;
+
 
             } catch (error) {
                 console.error("API Call Error:", error);
-                errorMsg.textContent = `Failed to load data: ${error.message}. Please verify the injected token's validity.`;
+                errorMsg.textContent = `Failed to load data for ID ${thingId} via ${source}: ${error.message}.`;
                 errorMsg.classList.remove('hidden');
+                descriptionText.textContent = "Test API calls using either a manually pasted token or an environment-injected secret.";
             } finally {
                 loading.classList.add('hidden');
-                fetchButton.disabled = false;
+                fetchManualButton.disabled = false;
+                fetchInjectedButton.disabled = false;
             }
         };
 
-        // Attach event listener to the button
-        fetchButton.addEventListener('click', fetchThingData);
+        // --- Button Handlers ---
+
+        const handleManualFetch = () => {
+            fetchManualButton.disabled = true;
+            fetchInjectedButton.disabled = true;
+            loading.classList.remove('hidden');
+            const token = tokenInput.value.trim();
+            fetchData(token, 'Pasted Token');
+        };
+
+        const handleInjectedFetch = () => {
+            fetchManualButton.disabled = true;
+            fetchInjectedButton.disabled = true;
+            loading.classList.remove('hidden');
+            // Use the global INJECTED_TOKEN constant
+            fetchData(INJECTED_TOKEN, 'Injected Secret (TOKEN)');
+        };
+
+        // Attach event listeners to the new buttons
+        fetchManualButton.addEventListener('click', handleManualFetch);
+        fetchInjectedButton.addEventListener('click', handleInjectedFetch);
 
     </script>
 </body>
