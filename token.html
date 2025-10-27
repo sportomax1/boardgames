@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mille Fiori BGG Data Fetcher</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for background and font */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f9fc;
+        }
+        .card {
+            background-color: white;
+            transition: all 0.3s ease;
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'bgg-blue': '#007bff',
+                        'bgg-dark': '#343a40',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <div class="card w-full max-w-lg shadow-2xl rounded-xl p-8 space-y-6">
+        <h1 class="text-3xl font-bold text-bgg-dark text-center">Board Game Geek Data Fetcher</h1>
+        <p class="text-center text-gray-500">Retrieving data for Mille Fiori (ID: 346501) via XML API 2.</p>
+
+        <!-- Action Button -->
+        <div class="flex justify-center">
+            <button id="fetchButton" class="bg-bgg-blue hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-300">
+                Fetch Game Statistics
+            </button>
+        </div>
+
+        <!-- Loading Indicator -->
+        <div id="loading" class="hidden text-center mt-4">
+            <svg class="animate-spin h-5 w-5 text-bgg-blue mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p class="text-sm text-gray-500 mt-2">Fetching data from BGG...</p>
+        </div>
+
+        <!-- Results Container -->
+        <div id="resultsContainer" class="hidden border border-gray-200 rounded-lg p-4 space-y-3">
+            <h2 id="gameName" class="text-xl font-bold text-bgg-dark"></h2>
+            <div id="statsGrid" class="grid grid-cols-2 gap-4 text-sm">
+                <!-- Data will be injected here -->
+            </div>
+            <p id="errorMsg" class="text-red-600 font-medium hidden"></p>
+        </div>
+    </div>
+
+    <script type="module">
+        const API_URL = "https://boardgamegeek.com/xmlapi2/thing?id=346501&stats=1";
+        
+        // WARNING: Storing a secret directly in frontend JavaScript is highly insecure
+        // as anyone can view it. Use this only for public or non-sensitive tokens.
+        // For a true secret, you MUST use a backend proxy.
+        const BEARER_TOKEN = "TOKEN"; 
+
+        // Global DOM Elements
+        const fetchButton = document.getElementById('fetchButton');
+        const loading = document.getElementById('loading');
+        const resultsContainer = document.getElementById('resultsContainer');
+        const gameNameElement = document.getElementById('gameName');
+        const statsGrid = document.getElementById('statsGrid');
+        const errorMsg = document.getElementById('errorMsg');
+
+        /**
+         * Utility function to create a key/value display card.
+         * @param {string} key - The label for the stat.
+         * @param {string} value - The value of the stat.
+         */
+        const createStatItem = (key, value) => `
+            <div class="bg-gray-50 p-3 rounded-lg border border-gray-100">
+                <p class="text-xs font-medium text-gray-500 uppercase">${key}</p>
+                <p class="text-lg font-semibold text-bgg-dark">${value}</p>
+            </div>
+        `;
+
+        /**
+         * Finds an attribute value from an XML document using a CSS selector.
+         * @param {Document} xmlDoc - The parsed XML document.
+         * @param {string} selector - CSS selector for the element.
+         * @param {string} attribute - The attribute to extract (e.g., 'value').
+         * @returns {string} The attribute value or 'N/A'.
+         */
+        const getXmlAttribute = (xmlDoc, selector, attribute) => {
+            const element = xmlDoc.querySelector(selector);
+            return element ? element.getAttribute(attribute) : 'N/A';
+        };
+
+        /**
+         * Makes the API call and processes the XML data.
+         */
+        const fetchThingData = async () => {
+            // Reset state
+            resultsContainer.classList.add('hidden');
+            errorMsg.classList.add('hidden');
+            loading.classList.remove('hidden');
+            fetchButton.disabled = true;
+
+            try {
+                // Fetch the XML data, including the Authorization header
+                const response = await fetch(API_URL, {
+                    method: 'GET',
+                    headers: {
+                        // This header provides the Bearer Token for authorization
+                        'Authorization': `Bearer ${BEARER_TOKEN}`
+                        // Note: The BGG API does not actually require this header.
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const xmlText = await response.text();
+
+                // Parse the XML string into a DOM Document
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+
+                // Check for BGG error messages (e.g., if ID is invalid)
+                if (xmlDoc.querySelector('error')) {
+                    const message = xmlDoc.querySelector('error message')?.textContent || 'An unknown BGG API error occurred.';
+                    throw new Error(message);
+                }
+
+                // --- Extract Data from XML ---
+                const gameName = getXmlAttribute(xmlDoc, 'name[type="primary"]', 'value');
+                const yearPublished = getXmlAttribute(xmlDoc, 'yearpublished', 'value');
+                const minPlayers = getXmlAttribute(xmlDoc, 'minplayers', 'value');
+                const maxPlayers = getXmlAttribute(xmlDoc, 'maxplayers', 'value');
+                // The average weight (complexity) is nested deeper in the statistics section
+                const averageWeight = getXmlAttribute(xmlDoc, 'statistics ratings averageweight', 'value');
+
+                // Format the average weight to 2 decimal places
+                const complexity = averageWeight !== 'N/A' ? parseFloat(averageWeight).toFixed(2) : 'N/A';
+
+                // --- Update UI ---
+                gameNameElement.textContent = gameName;
+                statsGrid.innerHTML = [
+                    createStatItem("Year Published", yearPublished),
+                    createStatItem("Min Players", minPlayers),
+                    createStatItem("Max Players", maxPlayers),
+                    createStatItem("Complexity (Weight)", complexity),
+                ].join('');
+
+                resultsContainer.classList.remove('hidden');
+
+            } catch (error) {
+                console.error("API Call Error:", error);
+                errorMsg.textContent = `Failed to load data: ${error.message}.`;
+                errorMsg.classList.remove('hidden');
+            } finally {
+                loading.classList.add('hidden');
+                fetchButton.disabled = false;
+            }
+        };
+
+        // Attach event listener to the button
+        fetchButton.addEventListener('click', fetchThingData);
+
+        // Optional: Pre-fetch data when the page loads
+        window.onload = fetchThingData;
+
+    </script>
+</body>
+</html>
