@@ -1,0 +1,59 @@
+name: Deploy Web Page with Secret Injection
+
+on:
+  # Triggers the workflow on pushes to the main branch
+  push:
+    branches: [ "main" ]
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# Grant GITHUB_TOKEN write permission to the packages and pages assets
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+  actions: write
+
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Inject Secret into HTML 🚀
+        id: inject_secret
+        env:
+          # This variable pulls the value from your GitHub Repository Secret named 'TOKEN'
+          BGG_SECRET_VALUE: ${{ secrets.TOKEN }}
+        run: |
+          echo "Starting secret injection..."
+          
+          # 1. Prepare the JavaScript line to be injected
+          # We use a simple echo/sed trick to safely include the secret value (BGG_SECRET_VALUE)
+          # into the 'index.html' file, defining the variable __BGG_API_TOKEN.
+          
+          # The replacement string: We escape slashes for sed and enclose the secret in quotes.
+          REPLACEMENT_LINE=$(echo "const __BGG_API_TOKEN = '$BGG_SECRET_VALUE';")
+          REPLACEMENT_LINE_ESCAPED=$(echo $REPLACEMENT_LINE | sed 's/\//\\\//g')
+          
+          # The SED command searches for the unique placeholder and replaces it with the JavaScript line.
+          sed -i "s/\/\/ Placeholder for CI\/CD injection: const __BGG_API_TOKEN = '...';/$REPLACEMENT_LINE_ESCAPED/g" index.html
+          
+          echo "Secret successfully injected into index.html."
+          # Log the first 500 characters of the modified file (DO NOT log the secret itself)
+          head -c 500 index.html 
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+        
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # Uploads the root directory containing the modified index.html
+          path: './'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
