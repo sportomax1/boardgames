@@ -35,14 +35,18 @@ def get_git_commit_time(file_path):
             ['git', 'log', '-1', '--format=%ct', '--', file_path],
             capture_output=True,
             text=True,
+            # CRITICAL: If the file is newly created but not committed yet, 
+            # this will raise CalledProcessError. We handle it in the except block.
             check=True
         )
         return float(result.stdout.strip())
     except (subprocess.CalledProcessError, FileNotFoundError):
         # Fallback for new (uncommitted) files or if git fails
+        print(f"Warning: No git history found for {file_path}. Using filesystem time.")
         return os.path.getmtime(file_path)
     except Exception as e:
         # Generic error fallback
+        print(f"Error getting git time for {file_path}: {e}")
         return os.path.getmtime(file_path)
 
 def generate_html_index(output_file='myhtml.html'):
@@ -190,9 +194,9 @@ def generate_html_index(output_file='myhtml.html'):
         if path_obj.name == output_file:
             continue
             
-        # *** CHANGE APPLIED HERE: Use Git commit time (mtime_epoch) ***
+        # *** USING GIT COMMIT TIME ***
         mtime_epoch = get_git_commit_time(file_path_str)
-        # -------------------------------------------------------------
+        # -----------------------------
 
         mod_time_dt_utc = datetime.fromtimestamp(mtime_epoch, timezone.utc)
         app_name_label = path_obj.stem.replace('-', ' ').replace('_', ' ').title()
