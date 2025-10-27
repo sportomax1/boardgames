@@ -1,7 +1,8 @@
 import os
 import glob
 from pathlib import Path
-from datetime import datetime, timezone
+# Added timedelta for the Mountain Time offset calculation
+from datetime import datetime, timezone, timedelta
 
 def format_time_since(delta):
     """Converts a timedelta object to a user-friendly 'time since' string."""
@@ -22,7 +23,7 @@ def format_time_since(delta):
 def generate_html_index(output_file='myhtml.html'):
     """
     Scans for all HTML files, sorts them by modification date (newest first),
-    and generates an index file with client-side sorting controls.
+    and generates an index file with client-side sorting and search controls.
     """
     
     # --- Start of HTML content ---
@@ -45,18 +46,33 @@ def generate_html_index(output_file='myhtml.html'):
             padding-bottom: 10px; 
         }}
         
+        /* --- Search Bar Styles --- */
+        .search-input {{
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }}
+        /* --- End Search Bar Styles --- */
+
         /* --- Sorting Button Styles --- */
         .sort-controls {{
             margin-bottom: 20px;
+            display: flex; /* Ensure buttons wrap nicely on mobile */
+            flex-wrap: wrap;
+            gap: 10px;
         }}
         .sort-btn {{
+            flex-grow: 1; /* Allow buttons to expand */
             padding: 8px 12px;
             font-size: 14px;
             border: 1px solid #ccc;
             background-color: #f7f7f7;
             border-radius: 6px;
             cursor: pointer;
-            margin-right: 5px;
             transition: background-color 0.2s, box-shadow 0.2s;
         }}
         .sort-btn:hover {{
@@ -70,6 +86,7 @@ def generate_html_index(output_file='myhtml.html'):
         }}
         /* --- End Sorting Button Styles --- */
 
+        /* --- Card Styles (Mobile Friendly) --- */
         .app-entry {{
             border: 1px solid #ddd;
             border-radius: 8px;
@@ -82,39 +99,46 @@ def generate_html_index(output_file='myhtml.html'):
             box-shadow: 0 3px 6px rgba(0,0,0,0.08);
         }}
 
-        .app-button {{
+        /* New style for the App Name Header (link) */
+        .app-name-header {{
             display: block;
             width: 100%;
             padding: 12px 15px;
             text-align: left;
-            background-color: #f9f9f9;
+            background-color: #f0f6fc; /* Light blue background for header look */
             border: none;
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid #cce;
             cursor: pointer;
             text-decoration: none;
-            color: #0366d6;
-            font-size: 16px;
-            font-weight: 600;
+            color: #1a1a1a; /* Darker text for bold header */
+            font-size: 18px; /* Slightly larger */
+            font-weight: 700; /* Bold */
             border-top-left-radius: 8px;
             border-top-right-radius: 8px;
+            transition: background-color 0.2s;
         }}
-        .app-button:hover {{
-            background-color: #f0f6fc;
+        .app-name-header:hover {{
+            background-color: #e3effc;
         }}
 
         .file-info {{
             padding: 10px 15px;
-            font-size: 13px;
+            font-size: 14px;
             color: #555;
-            line-height: 1.6;
+            line-height: 1.4;
         }}
-        .file-info strong {{ color: #222; }}
+        .file-info p {{
+            margin: 5px 0; /* Add margin between file name and update time */
+        }}
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Available Applications</h1>
-        <p>Click a button to view the application. Default sort is by last file update (newest first).</p>
+        <p>Click an application name to open it.</p>
+        
+        <!-- Search Bar -->
+        <input type="text" id="searchInput" placeholder="Search applications by name or file path..." class="search-input">
         
         <!-- Sorting Controls -->
         <div class="sort-controls">
@@ -133,6 +157,9 @@ def generate_html_index(output_file='myhtml.html'):
     file_stats = []
     now_utc = datetime.now(timezone.utc)
     
+    # Define Mountain Time offset (e.g., MST/MDT -7 hours) for display
+    MTN_OFFSET = timedelta(hours=-7)
+    
     for file_path_str in all_files:
         path_obj = Path(file_path_str)
         if path_obj.name == output_file:
@@ -142,10 +169,14 @@ def generate_html_index(output_file='myhtml.html'):
         mod_time_dt_utc = datetime.fromtimestamp(mtime_epoch, timezone.utc)
         app_name_label = path_obj.stem.replace('-', ' ').replace('_', ' ').title()
 
+        # Calculate time for MTN display
+        mod_time_mtn = mod_time_dt_utc + MTN_OFFSET
+        mod_time_mtn_str = mod_time_mtn.strftime('%Y-%m-%d %H:%M:%S MST/MDT')
+
         file_stats.append({
             'path': path_obj.as_posix(),
             'mtime': mtime_epoch,
-            'mod_time_str': mod_time_dt_utc.strftime('%Y-%m-%d %H:%M:%S UTC'),
+            'mod_time_str_mtn': mod_time_mtn_str, # Use MTN time string for display
             'time_since': format_time_since(now_utc - mod_time_dt_utc),
             'app_name_lower': app_name_label.lower()
         })
@@ -161,17 +192,15 @@ def generate_html_index(output_file='myhtml.html'):
             file_path = file_data['path']
             app_name_label = file_data['app_name_lower'].title()
             
-            # Button text (no emoji)
-            button_text = f"{app_name_label} - Simulate Application"
-            
             # Add data- attributes for JavaScript sorting
             html_content += f"""
             <div class="app-entry" data-mtime="{file_data['mtime']}" data-name="{file_data['app_name_lower']}">
-                <a href="{file_path}" class="app-button" role="button">{button_text}</a>
+                <a href="{file_path}" class="app-name-header" role="button">
+                    {app_name_label}
+                </a>
                 <div class="file-info">
-                    <strong>App Name:</strong> {app_name_label}<br>
-                    <strong>File Name:</strong> {file_path}<br>
-                    <strong>Last Update:</strong> {file_data['mod_time_str']} ({file_data['time_since']})
+                    <p><strong>File Name:</strong> {file_path}</p>
+                    <p><strong>Last Update:</strong> {file_data['mod_time_str_mtn']} ({file_data['time_since']})</p>
                 </div>
             </div>
 """
@@ -179,13 +208,14 @@ def generate_html_index(output_file='myhtml.html'):
     # End of the app list
     html_content += "        </div> <!-- /#app-list -->\n"
     
-    # --- JavaScript for Sorting ---
+    # --- JavaScript for Sorting and Filtering ---
     html_content += """
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const btnSortUpdate = document.getElementById('sortByUpdate');
             const btnSortName = document.getElementById('sortByName');
             const appListContainer = document.getElementById('app-list');
+            const searchInput = document.getElementById('searchInput');
 
             function sortItems(criteria) {
                 // Get all app entries from the container
@@ -218,9 +248,31 @@ def generate_html_index(output_file='myhtml.html'):
                 });
             }
 
-            // Add click event listeners
+            function filterItems() {
+                const filter = searchInput.value.toLowerCase();
+                const items = Array.from(appListContainer.querySelectorAll('.app-entry'));
+                
+                items.forEach(item => {
+                    // Check if the app name (data-name) or file info contains the filter text
+                    const appName = item.dataset.name;
+                    const fileInfo = item.querySelector('.file-info').textContent; 
+                    
+                    if (appName.includes(filter) || fileInfo.toLowerCase().includes(filter)) {
+                        item.style.display = 'block';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+            }
+
+
+            // Add event listeners
             btnSortUpdate.addEventListener('click', () => sortItems('update'));
             btnSortName.addEventListener('click', () => sortItems('name'));
+            searchInput.addEventListener('keyup', filterItems);
+
+            // Initial filter/sort call
+            sortItems('update'); 
         });
     </script>
 """
@@ -237,7 +289,7 @@ def generate_html_index(output_file='myhtml.html'):
     with open(output_file, 'w', encoding='utf-8') as f:
         f.write(html_content)
 
-    print(f"Successfully generated {output_file} with {len(sorted_files)} links and sorting controls.")
+    print(f"Successfully generated {output_file} with {len(sorted_files)} links, sorting, and search controls.")
 
 if __name__ == "__main__":
     generate_html_index()
