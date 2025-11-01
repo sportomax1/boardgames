@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BGG Collection Matchup</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .tabs {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .tab {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 1em;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .tab.active {
+            background: white;
+            color: #667eea;
+            font-weight: bold;
+        }
+        .tab:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        .tab.active:hover {
+            background: white;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .status {
+            background: rgba(255,255,255,0.2);
+            padding: 15px;
+            border-radius: 10px;
+            color: white;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .loading {
+            text-align: center;
+            color: white;
+            font-size: 1.2em;
+        }
+        .matchup-container {
+            display: flex;
+            gap: 20px;
+            align-items: stretch;
+            margin-bottom: 30px;
+        }
+        .game-card {
+            flex: 1;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        .game-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+        }
+        .game-card.selected {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            transform: scale(1.05);
+        }
+        .game-image {
+            width: 200px;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        .game-title {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .game-year {
+            color: #666;
+            margin-bottom: 15px;
+        }
+        .game-card.selected .game-year {
+            color: rgba(255,255,255,0.8);
+        }
+        .game-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            width: 100%;
+            margin-top: 15px;
+        }
+        .stat {
+            padding: 8px;
+            background: #f5f5f5;
+            border-radius: 5px;
+            font-size: 0.9em;
+        }
+        .game-card.selected .stat {
+            background: rgba(255,255,255,0.2);
+        }
+        .vs-divider {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 3em;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .controls {
+            text-align: center;
+            margin-top: 30px;
+        }
+        button {
+            background: white;
+            color: #667eea;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.1em;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+            margin: 5px;
+        }
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 7px 20px rgba(0,0,0,0.3);
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .progress {
+            background: rgba(255,255,255,0.2);
+            padding: 15px;
+            border-radius: 10px;
+            color: white;
+            text-align: center;
+            font-size: 1.2em;
+            margin-bottom: 20px;
+        }
+        .progress-bar {
+            background: rgba(255,255,255,0.3);
+            height: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            background: white;
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+        .results {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-top: 30px;
+        }
+        .results h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+        .result-item {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .result-item:last-child {
+            border-bottom: none;
+        }
+        .rank {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #667eea;
+            margin-right: 15px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        .stat-label {
+            color: #666;
+            font-size: 1em;
+        }
+        .firebase-setup {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+        .firebase-setup h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+        .firebase-setup textarea {
+            width: 100%;
+            height: 150px;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+        }
+        .firebase-status {
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+        .firebase-status.connected {
+            background: #d4edda;
+            color: #155724;
+        }
+        .firebase-status.disconnected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .history-item {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #eee;
+        }
+        .history-date {
+            font-weight: bold;
+            color: #667eea;
+        }
+        .matchup-list {
+            display: grid;
+            gap: 10px;
+        }
+        .matchup-row {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        .matchup-number {
+            font-weight: bold;
+            color: #667eea;
+            margin-right: 15px;
+            min-width: 30px;
+        }
+        .winner {
+            color: #28a745;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎲 BGG Collection Matchup</h1>
+            <p>Choose your favorite game in each matchup!</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('game')">Play Game</button>
+            <button class="tab" onclick="switchTab('stats')">Statistics</button>
+            <button class="tab" onclick="switchTab('history')">History</button>
+            <button class="tab" onclick="switchTab('setup')">Firebase Setup</button>
+        </div>
+
+        <!-- Game Tab -->
+        <div id="game-tab" class="tab-content active">
+            <div id="status" class="status">
+                <div class="loading">Loading collection for SportoMax...</div>
+            </div>
+
+            <div id="progress" class="progress" style="display: none;">
+                <div>Round <span id="current-round">0</span> of 21</div>
+                <div class="progress-bar">
+                    <div id="progress-fill" class="progress-fill" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <div id="matchup" class="matchup-container" style="display: none;"></div>
+
+            <div class="controls">
+                <button id="start-btn" style="display: none;">Start New Matchup Session</button>
+                <button id="download-btn" style="display: none;">Download Results (JSON)</button>
+            </div>
+
+            <div id="session-results" class="results" style="display: none;"></div>
+        </div>
+
+        <!-- Stats Tab -->
+        <div id="stats-tab" class="tab-content">
+            <div id="overall-stats"></div>
+        </div>
+
+        <!-- History Tab -->
+        <div id="history-tab" class="tab-content">
+            <div id="history-list"></div>
+        </div>
+
+        <!-- Setup Tab -->
+        <div id="setup-tab" class="tab-content">
+            <div class="firebase-setup">
+                <h3>Firebase Configuration</h3>
+                <p style="margin-bottom: 15px; color: #666;">
+                    Paste your Firebase configuration JSON below. To get this:
+                </p>
+                <ol style="margin-left: 20px; margin-bottom: 15px; color: #666;">
+                    <li>Go to <a href="https://console.firebase.google.com/" target="_blank">Firebase Console</a></li>
+                    <li>Create a new project or select existing one</li>
+                    <li>Go to Project Settings → General → Your apps</li>
+                    <li>Create a web app or select existing one</li>
+                    <li>Copy the firebaseConfig object</li>
+                </ol>
+                <textarea id="firebase-config-input" placeholder='{
+  "apiKey": "your-api-key",
+  "authDomain": "your-app.firebaseapp.com",
+  "databaseURL": "https://your-app.firebaseio.com",
+  "projectId": "your-project-id",
+  "storageBucket": "your-app.appspot.com",
+  "messagingSenderId": "123456789",
+  "appId": "your-app-id"
+}'></textarea>
+                <button onclick="saveFirebaseConfig()">Save Configuration</button>
+                <div id="firebase-status"></div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getDatabase, ref, push, set, get, query, orderByChild } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+
+        const USERNAME = 'SportoMax';
+        const TOTAL_MATCHUPS = 21;
+        
+        let collection = [];
+        let matchups = [];
+        let currentMatchup = 0;
+        let currentSession = {
+            username: USERNAME,
+            timestamp: new Date().toISOString(),
+            matchups: [],
+            wins: {}
+        };
+        let db = null;
+        let firebaseApp = null;
+
+        // Load saved Firebase config
+        function loadFirebaseConfig() {
+            const saved = localStorage.getItem('firebaseConfig');
+            if (saved) {
+                try {
+                    const config = JSON.parse(saved);
+                    initializeFirebase(config);
+                } catch (e) {
+                    console.error('Error loading Firebase config:', e);
+                }
+            }
+        }
+
+        // Initialize Firebase
+        function initializeFirebase(config) {
+            try {
+                if (firebaseApp) {
+                    console.log('Firebase already initialized');
+                    return;
+                }
+                firebaseApp = initializeApp(config);
+                db = getDatabase(firebaseApp);
+                showFirebaseStatus('Connected to Firebase', true);
+                loadStats();
+                loadHistory();
+            } catch (error) {
+                showFirebaseStatus('Error: ' + error.message, false);
+                console.error('Firebase initialization error:', error);
+            }
+        }
+
+        // Save Firebase config
+        window.saveFirebaseConfig = function() {
+            const input = document.getElementById('firebase-config-input').value;
+            try {
+                const config = JSON.parse(input);
+                localStorage.setItem('firebaseConfig', input);
+                initializeFirebase(config);
+            } catch (error) {
+                showFirebaseStatus('Invalid JSON configuration', false);
+            }
+        };
+
+        function showFirebaseStatus(message, isConnected) {
+            const statusDiv = document.getElementById('firebase-status');
+            statusDiv.textContent = message;
+            statusDiv.className = `firebase-status ${isConnected ? 'connected' : 'disconnected'}`;
+            statusDiv.style.display = 'block';
+        }
+
+        // In-memory storage for matchup history
+        let matchupHistory = {
+            sessions: [],
+            allTimeStats: {}
+        };
+
+        // Load history from memory on startup
+        function loadStoredHistory() {
+            // This will be populated from imported files
+            if (matchupHistory.sessions.length > 0) {
+                updateAllTimeStats();
+            }
+        }
+
+        // Update all-time statistics
+        function updateAllTimeStats() {
+            const stats = {};
+            
+            matchupHistory.sessions.forEach(session => {
+                session.matchups.forEach(matchup => {
+                    // Track game1
+                    if (!stats[matchup.game1.id]) {
+                        stats[matchup.game1.id] = {
+                            id: matchup.game1.id,
+                            name: matchup.game1.name,
+                            appearances: 0,
+                            wins: 0,
+                            losses: 0
+                        };
+                    }
+                    stats[matchup.game1.id].appearances++;
+                    
+                    // Track game2
+                    if (!stats[matchup.game2.id]) {
+                        stats[matchup.game2.id] = {
+                            id: matchup.game2.id,
+                            name: matchup.game2.name,
+                            appearances: 0,
+                            wins: 0,
+                            losses: 0
+                        };
+                    }
+                    stats[matchup.game2.id].appearances++;
+                    
+                    // Track winner
+                    if (matchup.winner.id === matchup.game1.id) {
+                        stats[matchup.game1.id].wins++;
+                        stats[matchup.game2.id].losses++;
+                    } else {
+                        stats[matchup.game2.id].wins++;
+                        stats[matchup.game1.id].losses++;
+                    }
+                });
+            });
+            
+            matchupHistory.allTimeStats = stats;
+        }
+
+        // Fetch BGG Collection with own=1 filter
+        async function fetchCollection() {
+            try {
+                const response = await fetch(`https://boardgamegeek.com/xmlapi2/collection?username=${USERNAME}&own=1&stats=1`);
+                const text = await response.text();
+                const parser = new DOMParser();
+                const xml = parser.parseFromString(text, 'text/xml');
+                
+                const items = xml.querySelectorAll('item');
+                collection = Array.from(items).map(item => {
+                    const name = item.querySelector('name');
+                    const yearpublished = item.querySelector('yearpublished');
+                    const image = item.querySelector('image');
+                    const thumbnail = item.querySelector('thumbnail');
+                    const stats = item.querySelector('stats');
+                    const rating = stats?.querySelector('rating');
+                    const average = rating?.querySelector('average');
+                    const numplays = item.querySelector('numplays');
+                    
+                    return {
+                        id: item.getAttribute('objectid'),
+                        name: name?.textContent || 'Unknown Game',
+                        year: yearpublished?.textContent || 'N/A',
+                        image: image?.textContent || thumbnail?.textContent || '',
+                        thumbnail: thumbnail?.textContent || image?.textContent || '',
+                        rating: parseFloat(average?.getAttribute('value') || 0),
+                        numPlays: parseInt(numplays?.textContent || 0)
+                    };
+                });
+
+                if (collection.length < 2) {
+                    throw new Error('Not enough games in collection');
+                }
+
+                document.getElementById('status').innerHTML = 
+                    `<div>✅ Loaded ${collection.length} games from your collection!</div>`;
+                document.getElementById('start-btn').style.display = 'inline-block';
+                
+            } catch (error) {
+                document.getElementById('status').innerHTML = 
+                    `<div>❌ Error loading collection: ${error.message}</div>`;
+            }
+        }
+
+        // Generate random matchups
+        function generateMatchups() {
+            matchups = [];
+            const shuffled = [...collection].sort(() => Math.random() - 0.5);
+            
+            for (let i = 0; i < TOTAL_MATCHUPS && i * 2 + 1 < shuffled.length; i++) {
+                matchups.push([shuffled[i * 2], shuffled[i * 2 + 1]]);
+            }
+            
+            currentSession.wins = {};
+            collection.forEach(game => {
+                currentSession.wins[game.id] = 0;
+            });
+        }
+
+        // Display current matchup
+        function displayMatchup() {
+            if (currentMatchup >= matchups.length) {
+                completeSession();
+                return;
+            }
+
+            const [game1, game2] = matchups[currentMatchup];
+            const matchupDiv = document.getElementById('matchup');
+            
+            matchupDiv.innerHTML = `
+                <div class="game-card" onclick="selectGame(0)">
+                    <img src="${game1.thumbnail || game1.image}" alt="${game1.name}" class="game-image" 
+                         onerror="this.src='https://via.placeholder.com/200x200?text=No+Image'">
+                    <div class="game-title">${game1.name}</div>
+                    <div class="game-year">(${game1.year})</div>
+                    <div class="game-stats">
+                        <div class="stat">⭐ ${game1.rating.toFixed(1)}</div>
+                        <div class="stat">🎮 ${game1.numPlays} plays</div>
+                    </div>
+                </div>
+                
+                <div class="vs-divider">VS</div>
+                
+                <div class="game-card" onclick="selectGame(1)">
+                    <img src="${game2.thumbnail || game2.image}" alt="${game2.name}" class="game-image"
+                         onerror="this.src='https://via.placeholder.com/200x200?text=No+Image'">
+                    <div class="game-title">${game2.name}</div>
+                    <div class="game-year">(${game2.year})</div>
+                    <div class="game-stats">
+                        <div class="stat">⭐ ${game2.rating.toFixed(1)}</div>
+                        <div class="stat">🎮 ${game2.numPlays} plays</div>
+                    </div>
+                </div>
+            `;
+            
+            matchupDiv.style.display = 'flex';
+            document.getElementById('progress').style.display = 'block';
+            document.getElementById('current-round').textContent = currentMatchup + 1;
+            document.getElementById('progress-fill').style.width = 
+                ((currentMatchup / TOTAL_MATCHUPS) * 100) + '%';
+        }
+
+        // Select game winner
+        window.selectGame = function(index) {
+            const [game1, game2] = matchups[currentMatchup];
+            const winner = index === 0 ? game1 : game2;
+            const loser = index === 0 ? game2 : game1;
+            
+            currentSession.matchups.push({
+                round: currentMatchup + 1,
+                game1: { id: game1.id, name: game1.name },
+                game2: { id: game2.id, name: game2.name },
+                winner: { id: winner.id, name: winner.name },
+                timestamp: new Date().toISOString()
+            });
+            
+            currentSession.wins[winner.id]++;
+            
+            const cards = document.querySelectorAll('.game-card');
+            cards[index].classList.add('selected');
+            
+            setTimeout(() => {
+                currentMatchup++;
+                displayMatchup();
+            }, 500);
+        };
+
+        // Complete session and save to Firebase
+        async function completeSession() {
+            document.getElementById('matchup').style.display = 'none';
+            document.getElementById('progress').style.display = 'none';
+            document.getElementById('status').innerHTML = 
+                '<div>🏆 Session complete! Saving to Firebase...</div>';
+            
+            if (db) {
+                try {
+                    const sessionsRef = ref(db, 'sessions');
+                    await push(sessionsRef, currentSession);
+                    document.getElementById('status').innerHTML = 
+                        '<div>✅ Session saved to Firebase!</div>';
+                    loadStats();
+                    loadHistory();
+                } catch (error) {
+                    document.getElementById('status').innerHTML = 
+                        '<div>⚠️ Session completed but not saved to Firebase. Download JSON backup.</div>';
+                    console.error('Error saving to Firebase:', error);
+                }
+            }
+            
+            showSessionResults();
+            document.getElementById('download-btn').style.display = 'inline-block';
+        }
+
+        // Show session results
+        function showSessionResults() {
+            const sorted = collection
+                .map(game => ({
+                    ...game,
+                    wins: currentSession.wins[game.id] || 0
+                }))
+                .filter(game => game.wins > 0)
+                .sort((a, b) => b.wins - a.wins);
+            
+            const resultsDiv = document.getElementById('session-results');
+            let html = '<h2>🏆 Session Results</h2>';
+            
+            sorted.forEach((game, index) => {
+                const appeared = currentSession.matchups.filter(m => 
+                    m.game1.id === game.id || m.game2.id === game.id
+                ).length;
+                const winRate = appeared > 0 ? ((game.wins / appeared) * 100).toFixed(0) : 0;
+                
+                html += `
+                    <div class="result-item">
+                        <div style="display: flex; align-items: center;">
+                            <span class="rank">#${index + 1}</span>
+                            <div>
+                                <div style="font-weight: bold; font-size: 1.1em;">${game.name}</div>
+                                <div style="color: #666; font-size: 0.9em;">${game.year}</div>
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 1.3em; font-weight: bold; color: #667eea;">
+                                ${game.wins} wins
+                            </div>
+                            <div style="color: #666; font-size: 0.9em;">
+                                ${winRate}% win rate (${game.wins}/${appeared})
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            resultsDiv.innerHTML = html;
+            resultsDiv.style.display = 'block';
+        }
+
+        // Load overall statistics
+        async function loadStats() {
+            if (!db) {
+                document.getElementById('overall-stats').innerHTML = 
+                    '<div class="firebase-setup"><p>Connect to Firebase to view statistics</p></div>';
+                return;
+            }
+
+            try {
+                const sessionsRef = ref(db, 'sessions');
+                const snapshot = await get(sessionsRef);
+                
+                if (!snapshot.exists()) {
+                    document.getElementById('overall-stats').innerHTML = 
+                        '<div class="firebase-setup"><p>No sessions recorded yet. Play your first game!</p></div>';
+                    return;
+                }
+
+                const sessions = Object.values(snapshot.val());
+                const gameStats = {};
+                let totalMatchups = 0;
+
+                sessions.forEach(session => {
+                    session.matchups.forEach(matchup => {
+                        totalMatchups++;
+                        
+                        [matchup.game1, matchup.game2].forEach(game => {
+                            if (!gameStats[game.id]) {
+                                gameStats[game.id] = {
+                                    id: game.id,
+                                    name: game.name,
+                                    appearances: 0,
+                                    wins: 0
+                                };
+                            }
+                            gameStats[game.id].appearances++;
+                        });
+                        
+                        if (!gameStats[matchup.winner.id]) {
+                            gameStats[matchup.winner.id] = {
+                                id: matchup.winner.id,
+                                name: matchup.winner.name,
+                                appearances: 0,
+                                wins: 0
+                            };
+                        }
+                        gameStats[matchup.winner.id].wins++;
+                    });
+                });
+
+                const sortedGames = Object.values(gameStats)
+                    .map(game => ({
+                        ...game,
+                        winRate: game.appearances > 0 ? (game.wins / game.appearances * 100).toFixed(1) : 0
+                    }))
+                    .sort((a, b) => b.wins - a.wins);
+
+                let html = `
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value">${sessions.length}</div>
+                            <div class="stat-label">Total Sessions</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">${totalMatchups}</div>
+                            <div class="stat-label">Total Matchups</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">${sortedGames.length}</div>
+                            <div class="stat-label">Games Played</div>
+                        </div>
+                    </div>
+                    
+                    <div class="results">
+                        <h2>🏆 All-Time Rankings</h2>
+                `;
+
+                sortedGames.forEach((game, index) => {
+                    html += `
+                        <div class="result-item">
+                            <div style="display: flex; align-items: center;">
+                                <span class="rank">#${index + 1}</span>
+                                <div>
+                                    <div style="font-weight: bold; font-size: 1.1em;">${game.name}</div>
+                                    <div style="color: #666; font-size: 0.9em;">
+                                        ${game.appearances} appearances
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-size: 1.3em; font-weight: bold; color: #667eea;">
+                                    ${game.wins} wins
+                                </div>
+                                <div style="color: #666; font-size: 0.9em;">
+                                    ${game.winRate}% win rate
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                html += '</div>';
+                document.getElementById('overall-stats').innerHTML = html;
+
+            } catch (error) {
+                console.error('Error loading stats:', error);
+                document.getElementById('overall-stats').innerHTML = 
+                    '<div class="firebase-setup"><p>Error loading statistics</p></div>';
+            }
+        }
+
+        // Load session history
+        async function loadHistory() {
+            if (!db) {
+                document.getElementById('history-list').innerHTML = 
+                    '<div class="firebase-setup"><p>Connect to Firebase to view history</p></div>';
+                return;
+            }
+
+            try {
+                const sessionsRef = ref(db, 'sessions');
+                const snapshot = await get(sessionsRef);
+                
+                if (!snapshot.exists()) {
+                    document.getElementById('history-list').innerHTML = 
+                        '<div class="firebase-setup"><p>No session history yet</p></div>';
+                    return;
+                }
+
+                const sessions = Object.entries(snapshot.val())
+                    .map(([key, value]) => ({ key, ...value }))
+                    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+                let html = '';
+                sessions.forEach(session => {
+                    const date = new Date(session.timestamp).toLocaleString();
+                    html += `
+                        <div class="history-item">
+                            <div class="history-header">
+                                <span class="history-date">${date}</span>
+                                <span>${session.matchups.length} matchups</span>
+                            </div>
+                            <div class="matchup-list">
+                    `;
+                    
+                    session.matchups.forEach(matchup => {
+                        html += `
+                            <div class="matchup-row">
+                                <span class="matchup-number">R${matchup.round}</span>
+                                <span>${matchup.game1.name} vs ${matchup.game2.name}</span>
+                                <span style="margin-left: auto; margin-right: 10px;">→</span>
+                                <span class="winner">${matchup.winner.name}</span>
+                            </div>
+                        `;
+                    });
+                    
+                    html += `
+                            </div>
+                        </div>
+                    `;
+                });
+
+                document.getElementById('history-list').innerHTML = html;
+
+            } catch (error) {
+                console.error('Error loading history:', error);
+                document.getElementById('history-list').innerHTML = 
+                    '<div class="firebase-setup"><p>Error loading history</p></div>';
+            }
+        }
+
+        // Download JSON
+        window.downloadResults = function() {
+            const dataStr = JSON.stringify(currentSession, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `bgg-matchup-${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+            URL.revokeObjectURL(url);
+        };
+
+        // Start new session
+        window.startNewSession = function() {
+            currentMatchup = 0;
+            currentSession = {
+                username: USERNAME,
+                timestamp: new Date().toISOString(),
+                matchups: [],
+                wins: {}
+            };
+            document.getElementById('session-results').style.display = 'none';
+            document.getElementById('download-btn').style.display = 'none';
+            document.getElementById('status').style.display = 'none';
+            generateMatchups();
+            displayMatchup();
+        };
+
+        // Switch tabs
+        window.switchTab = function(tabName) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+            
+            if (tabName === 'stats') {
+                loadStats();
+            } else if (tabName === 'history') {
+                loadHistory();
+            }
+        };
+
+        // Event listeners
+        document.getElementById('start-btn').addEventListener('click', startNewSession);
+        document.getElementById('download-btn').addEventListener('click', downloadResults);
+
+        // Initialize
+        loadFirebaseConfig();
+        fetchCollection();
+    </script>
+</body>
+</html>
