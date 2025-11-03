@@ -1,0 +1,9 @@
+{
+  "name": "bgg-proxy-app",
+  "version": "1.0.0",
+  "description": "A secure Vercel proxy for the BGG API.",
+  "main": "api/bgg-proxy.js",
+  "scripts": {
+    "start": "echo 'Running proxy function'"
+  }
+}

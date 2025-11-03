@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/thing",
+      "destination": "/bgg-thing-lookup.html"
+    }
+  ]
+}
